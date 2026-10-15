@@ -6,9 +6,9 @@ Legend: **Implemented/local** means source exists and relevant local checks pass
 
 | Workstream      | Required functionality                                                                                                    | Coverage in this PoC                                                                |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Wallets         | Connect, identity, signing, balances, network checks, fees, rejection and timeout handling                                | Dedicated local test wallet; remote user wallet integration deferred                |
-| NFT resource    | Unique ID, mint permissions, immutable traits, genes, generation, lineage schema, supply limits                           | Implemented/local; parents empty for generation zero; pending live                  |
-| Incubation      | Request/reservation, owner binding, outcome, one-time hatch, atomic deposit                                               | Implemented/local; pending live                                                     |
+| Wallets         | Connect, identity, signing, balances, network checks, fees, rejection and timeout handling                                | Integrated server-custodied browser test wallets validated; self-custody deferred                |
+| NFT resource    | Unique ID, mint permissions, immutable traits, genes, generation, lineage schema, supply limits                           | Validated live; original artwork/genesis genes; parents empty for generation zero                  |
+| Incubation      | Request/reservation, owner binding, outcome, one-time hatch, atomic deposit                                               | Validated live                                                     |
 | Secret delivery | Native encrypted memo, private preview, commitment verification, explicit reveal                                          | Implemented; public testnet round-trip pending                                      |
 | Collection      | Read actual owned NFTs, trait artwork, NFT details, refresh after confirmation                                            | Implemented; populated inventory pending live                                       |
 | Breeding        | Own both parents, compatibility, genetics/inheritance, generation, lineage, cooldowns, limits, fees, outcome verification | Deferred                                                                            |
@@ -26,7 +26,7 @@ Legend: **Implemented/local** means source exists and relevant local checks pass
 | Operations      | CI, deploys, monitoring, alerts, backups, restore drill, secrets, upgrades and emergency controls                         | Basic CI/deploy scripts; production operations deferred                             |
 | Security        | Authorization, replay/reentrancy checks, resource permissions, key rotation, randomness, economic attacks                 | Selected local contract tests; full audit deferred                                  |
 | UI              | Wallet onboarding, incubation, breeding, collection, marketplace, treasury, accessibility, mobile/error states            | Incubation/collection/privacy UI; browser checks limited to available prerequisites |
-| Launch          | Public testnet acceptance, source/license, documentation, support, production readiness                                   | Pending live and submission steps                                                   |
+| Launch          | Public testnet acceptance, source/license, documentation, support, production readiness                                   | Core incubation validated live; contest submission remains                                                   |
 
 ## Existing game feature families to reconcile
 
@@ -50,10 +50,10 @@ This inventory makes the full-game checklist broader than the contest mini-game.
 - [x] Real Tari engine creates an NFT in the fixed recipient vault.
 - [x] Duplicate hatch, wrong signer, changed opening and repeated commitment are rejected locally.
 - [x] UI contains the Halloween theme, secret/privacy explanation and sourced event rules.
-- [ ] Publish template and component on Esmeralda; save accepted receipts.
-- [ ] Prove native encrypted delivery and owner-only private preview on that deployment.
-- [ ] Hatch through the UI, then reload and find the same real NFT in the account.
+- [x] Publish template and component on Esmeralda; save accepted receipts.
+- [x] Prove native encrypted delivery and owner-only private preview on that deployment.
+- [x] Hatch through the UI, then reload and find the same real NFT in the account.
 - [ ] Exercise confirmation timeout and retry against live receipts without minting twice.
 - [ ] Complete entrant eligibility, payment address, social announcement and forum submission.
 
-Only after those live gates pass should incubation be marked validated for a full-game Tari port. Breeding and treasury remain independent projects.
+The core incubation flow is validated on public Esmeralda. Interrupted-network testing and contest submission remain separate open gates. Breeding and treasury remain independent projects.

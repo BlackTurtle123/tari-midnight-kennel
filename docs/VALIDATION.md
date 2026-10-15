@@ -1,43 +1,31 @@
-# Verification record
+# Validation evidence
 
-Environment: local Linux development checkout, 15 October 2026. Node 22 runtime, walletd v0.46.1 connected to Esmeralda. Contract tests use the real local Tari engine; no public template/component address has been recorded yet.
+Live environment: https://staging.wavesducks.com/tari/, Codex in-app desktop browser, 15 October 2026. Gameplay verified on commit `354b420667ecdb2bd57359ea73f6350e2460f8f2`; the subsequent release corrects the decorative collection count from six to four and records this evidence. Current running commit is exposed by the health endpoint.
 
-## Developer checks
+## Observed frontend results
 
-- PASS: WASM release contract builds.
-- PASS: seven engine integration tests: real NFT deposit plus replay rejection, outsider rejection, changed opening rejection with subsequent valid hatch, reseal rejection, operator-only seal/no early hatch, duplicate reservation and supply cap, sealed state excludes the secret opening.
-- PASS: eight TypeScript tests for six-variant memo round-trips/size, malformed openings, fresh salt commitments, CBOR-tag NFT metadata, journal reload/integrity, public-state redaction, signed browser account isolation/reconnect/CSRF checks and the native Esmeralda resource address.
-- PASS: TypeScript check and Vite production build.
-- PASS: running local API rejects anonymous state reads (401), mutation without request header (403), and foreign Origin (403); dedicated local wallet connect succeeds (200).
-- PASS: deployment image starts a real walletd in a read-only, non-root local container with private persistent keys; daemon connects to Esmeralda and hosted account creation succeeds. This is a local container check, not a staging deployment.
-- PASS: staging host bootstrap on 15 October 2026, after administrator access was supplied. Original configuration and authorized keys were backed up and verified; Nginx syntax passed. The hosted-runner deployment could not reach SSH; explicit manual deployment subsequently succeeded using the checksummed CI artifact.
-- BLOCKED: public contract deployment, encrypted memo round-trip, live UI hatch and populated NFT inventory. Public faucet funding rejected the fixed claim because its balance was below the claim size. No mock transactions are substituted.
+- PASS: original Beaglebyte art renders in the Halloween incubator; four genesis canines, three haunted doorways, and integrated test wallet are visible.
+- PASS: funded test wallet retains its identity and balance after deployment/reload.
+- PASS: Pumpkin Porch starts one incubation and disables additional door actions until completion.
+- PASS: native secret delivery reaches Ready. Open privately displays original PoodlOS Echelon art, `HHHHHHHH`, `CANI-HHHHHHHH-GA`, Red, and the public-reveal warning.
+- PASS: closing the preview leaves My canines at zero; reopening shows the identical canine and genotype.
+- PASS: Reveal & mint NFT completes and opens My canines with exactly one PoodlOS Echelon NFT.
+- PASS: NFT details show all eight H gene positions, generation zero, colour Red and the same genotype as the private preview.
+- PASS: reload and reopening My canines retains that one NFT.
+- Historical PASS: hosted wallet onboarding/custody text, receiving address, contest rules/links/deadline, insufficient public-faucet explanation, and local 390 × 844 layout were exercised before this artwork release. The current mobile artwork layout needs administrator retest; do not infer it from the earlier desktop pass.
 
-## Browser observations
+## Developer verification
 
-Codex in-app browser, local production frontend at http://127.0.0.1:8787:
+- PASS: eleven TypeScript tests, including real copied SVG layer/position checks, strict genes/name/colour/genotype metadata parsing, legacy NFT preservation, memo round-trips, journal integrity, browser session isolation and native token address.
+- PASS: eight Rust engine tests, including four real genesis mints with exact immutable metadata, fixed-recipient deposit, replay/outsider/altered opening/reseal/early hatch rejection, duplicate reservation and cap, and hidden sealed outcome.
+- PASS: release WASM build, TypeScript check and Vite production build. Bundled artwork produces a roughly 313 KB gzip application bundle; Vite emits its advisory chunk-size warning.
+- PASS: all 88 original SVG/CSS files match the recorded fetched main-game source revision by SHA-256.
+- PASS: v2 template publication and component creation accepted by public Esmeralda; [public receipts](ESMERALDA-DEPLOYMENT.json).
+- PASS: real NFT mint accepted (`c54e21dc1f22c4bbe7f2187917e8f1d66c268989d36baa90a183f6c9cbb02372`). Retrying the completed hatch through the game service returns the same receipt and leaves exactly one NFT.
+- PASS: the user's original Boo Beagle NFT remains in its account and is returned by the legacy collection reader with its immutable `DDDDBBBB` genes. Missing colour/genotype are not invented. This is a developer inventory check, not a browser pass for that other account.
+- NOT RUN: deliberately induced live confirmation timeout. Receipt-preserving completed-hatch retry passed; do not equate that with an interrupted network test.
 
-- PASS: desktop incubator shows original canine art, three haunted doors and game steps.
-- PASS: 390 × 844 mobile viewport stacks door cards; decorative overflow fixed and document scroll width equals client width.
-- PASS: Spooky Secrets page shows privacy boundaries, official rule links, UTC deadline and outstanding submission checklist.
-- PASS: wallet connection dialog explains local test-wallet use; connecting succeeds with the dedicated wallet daemon.
-- PASS: undeployed setup warning appears; all three mint-entry door buttons are disabled.
-- PASS: hosted staging-container mode checked through a loopback-only browser test proxy (build `staging-local-check-v3`): custody explanation, account creation, zero balance, receiving address and friendly insufficient-faucet message. The image uses both public Esmeralda indexers; a live indexer read passes. Separate real account sessions and reconnect were verified through the API. This does not establish a public staging HTTPS pass.
-- PENDING: private preview, on-chain mint confirmation, populated collection and reload persistence require funded deployment.
-
-## Live staging observations
-
-Codex in-app browser at https://staging.wavesducks.com/tari/, 15 October 2026, deployed commit `ed6c192a8a93e1270c11ef7205905f030ed48bda`:
-
-- PASS: page assets, Halloween artwork and HTTPS route load.
-- PASS: hosted custody explanation, real browser test-wallet creation, receiving address and zero balance.
-- PASS: connected state and identical payment address survive page reload.
-- PASS: public faucet action shows the actual insufficient-funds explanation.
-- PASS: Spooky Secrets page includes rules, official links, deadline and operator trust limits.
-- PASS: undeployed contract warning and disabled hatch-entry controls.
-- BLOCKED: encrypted memo delivery and NFT minting require funded operator/player accounts and template deployment.
-
-Developer verification: public health matches the exact deployed commit and passes a live indexer read. The PoC container is healthy, all 13 pre-existing container IDs are unchanged, and the original staging root responds HTTP 200. The faucet still reports 999.651320 tTARI against a 1,000 tTARI claim.
+The public faucet's earlier insufficient balance was bypassed by the user's testnet funding. New browser accounts still require test coins. No contest announcement or submission was sent.
 
 ## Frontend acceptance handoff
 
@@ -49,7 +37,7 @@ Prerequisite: developer provides the running app with funded Esmeralda player/op
 4. Knock once. Expect one incubation progressing; additional door buttons should remain disabled until it finishes.
 5. Open the delivered secret. Expect a private canine preview, with an explicit warning that minting publishes its traits.
 6. Close the preview. Expect no NFT yet; reopen it and expect the same canine.
-7. Choose Reveal & mint NFT. Expect confirmation followed by exactly one canine in My canines, with its name and NFT details.
+7. Choose Reveal & mint NFT. Expect confirmation followed by exactly one canine in My canines, with its original main-game image, name, eight genes, colour and native genotype.
 8. Reload. Expect the same NFT. Repeated confirmation/progress checks must not add a second NFT.
 9. Disconnect. Expect wallet controls to reset and no private preview remaining visible.
 

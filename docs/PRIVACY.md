@@ -3,9 +3,9 @@
 ## Protocol
 
 1. Player signs `begin_incubation(id, recipient, door)`. The contract binds the transaction signer and fixed recipient, reserving one supply slot.
-2. Operator samples one of six variants with Node’s CSPRNG and a fresh 32-byte salt. Its local journal persists the complete opening before submission.
-3. Operator signs `seal_incubation(id, commitment)`. The commitment is SHA-256 of UTF-8 `midnight-kennel:v1|<32 lowercase hex id>|<decimal variant>|<64 lowercase hex salt>`. Once sealed, it cannot be changed.
-4. Operator uses walletd `stealthTransfer` to send one microtari with the native encrypted memo `MK1:<id>:<variant>:<salt>` to the player’s payment address. The memo is 103 bytes, below the documented 255-byte limit. Native wallet code performs encryption; this app does not invent cryptography.
+2. Operator samples one of four current-genesis variants with Node’s CSPRNG and a fresh 32-byte salt. Its local journal persists the complete opening before submission.
+3. Operator signs `seal_incubation(id, commitment)`. The commitment is SHA-256 of UTF-8 `midnight-kennel:v2|<32 lowercase hex id>|<decimal variant>|<64 lowercase hex salt>`. Once sealed, it cannot be changed.
+4. Operator uses walletd `stealthTransfer` to send one microtari with the native encrypted memo `MK2:<id>:<variant>:<salt>` to the player’s payment address. The memo is 103 bytes, below the documented 255-byte limit. Native wallet code performs encryption; this app does not invent cryptography.
 5. Private preview reads only on-chain stealth UTXOs decrypted by the selected player wallet and verifies the opening against the commitment. It never falls back to the operator journal’s plaintext.
 6. Player signs `hatch(id, variant, salt)`, deliberately publishing the opening. The template verifies signer, commitment, one-time claim and fixed recipient before minting and depositing atomically.
 
@@ -31,4 +31,4 @@ The wallet RPC always remains on loopback. Only the game API is published throug
 - Losing wallet keys or the operator journal can strand unfinished incubations. Transaction receipt loss stops automatic retries for manual reconciliation.
 - NFT transfer/breeding and metadata evolution are outside this PoC’s UI. Metadata is immutable here; minting is restricted to the game component.
 
-Sources: [Tari privacy](https://ootle.tari.com/concepts/privacy/), [resource guide](https://ootle.tari.com/guides/resources/), [randomness limitations](https://ootle.tari.com/guides/randomness/). Network SDK behavior still needs live validation for this particular app.
+Sources: [Tari privacy](https://ootle.tari.com/concepts/privacy/), [resource guide](https://ootle.tari.com/guides/resources/), [randomness limitations](https://ootle.tari.com/guides/randomness/). The live staging encrypted memo, private preview and real NFT mint have been verified; see VALIDATION.md.

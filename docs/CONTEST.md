@@ -4,7 +4,7 @@ Sources checked on 15 October 2026: [October theme and submission thread](https:
 
 ## Theme implemented
 
-Halloween porches lead to six spooky canine NFT variants. The secret is the canine result plus a 256-bit salt. A public commitment binds it; Tari’s native stealth memo transports it encrypted. The wallet opens it privately; the player explicitly reveals it to mint. Both tricks and treats produce cosmetic canines, so NFT issuance is central to the validation.
+Halloween porches lead to four main-game genesis canine NFTs, presented in a Halloween doorstep game. The secret is the canine result plus a 256-bit salt. A public commitment binds it; Tari’s native stealth memo transports it encrypted. The wallet opens it privately; the player explicitly reveals it to mint. Both tricks and treats produce cosmetic canines, so NFT issuance is central to the validation.
 
 The operator knows the secret. The player’s identity is not anonymous. NFT traits become public after reveal. See [privacy and trust](PRIVACY.md). Native memo delivery remains pending public-testnet verification; a private preview in the interface is not itself evidence of confidentiality.
 

@@ -2,7 +2,7 @@
 
 A small canine incubation game for Tari Ootle’s October 2026 **Spooky Secrets** contest. Choose a haunted door, receive a secret canine outcome through a native encrypted wallet memo, then explicitly reveal and mint a real NFT.
 
-**Status: funded public Esmeralda staging; original collection deployed. Native canine genetics release undergoing live verification.** This is not yet a finished contest submission. No simulated minting or offline gameplay mode is included.
+**Live on [staging](https://staging.wavesducks.com/tari/): real Esmeralda incubation, encrypted memo preview, NFT mint and collection reload verified.** This is not yet a finished contest submission. No simulated minting or offline gameplay mode is included.
 
 ## Scope
 
@@ -69,7 +69,7 @@ State is outside the repository, under `~/.local/share/tari-midnight-kennel` by 
 - `wallet/`: wallet database; keys may also depend on the OS keyring. Back up through Tari’s supported wallet procedures.
 - `deployment-v2.json`: accepted template/component/resource addresses. Created exclusively, never overwritten automatically.
 - `deployment-journal.jsonl`: publication/creation transaction receipts for resumption.
-- `incubations.jsonl`: append-only, hash-chained full record history; contains operator plaintext secrets. Directory/file modes are 0700/0600 when created. Keep this private and back it up before any manual repair.
+- `incubations-v2.jsonl`: append-only, hash-chained full record history; contains operator plaintext secrets. Directory/file modes are 0700/0600 when created. Keep this private and back it up before any manual repair.
 
 A timeout is not a rejection: **Check progress** waits for the existing transaction. A confirmed rejection can be retried without changing the committed result. If a process or network fails between submission and recording its transaction ID, the app deliberately stops automatic resubmission. A developer must inspect the wallet’s transaction history and reconcile the missing receipt. There is no destructive reset button. Before repairing, copy the complete data directory outside itself and verify checksums; preserve keys separately as required by the wallet. Do not delete the journal to “retry”.
 

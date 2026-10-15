@@ -291,7 +291,7 @@ function App() {
                 <span className="edition">
                   THE MIDNIGHT COLLECTION
                   <br />
-                  01 — 06
+                  01 — 04
                 </span>
               </div>
             </section>
