@@ -6,10 +6,12 @@ Environment: local Linux development checkout, 15 October 2026. Node 22 runtime,
 
 - PASS: WASM release contract builds.
 - PASS: seven engine integration tests: real NFT deposit plus replay rejection, outsider rejection, changed opening rejection with subsequent valid hatch, reseal rejection, operator-only seal/no early hatch, duplicate reservation and supply cap, sealed state excludes the secret opening.
-- PASS: five TypeScript tests for six-variant memo round-trips/size, malformed openings, fresh salt commitments, CBOR-tag NFT metadata, journal reload/integrity and public-state redaction.
+- PASS: eight TypeScript tests for six-variant memo round-trips/size, malformed openings, fresh salt commitments, CBOR-tag NFT metadata, journal reload/integrity, public-state redaction, signed browser account isolation/reconnect/CSRF checks and the native Esmeralda resource address.
 - PASS: TypeScript check and Vite production build.
 - PASS: running local API rejects anonymous state reads (401), mutation without request header (403), and foreign Origin (403); dedicated local wallet connect succeeds (200).
-- BLOCKED: public deployment, encrypted memo round-trip, live UI hatch and populated NFT inventory. Public faucet funding rejected the fixed claim because its balance was below the claim size. No mock transactions are substituted.
+- PASS: deployment image starts a real walletd in a read-only, non-root local container with private persistent keys; daemon connects to Esmeralda and hosted account creation succeeds. This is a local container check, not a staging deployment.
+- BLOCKED: staging host activation requires its administrator sudo credential location. No staging configuration or existing service has been changed.
+- BLOCKED: public contract deployment, encrypted memo round-trip, live UI hatch and populated NFT inventory. Public faucet funding rejected the fixed claim because its balance was below the claim size. No mock transactions are substituted.
 
 ## Browser observations
 
@@ -20,6 +22,7 @@ Codex in-app browser, local production frontend at http://127.0.0.1:8787:
 - PASS: Spooky Secrets page shows privacy boundaries, official rule links, UTC deadline and outstanding submission checklist.
 - PASS: wallet connection dialog explains local test-wallet use; connecting succeeds with the dedicated wallet daemon.
 - PASS: undeployed setup warning appears; all three mint-entry door buttons are disabled.
+- PASS: hosted staging-container mode checked through a loopback-only browser test proxy (build `staging-local-check-v3`): custody explanation, account creation, zero balance, receiving address and friendly insufficient-faucet message. The image uses both public Esmeralda indexers; a live indexer read passes. Separate real account sessions and reconnect were verified through the API. This does not establish a public staging HTTPS pass.
 - PENDING: private preview, on-chain mint confirmation, populated collection and reload persistence require funded deployment.
 
 ## Frontend acceptance handoff

@@ -1,0 +1,60 @@
+name: Deploy Midnight Kennel to staging
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/TLK-1557-tari-incubation-poc, main]
+permissions:
+  contents: read
+concurrency:
+  group: midnight-kennel-staging
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: vars.STAGING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci && npm test
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contract
+      - name: Build and test template
+        run: |
+          cargo build --locked --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release
+          cargo test --locked --manifest-path contract/Cargo.toml
+          mkdir -p deploy/artifacts
+          cp contract/target/wasm32-unknown-unknown/release/midnight_kennel.wasm deploy/artifacts/midnight_kennel.wasm
+      - name: Build immutable image on CI
+        run: docker build --build-arg VERSION="$GITHUB_SHA" --tag "tari-midnight-kennel:$GITHUB_SHA" .
+      - name: Package release
+        run: |
+          mkdir -p "$RUNNER_TEMP/kennel-payload"
+          docker save "tari-midnight-kennel:$GITHUB_SHA" | gzip -1 > "$RUNNER_TEMP/kennel-payload/image.tar.gz"
+          cp deploy/compose.yaml "$RUNNER_TEMP/kennel-payload/compose.yaml"
+          tar -C "$RUNNER_TEMP/kennel-payload" -cf "$RUNNER_TEMP/kennel-payload.tar" compose.yaml image.tar.gz
+      - name: Deploy exact commit through the restricted staging key
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/kennel-key"
+          known="$RUNNER_TEMP/kennel-known-hosts"
+          printf '%s\n' "$DEPLOY_KEY" > "$key"
+          printf '%s\n' "$KNOWN_HOSTS" > "$known"
+          checksum=$(sha256sum "$RUNNER_TEMP/kennel-payload.tar" | cut -d ' ' -f 1)
+          ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o UserKnownHostsFile="$known" bram@217.100.219.253 "deploy $GITHUB_SHA $checksum" < "$RUNNER_TEMP/kennel-payload.tar"
+      - name: Verify public staging route
+        run: |
+          curl --fail --silent --show-error https://staging.wavesducks.com/tari/api/health > "$RUNNER_TEMP/health.json"
+          node -e "const fs=require('fs'); const h=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/health.json')); if(!h.walletReady||h.version!==process.env.GITHUB_SHA) process.exit(1)"
+          echo "Deployed https://staging.wavesducks.com/tari/ at $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

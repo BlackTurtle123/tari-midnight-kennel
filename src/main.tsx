@@ -32,7 +32,7 @@ const empty: GameState = {
   canines: [],
 };
 async function api<T>(path: string, body?: unknown): Promise<T> {
-  const r = await fetch("/api" + path, {
+  const r = await fetch(import.meta.env.BASE_URL + "api" + path, {
     method: body === undefined ? "GET" : "POST",
     headers: { "Content-Type": "application/json", "x-kennel-request": "1" },
     credentials: "same-origin",
@@ -44,6 +44,12 @@ async function api<T>(path: string, body?: unknown): Promise<T> {
 }
 const short = (s?: string) => (s ? `${s.slice(0, 16)}…${s.slice(-8)}` : "");
 function App() {
+  const [hosted, setHosted] = useState(false);
+  useEffect(() => {
+    void api<{ hosted: boolean }>("/config")
+      .then((c) => setHosted(c.hosted))
+      .catch(() => {});
+  }, []);
   const [tab, setTab] = useState("incubator"),
     [state, setState] = useState<GameState>(empty),
     [error, setError] = useState(""),
@@ -183,6 +189,57 @@ function App() {
               <p>{state.setupError}</p>
             </div>
           </div>
+        )}
+        {state.connected && (
+          <section className="wallet-summary">
+            <div>
+              <strong>
+                {hosted ? "Your staging test wallet" : "Your test wallet"}
+              </strong>
+              <span>{state.balance || "0.000"} tTARI · Esmeralda</span>
+            </div>
+            <details>
+              <summary>Receive test coins</summary>
+              <p>Send only Esmeralda test coins to this payment address.</p>
+              <code>{state.paymentAddress}</code>
+              <button
+                className="secondary"
+                onClick={() =>
+                  void action(async () => {
+                    await navigator.clipboard.writeText(
+                      state.paymentAddress || "",
+                    );
+                  })
+                }
+              >
+                Copy address
+              </button>
+              <button
+                className="secondary"
+                disabled={busy}
+                onClick={() =>
+                  void action(async () => {
+                    await api("/fund", {});
+                    await refresh();
+                  })
+                }
+              >
+                Try public faucet
+              </button>
+              <p>
+                The public faucet needs at least 1,000 tTARI for a claim. If it
+                is empty, use a funded test wallet or Tari’s{" "}
+                <a
+                  href="https://ootle.tari.com/guides/burn-minotari/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  testnet burn-and-claim guide
+                </a>
+                .
+              </p>
+            </details>
+          </section>
         )}
         {tab === "incubator" && (
           <>
@@ -429,7 +486,7 @@ function App() {
                 <p>
                   {state.connected
                     ? "No canine NFTs found in this account yet."
-                    : "Connect your local test wallet to see your canines."}
+                    : "Connect your test wallet to see your canines."}
                 </p>
                 <button className="primary" onClick={() => setTab("incubator")}>
                   Visit the incubator <ArrowRight size={17} />
@@ -483,12 +540,12 @@ function App() {
               <div>
                 <h3>What this secret does—and doesn’t—protect</h3>
                 <p>
-                  The operator creates the result and knows it. This local PoC
-                  runs the operator and player wallet on one computer.
-                  Incubation account, door, commitment, timing, fees and
-                  transaction links can be public. Outcomes are
-                  operator-selected randomness, not provably fair draws. This is
-                  a private surprise, not anonymous play.
+                  The operator creates the result and knows it. The PoC operator
+                  hosts both wallets. Staging separates browser sessions, but
+                  the server can access their keys. Incubation account, door,
+                  commitment, timing, fees and transaction links can be public.
+                  Outcomes are operator-selected randomness, not provably fair
+                  draws. This is a private surprise, not anonymous play.
                 </p>
               </div>
             </div>
@@ -574,11 +631,15 @@ function App() {
               <X />
             </button>
             <Wallet size={32} />
-            <h2 id="connect-title">Connect your local test wallet</h2>
+            <h2 id="connect-title">
+              {hosted
+                ? "Create your staging test wallet"
+                : "Connect your local test wallet"}
+            </h2>
             <p>
-              This PoC uses the dedicated Esmeralda wallet running on this
-              computer. Connecting lets the local app submit incubation and mint
-              transactions when you press their buttons.
+              {hosted
+                ? "Staging creates a separate test account for this browser. The server holds its keys and submits transactions when you press the game buttons. Keep this browser’s cookies to retain access; use test coins only."
+                : "This PoC uses the dedicated Esmeralda wallet on this computer. Connecting lets the app submit incubation and mint transactions when you press their buttons."}
             </p>
             <p>No seed phrase is requested. Use test coins only.</p>
             {error && (
@@ -596,7 +657,11 @@ function App() {
                 })
               }
             >
-              {busy ? "Connecting…" : "Connect local wallet"}{" "}
+              {busy
+                ? "Connecting…"
+                : hosted
+                  ? "Create or reconnect test wallet"
+                  : "Connect local wallet"}{" "}
               <ArrowRight size={17} />
             </button>
             <p className="fine-print">

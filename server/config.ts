@@ -9,7 +9,7 @@ export const WALLET_URL =
 export const PLAYER_NAME = process.env.TARI_PLAYER_ACCOUNT || "kennel-player";
 export const OPERATOR_NAME =
   process.env.TARI_OPERATOR_ACCOUNT || "kennel-operator";
-export const TARI_RESOURCE = `resource_${"0".repeat(63)}1`;
+export const TARI_RESOURCE = "resource_" + "01".repeat(32);
 export interface Deployment {
   network: "esmeralda";
   template: string;

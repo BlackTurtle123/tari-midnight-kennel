@@ -16,9 +16,11 @@
 | Public ledger reader                     | Signer/recipient, chosen door, commitment, timing and transaction graph can be public; memo content is encrypted | Opening, canine traits and NFT ownership are public |
 | Operator                                 | Variant and salt, player address and all local journal records                                                   | Same, plus public NFT                               |
 | Player wallet                            | Decrypts its delivered opening                                                                                   | Owns NFT in the fixed recipient account             |
-| Someone with this computer/daemon access | Can potentially access both operator and player data                                                             | Same                                                |
+| Someone with the host/daemon access | Can potentially access both operator and player data                                                             | Same                                                |
 
-The local app deliberately uses two accounts in one development daemon, not isolated adversarial operators and clients. The API authorizes access through a local HttpOnly session, origin/host checks and mutation headers. These are browser isolation measures, not remote user authentication. Never expose the daemon or API to the network. No wallet keys, openings or deployment data belong in Git.
+Local mode uses operator and player accounts in one development daemon. Hosted staging provisions one player account per signed browser identity, with Secure/HttpOnly/SameSite cookies, origin/host checks and mutation headers. The operator queue and append-only journal are shared. The staging server still holds every wallet key and knows every opening: browser isolation does not provide privacy from the operator or self-custody. Disconnect clears the active session while a private identity cookie permits reconnecting to the same test account. Clearing cookies loses that access. No wallet keys, openings or deployment data belong in Git.
+
+The wallet RPC always remains on loopback. Only the game API is published through the configured HTTPS staging proxy. The hosted session secret and wallet encryption password persist outside the image and must be included in protected recovery captures. Staging accounts hold testnet coins only.
 
 ## Limits
 

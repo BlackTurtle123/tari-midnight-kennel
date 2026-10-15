@@ -9,3 +9,7 @@ coverage/
 test-results/
 playwright-report/
 .openai/*.local.*
+
+deploy/artifacts/
+
+__pycache__/

@@ -33,13 +33,18 @@ import {
   TARI_RESOURCE,
 } from "./config.ts";
 
+const sharedJournal = new Journal();
+const busyIncubations = new Set<string>();
+let walletQueue: Promise<unknown> = Promise.resolve();
 export class GameService {
-  readonly journal = new Journal();
-  private busy = new Set<string>();
-  private walletQueue: Promise<unknown> = Promise.resolve();
+  constructor(
+    private readonly playerName = PLAYER_NAME,
+    readonly journal = sharedJournal,
+  ) {}
+  private busy = busyIncubations;
 
   async state(): Promise<GameState> {
-    const player = await getAccount(PLAYER_NAME);
+    const player = await getAccount(this.playerName);
     const base: GameState = {
       connected: true,
       network: "Esmeralda",
@@ -52,7 +57,7 @@ export class GameService {
     };
     const w = await wallet();
     const balances = await w.accountsGetBalances({
-      account: { Name: PLAYER_NAME },
+      account: { Name: this.playerName },
       refresh: false,
     });
     const native = balances.balances.find(
@@ -69,7 +74,7 @@ export class GameService {
       base.resource = d.resource;
       for (let offset = 0; ; offset += 100) {
         const page = await w.nftsList({
-          account: { Name: PLAYER_NAME },
+          account: { Name: this.playerName },
           limit: 100,
           offset,
         });
@@ -88,7 +93,7 @@ export class GameService {
 
   async start(door: number, clientId: string) {
     deployment();
-    const owner = (await getAccount(PLAYER_NAME)).account.component_address;
+    const owner = (await getAccount(this.playerName)).account.component_address;
     const existing = this.journal.get(clientId);
     if (existing) {
       if (existing.owner !== owner || existing.door !== door)
@@ -123,10 +128,8 @@ export class GameService {
     if (this.busy.has(id)) return;
     this.busy.add(id);
     // Serialize wallet writes; avoid competing fee inputs from parallel operations.
-    const run = this.walletQueue
-      .catch(() => undefined)
-      .then(() => this.advance(id));
-    this.walletQueue = run;
+    const run = walletQueue.catch(() => undefined).then(() => this.advance(id));
+    walletQueue = run;
     void run
       .catch((e) => this.recordFailure(id, e))
       .finally(() => this.busy.delete(id));
@@ -148,7 +151,7 @@ export class GameService {
       r.stage = "starting";
       save();
       const sent = await submit(
-        PLAYER_NAME,
+        this.playerName,
         callInstructions(d.component, "begin_incubation", [
           stringLiteral(r.id),
           componentAddressLiteral(r.owner),
@@ -184,7 +187,7 @@ export class GameService {
         );
       r.stage = "delivering";
       save();
-      const player = await getAccount(PLAYER_NAME);
+      const player = await getAccount(this.playerName);
       const result = await (
         await wallet()
       ).stealthTransfer({
@@ -244,7 +247,7 @@ export class GameService {
 
   private async owned(id: string) {
     const r = this.journal.get(id);
-    const owner = (await getAccount(PLAYER_NAME)).account.component_address;
+    const owner = (await getAccount(this.playerName)).account.component_address;
     if (!r || r.owner !== owner)
       throw new Error("Incubation not found for this account");
     return r;
@@ -277,7 +280,7 @@ export class GameService {
     if (this.busy.has(id))
       throw new Error("This incubation is still processing");
     this.busy.add(id);
-    const run = this.walletQueue
+    const run = walletQueue
       .catch(() => undefined)
       .then(async () => {
         const r = structuredClone(await this.owned(id));
@@ -292,7 +295,7 @@ export class GameService {
           delete r.error;
           this.journal.save(r);
           const sent = await submit(
-            PLAYER_NAME,
+            this.playerName,
             callInstructions(deployment().component, "hatch", [
               stringLiteral(id),
               intLiteral(BigInt(o.variant)),
@@ -309,12 +312,12 @@ export class GameService {
         await (
           await wallet()
         ).accountsGetBalances({
-          account: { Name: PLAYER_NAME },
+          account: { Name: this.playerName },
           refresh: true,
         });
         return publicRecord(r);
       });
-    this.walletQueue = run;
+    walletQueue = run;
     try {
       return await run;
     } catch (e) {

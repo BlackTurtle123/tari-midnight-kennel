@@ -1,0 +1,9 @@
+.git
+node_modules
+dist
+contract/target
+.env*
+.local
+coverage
+test-results
+playwright-report
