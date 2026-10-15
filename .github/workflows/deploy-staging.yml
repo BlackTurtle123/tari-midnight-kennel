@@ -10,8 +10,8 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: vars.STAGING_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    name: Build release and deploy when enabled
+    runs-on: ${{ fromJSON(vars.STAGING_RUNNER_JSON || '"ubuntu-latest"') }}
     environment: staging
     steps:
       - uses: actions/checkout@v4
@@ -40,7 +40,16 @@ jobs:
           docker save "tari-midnight-kennel:$GITHUB_SHA" | gzip -1 > "$RUNNER_TEMP/kennel-payload/image.tar.gz"
           cp deploy/compose.yaml "$RUNNER_TEMP/kennel-payload/compose.yaml"
           tar -C "$RUNNER_TEMP/kennel-payload" -cf "$RUNNER_TEMP/kennel-payload.tar" compose.yaml image.tar.gz
+      - name: Preserve the verified release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kennel-${{ github.sha }}
+          path: ${{ runner.temp }}/kennel-payload.tar
+          retention-days: 7
+          compression-level: 0
+          if-no-files-found: error
       - name: Deploy exact commit through the restricted staging key
+        if: vars.STAGING_ENABLED == 'true'
         env:
           DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
           KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
@@ -54,6 +63,7 @@ jobs:
           checksum=$(sha256sum "$RUNNER_TEMP/kennel-payload.tar" | cut -d ' ' -f 1)
           ssh -i "$key" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o UserKnownHostsFile="$known" bram@217.100.219.253 "deploy $GITHUB_SHA $checksum" < "$RUNNER_TEMP/kennel-payload.tar"
       - name: Verify public staging route
+        if: vars.STAGING_ENABLED == 'true'
         run: |
           curl --fail --silent --show-error https://staging.wavesducks.com/tari/api/health > "$RUNNER_TEMP/health.json"
           node -e "const fs=require('fs'); const h=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+'/health.json')); if(!h.walletReady||h.version!==process.env.GITHUB_SHA) process.exit(1)"
