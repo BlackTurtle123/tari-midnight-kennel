@@ -28,6 +28,23 @@ Legend: **Implemented/local** means source exists and relevant local checks pass
 | UI              | Wallet onboarding, incubation, breeding, collection, marketplace, treasury, accessibility, mobile/error states            | Incubation/collection/privacy UI; browser checks limited to available prerequisites |
 | Launch          | Public testnet acceptance, source/license, documentation, support, production readiness                                   | Pending live and submission steps                                                   |
 
+## Existing game feature families to reconcile
+
+A read-only inventory of the current Waves contract tree identifies these additional parity decisions. These are requirements to assess, not source copied into the new contest entry. Presence in the repository does not establish that a feature is active in production.
+
+- [ ] **Canine incubation:** fees and fee aggregation, discounts/coupons/referrals, finish-height timing, rarity adjustment, free issuance and jackpot issuance. The PoC intentionally covers only request → secret → one NFT.
+- [ ] **Canine progression:** breeding, farming/staking, boosted stake/claim flows, rebirth, and the node/treasury contract. Replace each Waves-dependent economic assumption explicitly.
+- [ ] **Other species:** ducks, eagles, felines, bulls, turtles and mutants; decide which incubation, breeding, rebirth and staking variants belong in the Tari release.
+- [ ] **Duck-specific progression:** baby ducks, baby breeding, farming generations and vEGG farming.
+- [ ] **Collective farms:** participation/shares, staking, secondary layers, liquidation and AMM interactions.
+- [ ] **Hunt and battles:** hunt, level system, capacity, rope, renting and Duck Wars, including rewards and concurrent-use locks.
+- [ ] **Items and equipment:** wearable boosts, account boosters, houses/multiple houses, item stores/mergers and seasonal item issuance.
+- [ ] **Economy services:** egg dispenser, burn rules, coupons and referrals; enumerate currencies, precision, price sources and liabilities.
+- [ ] **Trading and cross-chain:** marketplace/proxy, action wrappers, bridge wrappers, Ethereum gateway and wrapped NFT issuance. Decide what to remove, replace or migrate; never infer Tari interoperability from existing Waves code.
+- [ ] **Administration:** oracle configuration, signer/multisig authority, feature locks, operational recovery and network-specific configuration.
+
+This inventory makes the full-game checklist broader than the contest mini-game. Each selected family needs product rules, a Tari implementation, migration policy, UI and independent acceptance evidence before being considered ported.
+
 ## PoC acceptance gate
 
 - [x] Real Tari engine creates an NFT in the fixed recipient vault.
