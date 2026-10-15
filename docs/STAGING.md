@@ -2,11 +2,13 @@
 
 Target: `https://staging.wavesducks.com/tari/`, on verified host `arkimals-c` / `217.100.219.253`. The existing Waves application and Mongo Compose projects remain separate. The PoC has its own `tari-midnight-kennel` project and publishes only `127.0.0.1:18787` to the host proxy.
 
-## Current status
+## Deployment status and verification
 
-The deployment image pins both public Esmeralda indexers explicitly and checks a live indexer read before reporting wallet readiness. It runs successfully in a local container with the real Esmeralda wallet daemon. Hosted session tests pass, and two real browser identities create distinct wallet accounts and reconnect consistently. The browser funding button reaches the public faucet and reports its insufficient balance. Host SSH access works as `bram`, UID/GID 1001. Adding the host proxy route and restricted deployment credentials requires approved staging sudo access; that credential is not available in the known staging configuration. **This is prepared for deployment, not yet a deployed staging URL.**
+The host was bootstrapped on 15 October 2026 after approved administrator access became available. Nginx validation passed, original configuration and authorized keys were captured and verified at `/var/backups/arkimals/tari-midnight-kennel-bootstrap/20261015T184158531138Z`, and the dedicated CI environment/key was configured. `STAGING_ENABLED=true` enables the repository deployment workflow.
 
-No existing staging services or configuration have been changed by this preparation. The deployment workflow stays disabled until `STAGING_ENABLED=true` is deliberately configured after bootstrap.
+Check the latest **Deploy Midnight Kennel to staging** GitHub Actions run for activation status; a pushed change alone does not establish deployment. Successful deployment verifies the public `/tari/api/health` endpoint against the exact commit. This readiness check includes a live public-indexer read. The first deployed contract and real NFT mint remain pending operator/player test coins.
+
+The image pins both public Esmeralda indexers. Local container and browser checks confirmed distinct real wallet accounts, reconnect continuity, receiving addresses and the actual insufficient-faucet error before host activation. Original Waves and Mongo services remain in their existing projects.
 
 ## One-time administrator bootstrap
 

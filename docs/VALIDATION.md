@@ -10,7 +10,7 @@ Environment: local Linux development checkout, 15 October 2026. Node 22 runtime,
 - PASS: TypeScript check and Vite production build.
 - PASS: running local API rejects anonymous state reads (401), mutation without request header (403), and foreign Origin (403); dedicated local wallet connect succeeds (200).
 - PASS: deployment image starts a real walletd in a read-only, non-root local container with private persistent keys; daemon connects to Esmeralda and hosted account creation succeeds. This is a local container check, not a staging deployment.
-- BLOCKED: staging host activation requires its administrator sudo credential location. No staging configuration or existing service has been changed.
+- PASS: staging host bootstrap on 15 October 2026, after administrator access was supplied. Original configuration and authorized keys were backed up and verified; Nginx syntax passed. Public deployment status is tracked by the repository staging workflow; bootstrap alone does not establish live acceptance.
 - BLOCKED: public contract deployment, encrypted memo round-trip, live UI hatch and populated NFT inventory. Public faucet funding rejected the fixed claim because its balance was below the claim size. No mock transactions are substituted.
 
 ## Browser observations
