@@ -10,7 +10,7 @@ Environment: local Linux development checkout, 15 October 2026. Node 22 runtime,
 - PASS: TypeScript check and Vite production build.
 - PASS: running local API rejects anonymous state reads (401), mutation without request header (403), and foreign Origin (403); dedicated local wallet connect succeeds (200).
 - PASS: deployment image starts a real walletd in a read-only, non-root local container with private persistent keys; daemon connects to Esmeralda and hosted account creation succeeds. This is a local container check, not a staging deployment.
-- PASS: staging host bootstrap on 15 October 2026, after administrator access was supplied. Original configuration and authorized keys were backed up and verified; Nginx syntax passed. Public deployment status is tracked by the repository staging workflow; bootstrap alone does not establish live acceptance.
+- PASS: staging host bootstrap on 15 October 2026, after administrator access was supplied. Original configuration and authorized keys were backed up and verified; Nginx syntax passed. The hosted-runner deployment could not reach SSH; explicit manual deployment subsequently succeeded using the checksummed CI artifact.
 - BLOCKED: public contract deployment, encrypted memo round-trip, live UI hatch and populated NFT inventory. Public faucet funding rejected the fixed claim because its balance was below the claim size. No mock transactions are substituted.
 
 ## Browser observations
@@ -24,6 +24,20 @@ Codex in-app browser, local production frontend at http://127.0.0.1:8787:
 - PASS: undeployed setup warning appears; all three mint-entry door buttons are disabled.
 - PASS: hosted staging-container mode checked through a loopback-only browser test proxy (build `staging-local-check-v3`): custody explanation, account creation, zero balance, receiving address and friendly insufficient-faucet message. The image uses both public Esmeralda indexers; a live indexer read passes. Separate real account sessions and reconnect were verified through the API. This does not establish a public staging HTTPS pass.
 - PENDING: private preview, on-chain mint confirmation, populated collection and reload persistence require funded deployment.
+
+## Live staging observations
+
+Codex in-app browser at https://staging.wavesducks.com/tari/, 15 October 2026, deployed commit `ed6c192a8a93e1270c11ef7205905f030ed48bda`:
+
+- PASS: page assets, Halloween artwork and HTTPS route load.
+- PASS: hosted custody explanation, real browser test-wallet creation, receiving address and zero balance.
+- PASS: connected state and identical payment address survive page reload.
+- PASS: public faucet action shows the actual insufficient-funds explanation.
+- PASS: Spooky Secrets page includes rules, official links, deadline and operator trust limits.
+- PASS: undeployed contract warning and disabled hatch-entry controls.
+- BLOCKED: encrypted memo delivery and NFT minting require funded operator/player accounts and template deployment.
+
+Developer verification: public health matches the exact deployed commit and passes a live indexer read. The PoC container is healthy, all 13 pre-existing container IDs are unchanged, and the original staging root responds HTTP 200. The faucet still reports 999.651320 tTARI against a 1,000 tTARI claim.
 
 ## Frontend acceptance handoff
 

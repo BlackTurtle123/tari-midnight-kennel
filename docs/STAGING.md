@@ -4,9 +4,13 @@ Target: `https://staging.wavesducks.com/tari/`, on verified host `arkimals-c` / 
 
 ## Deployment status and verification
 
+**Live:** https://staging.wavesducks.com/tari/ — manually deployed on 15 October 2026 at 18:57 UTC after explicit authorization. The exact deployed application commit is `ed6c192a8a93e1270c11ef7205905f030ed48bda`, built and tested in [CI run 38788722852](https://github.com/BlackTurtle123/tari-midnight-kennel/actions/runs/38788722852). The downloaded release matched GitHub's SHA-256 digest and was transferred through the reviewed deployment gateway. Public health reports that commit and `walletReady: true`. All 13 existing container identities were preserved and the original staging site returned HTTP 200.
+
+Browser checks passed for wallet creation, receiving address, session persistence after reload, contest rules and the explicit insufficient-faucet response. The NFT contract is still undeployed pending test coins; hatch controls correctly remain disabled.
+
 The host was bootstrapped on 15 October 2026 after approved administrator access became available. Nginx validation passed, original configuration and authorized keys were captured and verified at `/var/backups/arkimals/tari-midnight-kennel-bootstrap/20261015T184158531138Z`, and the dedicated CI environment/key was configured. The first CI build passed, but GitHub’s hosted runner timed out reaching staging TCP22 before authentication. Automatic SSH deployment is paused (`STAGING_ENABLED=false`). The workflow retains a checksummed release artifact for an accessible runner or an explicitly authorized manual deployment. Set `STAGING_RUNNER_JSON` to the approved runner labels before re-enabling automatic deployment; its default is `"ubuntu-latest"`.
 
-Check the latest **Deploy Midnight Kennel to staging** GitHub Actions run and its deployment step for activation status; a successful artifact build alone does not establish deployment. The first run was https://github.com/BlackTurtle123/tari-midnight-kennel/actions/runs/38787871708; no application container was started by that failed run. Successful deployment verifies the public `/tari/api/health` endpoint against the exact commit. This readiness check includes a live public-indexer read. The first deployed contract and real NFT mint remain pending operator/player test coins.
+For later deployments, check the public health commit and deployment receipts; a successful artifact build alone does not establish deployment. The first run was https://github.com/BlackTurtle123/tari-midnight-kennel/actions/runs/38787871708; no application container was started by that failed run. Successful deployment verifies the public `/tari/api/health` endpoint against the exact commit. This readiness check includes a live public-indexer read. The first deployed contract and real NFT mint remain pending operator/player test coins.
 
 The image pins both public Esmeralda indexers. Local container and browser checks confirmed distinct real wallet accounts, reconnect continuity, receiving addresses and the actual insufficient-faucet error before host activation. Original Waves and Mongo services remain in their existing projects.
 
@@ -37,6 +41,8 @@ Use a funded Esmeralda peer wallet or [Tari’s L1 testnet burn-and-claim proces
 A healthy website/daemon does not mean the NFT template is deployed. Once the operator has test coins, run the contract publication script through an authorized deployment job, preserve the accepted receipts, then fund a player and verify encrypted delivery and minting. The image contains the release WASM for that step.
 
 ## Recovery
+
+This manual deployment snapshot is `/home/bram/tari-midnight-kennel-recovery/20261015T185710746933Z`. Local artifact provenance and host verification are retained in the private workstation deployment record.
 
 Bootstrap before-images: `/var/backups/arkimals/tari-midnight-kennel-bootstrap/<timestamp>`. Deployment snapshots: `/home/bram/tari-midnight-kennel-recovery/<timestamp>`. App state: `/home/bram/tari-midnight-kennel/data`; encryption and session keys: sibling `secrets` directory, mode 0700 with 0600 files. All are private and excluded from the repository.
 
