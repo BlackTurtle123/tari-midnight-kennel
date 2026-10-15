@@ -29,7 +29,7 @@ export class Journal {
   private path: string;
   constructor(directory = DATA_DIR) {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
-    this.path = join(directory, "incubations.jsonl");
+    this.path = join(directory, "incubations-v2.jsonl");
     if (existsSync(this.path)) {
       for (const line of readFileSync(this.path, "utf8")
         .split("\n")

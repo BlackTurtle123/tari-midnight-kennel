@@ -552,7 +552,7 @@ footer > a:last-child {
   padding: 20px;
   background: #f1ece4;
 }
-.canine-card > svg {
+.canine-card > .canine-art {
   width: 100%;
 }
 .canine-card p {
@@ -794,7 +794,7 @@ dt {
   text-align: center;
   padding: 35px;
 }
-.reveal-modal > svg {
+.reveal-modal > .canine-art {
   height: 245px;
   width: 100%;
 }
@@ -1084,7 +1084,7 @@ dt {
   .modal-backdrop {
     padding: 15px;
   }
-  .reveal-modal > svg {
+  .reveal-modal > .canine-art {
     height: 210px;
   }
 }
@@ -1129,3 +1129,6 @@ dt {
 .wallet-summary a {
   text-decoration: underline;
 }
+
+.canine-art { display: block; object-fit: contain; max-width: 100%; }
+.gene-strip { overflow-wrap: anywhere; font-family: monospace; }

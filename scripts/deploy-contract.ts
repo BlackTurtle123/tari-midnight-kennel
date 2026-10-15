@@ -3,7 +3,10 @@ import {
   mkdirSync,
   readFileSync,
   writeFileSync,
-  appendFileSync,
+  openSync,
+  writeSync,
+  fsyncSync,
+  closeSync,
 } from "node:fs";
 import { join } from "node:path";
 import { intLiteral } from "@tari-project/ootle";
@@ -13,14 +16,19 @@ import {
   waitAccepted,
   constructorInstructions,
 } from "../server/wallet.ts";
-import { DATA_DIR, OPERATOR_NAME, deploymentPath } from "../server/config.ts";
+import {
+  DATA_DIR,
+  OPERATOR_NAME,
+  TARI_RESOURCE,
+  deploymentPath,
+} from "../server/config.ts";
 
 if (existsSync(deploymentPath)) {
   console.log(`Already deployed; preserving ${deploymentPath}.`);
   process.exit(0);
 }
 mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-const logPath = join(DATA_DIR, "deployment-journal.jsonl");
+const logPath = join(DATA_DIR, "deployment-v2-journal.jsonl");
 const log: Record<string, string> = existsSync(logPath)
   ? Object.assign(
       {},
@@ -32,9 +40,13 @@ const log: Record<string, string> = existsSync(logPath)
     )
   : {};
 function remember(key: string, value: string) {
-  appendFileSync(logPath, JSON.stringify({ [key]: value }) + "\n", {
-    mode: 0o600,
-  });
+  const fd = openSync(logPath, "a", 0o600);
+  try {
+    writeSync(fd, JSON.stringify({ [key]: value }) + "\n");
+    fsyncSync(fd);
+  } finally {
+    closeSync(fd);
+  }
   log[key] = value;
 }
 const client = await wallet();
@@ -42,13 +54,34 @@ const operator = await client.accountsGet({
   name_or_address: { Name: OPERATOR_NAME },
 });
 if (!log.publicationTx) {
+  if (log.publicationSubmittingAt)
+    throw new Error(
+      "Publication acknowledgement missing; reconcile wallet receipts before retrying.",
+    );
+  const balances = await client.accountsGetBalances({
+    account: { Name: OPERATOR_NAME },
+    refresh: true,
+  });
+  const revealed = BigInt(
+    balances.balances.find((b) => b.resource_address === TARI_RESOURCE)
+      ?.balance ?? 0,
+  );
+  // Reserve one tTARI for component creation; do not require 100 tTARI just to estimate a small publication.
+  const available = revealed - 1_000_000n;
+  if (available <= 0n)
+    throw new Error(
+      "Operator needs more than 1 revealed tTARI for publication and component creation.",
+    );
+  const publicationBudget = Number(
+    available < 100_000_000n ? available : 100_000_000n,
+  );
   const binary = readFileSync(
     "contract/target/wasm32-unknown-unknown/release/midnight_kennel.wasm",
   ).toString("base64");
   const estimate = await client.publishTemplate({
     binary,
     fee_account: { Name: OPERATOR_NAME },
-    max_fee: 100_000_000,
+    max_fee: publicationBudget,
     detect_inputs: true,
     dry_run: true,
     metadata: null,
@@ -56,9 +89,12 @@ if (!log.publicationTx) {
   if (!estimate.dry_run_fee)
     throw new Error("Publication fee estimate unavailable");
   const fee = Math.ceil(estimate.dry_run_fee * 1.5) + 10_000;
-  if (fee > 100_000_000)
-    throw new Error("Publication exceeds the 100 tTARI PoC budget");
+  if (fee > publicationBudget)
+    throw new Error(
+      "Publication estimate exceeds the available operator balance or 100 tTARI cap",
+    );
   console.log(`Publishing template; fee budget ${fee} microtari.`);
+  remember("publicationSubmittingAt", new Date().toISOString());
   const sent = await client.publishTemplate({
     binary,
     fee_account: { Name: OPERATOR_NAME },
@@ -77,6 +113,11 @@ const template = pubResult.Accept.up_substates.find(
 )?.[0];
 if (!template) throw new Error("No template in publication receipt");
 if (!log.creationTx) {
+  if (log.creationSubmittingAt)
+    throw new Error(
+      "Component creation acknowledgement missing; reconcile wallet receipts before retrying.",
+    );
+  remember("creationSubmittingAt", new Date().toISOString());
   const sent = await submit(
     OPERATOR_NAME,
     constructorInstructions(template, [intLiteral(100n)]),

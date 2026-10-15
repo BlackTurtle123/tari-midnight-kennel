@@ -80,20 +80,23 @@ mod midnight_kennel {
 
         /// Revealing makes the outcome public. Mint + fixed-recipient deposit are atomic.
         pub fn hatch(&mut self, id: String, variant: u8, salt: String) {
-            assert!(variant < 6, "Unknown canine variant");
+            assert!(variant < 4, "Unknown canine variant");
             assert!(salt.len() == 64 && salt.bytes().all(|c| c.is_ascii_hexdigit() && !c.is_ascii_uppercase()), "Invalid opening salt");
             let request = self.requests.get_mut(&id).expect("Unknown incubation");
             assert_eq!(request.owner, CallerContext::transaction_signer_public_key(), "Only the incubator owner can hatch");
             assert!(!request.hatched, "Already hatched");
             assert!(!request.commitment.is_empty(), "Outcome not ready");
-            let opening = format!("midnight-kennel:v1|{}|{}|{}", id, variant, salt);
+            let opening = format!("midnight-kennel:v2|{}|{}|{}", id, variant, salt);
             let actual = format!("{:x}", Sha256::digest(opening.as_bytes()));
             assert_eq!(request.commitment, actual, "Opening does not match committed outcome");
             request.hatched = true;
             let recipient = request.recipient;
-            let names = ["Pumpkin Pup", "Moonlight Howler", "Candy Corn Corgi", "Boo Beagle", "Mummy Mutt", "Bat-Eared Bandit"];
-            let genes = ["AAAABBBB", "BBBBAAAA", "CCCCAAAA", "DDDDBBBB", "EEEECCCC", "FFFFDDDD"];
-            let outcome = if variant < 3 { "treat" } else { "trick" };
+            let names = ["Beaglebyte Prime", "Quantum Dalmatian", "Malinox Protocol", "PoodlOS Echelon"];
+            let genes = ["EEEEEEEE", "FFFFFFFF", "GGGGGGGG", "HHHHHHHH"];
+            let color_index = u8::from_str_radix(&salt[..2], 16).unwrap() % 4;
+            let color = ["A", "B", "C", "D"][color_index as usize];
+            let genotype = format!("CANI-{}-G{}", genes[variant as usize], color);
+            let outcome = if variant < 2 { "treat" } else { "trick" };
             let data = metadata![
                 "name" => names[variant as usize].to_string(),
                 "variant" => variant.to_string(),
@@ -102,7 +105,9 @@ mod midnight_kennel {
                 "parents" => "".to_string(),
                 "origin" => "trick-or-treat-2026".to_string(),
                 "outcome" => outcome.to_string(),
-                "art_version" => "1".to_string(),
+                "art_version" => "waves-canines-v1".to_string(),
+                "color" => color.to_string(),
+                "genotype" => genotype,
                 "incubation_id" => id.clone(),
             ];
             let nft = ResourceManager::get(self.resource).mint_non_fungible(NonFungibleId::from_string(id.clone()), &data, &());

@@ -1,4 +1,4 @@
-import { parseCanine } from "./nft.ts";
+import { parseCanine, parseLegacyCanine } from "./nft.ts";
 import {
   stringLiteral,
   componentAddressLiteral,
@@ -28,6 +28,7 @@ import {
 } from "./wallet.ts";
 import {
   deployment,
+  legacyResource,
   OPERATOR_NAME,
   PLAYER_NAME,
   TARI_RESOURCE,
@@ -70,6 +71,7 @@ export class GameService {
     ).toFixed(3);
     try {
       const d = deployment();
+      const legacy = legacyResource();
       base.component = d.component;
       base.resource = d.resource;
       for (let offset = 0; ; offset += 100) {
@@ -79,8 +81,8 @@ export class GameService {
           offset,
         });
         for (const nft of page.nfts) {
-          if (nft.is_burnt || nft.resource_address !== d.resource) continue;
-          const canine = parseCanine(nft.data, d.resource);
+          if (nft.is_burnt) continue;
+          const canine = nft.resource_address === d.resource ? parseCanine(nft.data, d.resource) : nft.resource_address === legacy ? parseLegacyCanine(nft.data, legacy) : null;
           if (canine) base.canines.push(canine);
         }
         if (page.nfts.length < 100) break;

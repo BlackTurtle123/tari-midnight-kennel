@@ -20,7 +20,7 @@ test("journal keeps full prior records, reloads latest and excludes secrets from
   const journal = new Journal(dir);
   journal.save(record);
   journal.save({ ...record, stage: "ready", startTx: "accepted-tx" });
-  const entries = readFileSync(join(dir, "incubations.jsonl"), "utf8")
+  const entries = readFileSync(join(dir, "incubations-v2.jsonl"), "utf8")
     .trim()
     .split("\n")
     .map((s) => JSON.parse(s));
@@ -34,15 +34,15 @@ test("journal keeps full prior records, reloads latest and excludes secrets from
   // Corruption fixture is a separate file: preserve original journal for diagnosis.
   const corrupt = mkdtempSync(join(tmpdir(), "kennel-corrupt-test-"));
   writeFileSync(
-    join(corrupt, "incubations.jsonl"),
-    readFileSync(join(dir, "incubations.jsonl"), "utf8").replace(
+    join(corrupt, "incubations-v2.jsonl"),
+    readFileSync(join(dir, "incubations-v2.jsonl"), "utf8").replace(
       "accepted-tx",
       "altered-tx",
     ),
   );
   assert.throws(() => new Journal(corrupt), /integrity/);
   assert.match(
-    readFileSync(join(corrupt, "incubations.jsonl"), "utf8"),
+    readFileSync(join(corrupt, "incubations-v2.jsonl"), "utf8"),
     /altered-tx/,
   );
 });

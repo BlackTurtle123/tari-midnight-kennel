@@ -20,7 +20,7 @@ export interface Deployment {
   creationTx: string;
   createdAt: string;
 }
-export const deploymentPath = join(DATA_DIR, "deployment.json");
+export const deploymentPath = join(DATA_DIR, "deployment-v2.json");
 export function deployment(): Deployment {
   if (!existsSync(deploymentPath))
     throw new Error(
@@ -34,4 +34,12 @@ export function deployment(): Deployment {
   )
     throw new Error("Invalid testnet deployment configuration");
   return d;
+}
+
+export function legacyResource(): string | undefined {
+  const path=join(DATA_DIR,"deployment.json");
+  if (!existsSync(path)) return undefined;
+  const d=JSON.parse(readFileSync(path,"utf8"));
+  if(d.network!=="esmeralda" || typeof d.resource!=="string" || !/^resource_[a-f0-9]{64}$/.test(d.resource)) throw new Error("Invalid legacy deployment configuration");
+  return d.resource;
 }

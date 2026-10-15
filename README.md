@@ -2,11 +2,11 @@
 
 A small canine incubation game for Tari Ootle’s October 2026 **Spooky Secrets** contest. Choose a haunted door, receive a secret canine outcome through a native encrypted wallet memo, then explicitly reveal and mint a real NFT.
 
-**Status: implementation and local engine tests available; public Esmeralda deployment is pending test coins.** This is not yet a finished contest submission. No simulated minting or offline gameplay mode is included.
+**Status: funded public Esmeralda staging; original collection deployed. Native canine genetics release undergoing live verification.** This is not yet a finished contest submission. No simulated minting or offline gameplay mode is included.
 
 ## Scope
 
-- Three Halloween doorways; six cosmetic canine variants. All doors use the same outcome distribution.
+- Three Halloween doorways; four current main-game genesis canines (E–H), using the original modular artwork and eight-position genome. All doors use the same outcome distribution.
 - An incubation reserves one NFT; a salted commitment binds its outcome.
 - The operator delivers the opening using a Tari stealth transfer with an encrypted memo.
 - The player wallet decrypts the memo for a private preview.
@@ -67,7 +67,7 @@ Environment overrides: `TARI_WALLET_URL` (default local port 15101 JSON RPC URL)
 State is outside the repository, under `~/.local/share/tari-midnight-kennel` by default:
 
 - `wallet/`: wallet database; keys may also depend on the OS keyring. Back up through Tari’s supported wallet procedures.
-- `deployment.json`: accepted template/component/resource addresses. Created exclusively, never overwritten automatically.
+- `deployment-v2.json`: accepted template/component/resource addresses. Created exclusively, never overwritten automatically.
 - `deployment-journal.jsonl`: publication/creation transaction receipts for resumption.
 - `incubations.jsonl`: append-only, hash-chained full record history; contains operator plaintext secrets. Directory/file modes are 0700/0600 when created. Keep this private and back it up before any manual repair.
 

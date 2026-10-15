@@ -21,6 +21,7 @@ import {
   RULES_URL,
   DOORS,
   VARIANTS,
+  GENE_POSITIONS, COLOR_NAMES, colorForSalt, genotypeFor,
   type GameState,
   type Opening,
 } from "../shared/game";
@@ -335,7 +336,7 @@ function App() {
                   <h2>Trick, treat… or best friend?</h2>
                 </div>
                 <span className="pill">
-                  <Sparkles size={14} /> 6 canine surprises
+                  <Sparkles size={14} /> 4 genesis canines
                 </span>
               </div>
               <p className="section-intro">
@@ -459,12 +460,12 @@ function App() {
               <div className="collection-grid">
                 {state.canines.map((c) => (
                   <article className="canine-card" key={c.id}>
-                    <CanineArt variant={c.variant} />
+                    <CanineArt variant={c.variant} genes={c.genes} name={c.name} />
                     <span className="pill">
-                      {VARIANTS[c.variant].kind} · generation {c.generation}
+                      {c.legacy ? "Original collection" : VARIANTS[c.variant].kind} · generation {c.generation}
                     </span>
                     <h3>{c.name}</h3>
-                    <p>{VARIANTS[c.variant].description}</p>
+                    <p>{c.legacy ? "Preserved from the first testnet collection, rendered from its original NFT genes." : VARIANTS[c.variant].description}</p>
                     <details>
                       <summary>NFT details</summary>
                       <dl>
@@ -472,6 +473,9 @@ function App() {
                         <dd>{c.id}</dd>
                         <dt>Genes</dt>
                         <dd>{c.genes}</dd>
+                        <dt>Genotype</dt><dd>{c.genotype ?? "Not recorded in the original NFT"}</dd>
+                        <dt>Colour</dt><dd>{c.color ? COLOR_NAMES[c.color] : "Not recorded"}</dd>
+                        {GENE_POSITIONS.map((label, i) => <React.Fragment key={label}><dt>{label}</dt><dd>{c.genes[i]}</dd></React.Fragment>)}
                         <dt>Resource</dt>
                         <dd>{c.resource}</dd>
                       </dl>
@@ -517,7 +521,7 @@ function App() {
                   memo. Your wallet decrypts the memo before you hatch.
                 </p>
                 <p>
-                  The public commitment hides which of the six canines you
+                  The public commitment hides which of the four genesis canines you
                   received. A hidden picture alone would not do that.
                 </p>
               </article>
@@ -695,6 +699,8 @@ function App() {
             </div>
             <h2 id="reveal-title">{VARIANTS[opening.variant].name}</h2>
             <p>{VARIANTS[opening.variant].description}</p>
+            <p className="gene-strip">{genotypeFor(VARIANTS[opening.variant].genes, colorForSalt(opening.salt))}</p>
+            <p>Genesis · {COLOR_NAMES[colorForSalt(opening.salt)]} · eight gene positions</p>
             {error && (
               <p className="inline-error" role="alert">
                 {error}
