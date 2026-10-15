@@ -1,0 +1,32 @@
+# Privacy, trust and failure boundaries
+
+## Protocol
+
+1. Player signs `begin_incubation(id, recipient, door)`. The contract binds the transaction signer and fixed recipient, reserving one supply slot.
+2. Operator samples one of six variants with Node’s CSPRNG and a fresh 32-byte salt. Its local journal persists the complete opening before submission.
+3. Operator signs `seal_incubation(id, commitment)`. The commitment is SHA-256 of UTF-8 `midnight-kennel:v1|<32 lowercase hex id>|<decimal variant>|<64 lowercase hex salt>`. Once sealed, it cannot be changed.
+4. Operator uses walletd `stealthTransfer` to send one microtari with the native encrypted memo `MK1:<id>:<variant>:<salt>` to the player’s payment address. The memo is 103 bytes, below the documented 255-byte limit. Native wallet code performs encryption; this app does not invent cryptography.
+5. Private preview reads only on-chain stealth UTXOs decrypted by the selected player wallet and verifies the opening against the commitment. It never falls back to the operator journal’s plaintext.
+6. Player signs `hatch(id, variant, salt)`, deliberately publishing the opening. The template verifies signer, commitment, one-time claim and fixed recipient before minting and depositing atomically.
+
+## Who knows what
+
+| Observer                                 | Before hatch                                                                                                     | After hatch                                         |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Public ledger reader                     | Signer/recipient, chosen door, commitment, timing and transaction graph can be public; memo content is encrypted | Opening, canine traits and NFT ownership are public |
+| Operator                                 | Variant and salt, player address and all local journal records                                                   | Same, plus public NFT                               |
+| Player wallet                            | Decrypts its delivered opening                                                                                   | Owns NFT in the fixed recipient account             |
+| Someone with this computer/daemon access | Can potentially access both operator and player data                                                             | Same                                                |
+
+The local app deliberately uses two accounts in one development daemon, not isolated adversarial operators and clients. The API authorizes access through a local HttpOnly session, origin/host checks and mutation headers. These are browser isolation measures, not remote user authentication. Never expose the daemon or API to the network. No wallet keys, openings or deployment data belong in Git.
+
+## Limits
+
+- Commitment binding prevents changes **after sealing**, not biased operator selection before sealing. The operator can withhold delivery. No fairness claim, odds-based financial prize or yield product is offered.
+- Reservations do not expire. A malicious signer can reserve slots; per-signer limits do not prevent Sybil abuse. The capped event is a developer PoC, not a public-sale design.
+- There is no cancellation, recovery contract, fee subsidy guarantee or automatic operator failover.
+- Transfers use native stealth confidentiality but no promise of unlinkability: fees, revealed funding, graph and timing still expose relationships.
+- Losing wallet keys or the operator journal can strand unfinished incubations. Transaction receipt loss stops automatic retries for manual reconciliation.
+- NFT transfer/breeding and metadata evolution are outside this PoC’s UI. Metadata is immutable here; minting is restricted to the game component.
+
+Sources: [Tari privacy](https://ootle.tari.com/concepts/privacy/), [resource guide](https://ootle.tari.com/guides/resources/), [randomness limitations](https://ootle.tari.com/guides/randomness/). Network SDK behavior still needs live validation for this particular app.

@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "concurrently -k -n api,ui \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
+    "dev": "NODE_OPTIONS=--experimental-wasm-modules concurrently -k -n api,ui \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
     "build": "tsc --noEmit && vite build",
-    "start": "tsx server/index.ts",
-    "test": "tsx --test server/*.test.ts shared/*.test.ts",
+    "start": "NODE_OPTIONS=--experimental-wasm-modules tsx server/index.ts",
+    "test": "tsx --test server/*.test.ts",
     "contract:build": "cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release",
     "contract:test": "cargo test --manifest-path contract/Cargo.toml",
-    "setup:wallet": "tsx scripts/setup-wallet.ts",
-    "deploy:contract": "tsx scripts/deploy-contract.ts"
+    "setup:wallet": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/setup-wallet.ts",
+    "deploy:contract": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-contract.ts"
   },
   "dependencies": {
     "@tari-project/ootle": "0.9.0",
@@ -33,5 +33,8 @@
     "tsx": "^4.19.0",
     "typescript": "~5.8.3",
     "vite": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=22.15.0"
   }
 }

@@ -91,3 +91,19 @@ fn duplicate_request_and_supply_overbooking_fail() {
     let reason = test.execute_expect_failure(test.transaction().call_method(game, "begin_incubation", args!["11111111111111111111111111111111".to_string(), account, 0u8]).build_and_seal(&key), vec![]);
     assert_reject_reason(reason, "Event is full");
 }
+
+#[test]
+fn sealed_component_contains_commitment_but_not_the_secret_opening() {
+    let mut test = TemplateTest::my_crate();
+    let game = setup(&mut test, 10);
+    let (account, _, key) = test.create_empty_account();
+    test.execute_expect_success(test.transaction().call_method(game, "begin_incubation", args![ID.to_string(), account, 0u8]).build_and_seal(&key), vec![]);
+    let sealed = commitment(ID, 3);
+    test.execute_expect_success(test.transaction().call_method(game, "seal_incubation", args![ID.to_string(), sealed.clone()]).build_and_seal(test.secret_key()), vec![test.owner_proof()]);
+    let component = test.read_only_state_store().get_component(game).unwrap();
+    let public_state = format!("{:?}", component.state());
+    assert!(public_state.contains(&sealed));
+    assert!(!public_state.contains(SALT));
+    assert!(!public_state.contains("Boo Beagle"));
+    assert!(!public_state.contains("DDDDBBBB"));
+}
