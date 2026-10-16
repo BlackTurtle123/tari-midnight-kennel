@@ -161,9 +161,9 @@ export function createApp(options: Options) {
       "/api/incubations/:id/" + (method === "preview" ? "open" : method),
       async (req, res) =>
         res.json(
-          await (res.locals.backend as Backend)[method](
+          (await (res.locals.backend as Backend)[method](
             idSchema.parse(req.params.id),
-          ),
+          )) ?? { ok: true },
         ),
     );
   }

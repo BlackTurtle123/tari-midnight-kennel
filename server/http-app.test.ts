@@ -43,7 +43,7 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
           canines: [],
         }),
         start: async () => ({}),
-        resume: async () => ({}),
+        resume: async () => undefined,
         preview: async () => ({}),
         hatch: async () => ({}),
       }) satisfies Backend,
@@ -97,6 +97,11 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
     const auth = cookies
       .find((c) => c.startsWith("kennel_staging_session="))!
       .split(";")[0];
+    const resumed = await fetch(url + "/incubations/" + "a".repeat(32) + "/resume", {
+      method: "POST", headers: { ...headers, cookie: auth },
+    });
+    assert.equal(resumed.status, 200);
+    assert.deepEqual(await resumed.json(), { ok: true }, "Queued progress must return valid JSON even when the service returns void");
     const identity = cookies
       .find((c) => c.startsWith("kennel_staging_session_identity="))!
       .split(";")[0];

@@ -46,3 +46,5 @@ Report: case number, **Pass / Fail / Blocked**, actual visible result, browser/d
 ## Funded-account regression coverage — 16 October 2026
 
 Eighteen application tests pass after adding confidential-only account activation, own-wallet destination/amount limits, pending receipt/restart recovery, lost acknowledgement and delayed balance protection, unfunded-account handling, and legacy missing-account reconciliation. Reconciliation tests preserve ID/secret/commitment/history and reject existing chain requests, matching wallet receipts, unfamiliar schemas and unknown lost acknowledgements. Production build passes. Live repair/deployment results are recorded in the Jira handoff after rollout; these automated tests alone do not establish the user's incubation recovered.
+
+Live repair on 16 October 2026: account activation and the original stuck incubation reached Ready on build `35addec936d8559afb7a60c2a0abbdaf13f513cc`. The same secret and commitment were retained; exactly one start receipt was recorded. No NFT was automatically revealed/minted. The subsequent fix also verifies that queued Check progress requests return valid JSON when the backend returns void.
