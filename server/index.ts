@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
-import { GameService } from "./game-service.ts";
+import { GameService, resumeRecoverableStarts } from "./game-service.ts";
 import { wallet } from "./wallet.ts";
 import { PLAYER_NAME } from "./config.ts";
 import { createApp } from "./http-app.ts";
@@ -96,3 +96,10 @@ const app = createApp({
 app.listen(port, process.env.KENNEL_BIND_HOST || "127.0.0.1", () =>
   console.log(`Midnight Kennel API listening on port ${port}`),
 );
+
+if (hosted)
+  void resumeRecoverableStarts().catch(() =>
+    console.error(
+      "Legacy incubation recovery is waiting for wallet/indexer readiness; Check progress can retry safely.",
+    ),
+  );

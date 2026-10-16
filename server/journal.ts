@@ -14,6 +14,7 @@ import { DATA_DIR } from "./config.ts";
 export interface Incubation extends IncubationView {
   owner: string;
   opening: Opening;
+  reconciliation?: { at: string; reason: string };
 }
 interface Entry {
   previous: string;
@@ -26,6 +27,7 @@ interface Entry {
 export class Journal {
   private records = new Map<string, Incubation>();
   private tail = "";
+  private history = new Map<string, Incubation[]>();
   private path: string;
   constructor(directory = DATA_DIR) {
     mkdirSync(directory, { recursive: true, mode: 0o700 });
@@ -41,9 +43,19 @@ export class Journal {
             "Incubation journal integrity failure; original file preserved",
           );
         this.records.set(entry.record.id, entry.record);
+        this.history.set(entry.record.id, [
+          ...(this.history.get(entry.record.id) ?? []),
+          entry.record,
+        ]);
         this.tail = hash;
       }
     }
+  }
+  all() {
+    return [...this.records.values()].map((r) => structuredClone(r));
+  }
+  recordsFor(id: string) {
+    return structuredClone(this.history.get(id) ?? []);
   }
   get(id: string) {
     return this.records.get(id);
@@ -69,12 +81,21 @@ export class Journal {
     }
     this.tail = entry.hash;
     this.records.set(record.id, structuredClone(record));
+    this.history.set(record.id, [
+      ...(this.history.get(record.id) ?? []),
+      structuredClone(record),
+    ]);
   }
 }
 function digest(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 export function publicRecord(record: Incubation): IncubationView {
-  const { owner: _owner, opening: _opening, ...view } = record;
+  const {
+    owner: _owner,
+    opening: _opening,
+    reconciliation: _reconciliation,
+    ...view
+  } = record;
   return view;
 }

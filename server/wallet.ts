@@ -1,3 +1,4 @@
+import { missingSubstateError, NotSubmitted } from "./submission-errors.ts";
 import { WalletDaemonClient } from "@tari-project/wallet_jrpc_client";
 import { TransactionBuilder, Network } from "@tari-project/ootle";
 import type {
@@ -117,15 +118,26 @@ export async function submit(
   name: string,
   instructions: ReturnType<typeof callInstructions>,
 ) {
-  return (await wallet()).submitInstruction({
-    instructions,
-    fee_account: { Name: name },
-    max_fee: 1_000_000,
-    inputs: [],
-    override_inputs: true,
-    new_outputs: null,
-    proof_ids: [],
-    min_epoch: null,
-    max_epoch: null,
-  });
+  try {
+    return await (
+      await wallet()
+    ).submitInstruction({
+      instructions,
+      fee_account: { Name: name },
+      max_fee: 1_000_000,
+      inputs: [],
+      override_inputs: true,
+      new_outputs: null,
+      proof_ids: [],
+      min_epoch: null,
+      max_epoch: null,
+    });
+  } catch (error) {
+    if (missingSubstateError(error))
+      throw new NotSubmitted(
+        "A required on-chain account or game component is unavailable. No transaction was submitted; check progress to retry.",
+        { cause: error },
+      );
+    throw error;
+  }
 }

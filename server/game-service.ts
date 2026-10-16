@@ -1,3 +1,12 @@
+import {
+  ActivationStore,
+  ensureSpendableAccount,
+} from "./account-readiness.ts";
+import {
+  reconcileMissingAccount,
+  recoverableMissingAccount,
+} from "./reconciliation.ts";
+import { NotSubmitted } from "./submission-errors.ts";
 import { parseCanine, parseLegacyCanine } from "./nft.ts";
 import {
   stringLiteral,
@@ -35,6 +44,7 @@ import {
 } from "./config.ts";
 
 const sharedJournal = new Journal();
+const activations = new ActivationStore();
 const busyIncubations = new Set<string>();
 let walletQueue: Promise<unknown> = Promise.resolve();
 export class GameService {
@@ -82,7 +92,12 @@ export class GameService {
         });
         for (const nft of page.nfts) {
           if (nft.is_burnt) continue;
-          const canine = nft.resource_address === d.resource ? parseCanine(nft.data, d.resource) : nft.resource_address === legacy ? parseLegacyCanine(nft.data, legacy) : null;
+          const canine =
+            nft.resource_address === d.resource
+              ? parseCanine(nft.data, d.resource)
+              : nft.resource_address === legacy
+                ? parseLegacyCanine(nft.data, legacy)
+                : null;
           if (canine) base.canines.push(canine);
         }
         if (page.nfts.length < 100) break;
@@ -141,6 +156,7 @@ export class GameService {
     let r = structuredClone(this.journal.get(id)!);
     if (r.stage === "hatched") return;
     const d = deployment();
+    r = await reconcileMissingAccount(await wallet(), this.journal, r, d);
     const save = () => {
       delete r.error;
       this.journal.save(r);
@@ -150,6 +166,12 @@ export class GameService {
         throw new Error(
           "Submission acknowledgement was lost. Developer reconciliation is required before retrying; no duplicate request was sent.",
         );
+      await ensureSpendableAccount(
+        await wallet(),
+        this.playerName,
+        activations,
+        2_000_000n,
+      );
       r.stage = "starting";
       save();
       const sent = await submit(
@@ -169,6 +191,7 @@ export class GameService {
         throw new Error(
           "Seal acknowledgement was lost. Developer reconciliation is required before retrying.",
         );
+      await ensureSpendableAccount(await wallet(), OPERATOR_NAME, activations);
       r.stage = "sealing";
       save();
       const sent = await submit(
@@ -228,6 +251,14 @@ export class GameService {
 
   private recordFailure(id: string, error: unknown) {
     const record = structuredClone(this.journal.get(id)!);
+    if (error instanceof NotSubmitted) {
+      if (record.stage === "starting" && !record.startTx)
+        record.stage = "reserved";
+      if (record.stage === "sealing" && !record.sealTx)
+        record.stage = "started";
+      if (record.stage === "hatching" && !record.hatchTx)
+        record.stage = "ready";
+    }
     if (error instanceof RejectedTransaction) {
       const resets = {
         startTx: "reserved",
@@ -292,6 +323,11 @@ export class GameService {
             throw new Error(
               "Hatch acknowledgement was lost. Developer reconciliation is required before retrying.",
             );
+          await ensureSpendableAccount(
+            await wallet(),
+            this.playerName,
+            activations,
+          );
           const o = await this.preview(id);
           r.stage = "hatching";
           delete r.error;
@@ -334,4 +370,21 @@ function message(error: unknown) {
   return error instanceof Error
     ? error.message.slice(0, 500)
     : "Operation failed";
+}
+
+// Resume only the audited legacy failure shape. Unknown/lost submissions stay blocked.
+export async function resumeRecoverableStarts() {
+  const candidates = sharedJournal
+    .all()
+    .filter((r) => recoverableMissingAccount(sharedJournal.recordsFor(r.id)));
+  if (!candidates.length) return;
+  const accounts = await (
+    await wallet()
+  ).accountsList({ offset: 0, limit: 100 });
+  for (const r of candidates) {
+    const account = accounts.accounts.find(
+      (a) => a.account.component_address === r.owner,
+    )?.account.name;
+    if (account) await new GameService(account).resume(r.id);
+  }
 }

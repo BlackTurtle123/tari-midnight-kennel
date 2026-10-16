@@ -42,3 +42,7 @@ Prerequisite: developer provides the running app with funded Esmeralda player/op
 9. Disconnect. Expect wallet controls to reset and no private preview remaining visible.
 
 Report: case number, **Pass / Fail / Blocked**, actual visible result, browser/device, and screenshot or recording for failures. Do not infer a live pass from source review or local engine tests.
+
+## Funded-account regression coverage — 16 October 2026
+
+Eighteen application tests pass after adding confidential-only account activation, own-wallet destination/amount limits, pending receipt/restart recovery, lost acknowledgement and delayed balance protection, unfunded-account handling, and legacy missing-account reconciliation. Reconciliation tests preserve ID/secret/commitment/history and reject existing chain requests, matching wallet receipts, unfamiliar schemas and unknown lost acknowledgements. Production build passes. Live repair/deployment results are recorded in the Jira handoff after rollout; these automated tests alone do not establish the user's incubation recovered.
