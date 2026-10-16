@@ -1,0 +1,40 @@
+{
+  "name": "tari-midnight-kennel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_OPTIONS=--experimental-wasm-modules concurrently -k -n api,ui \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
+    "build": "tsc --noEmit && vite build",
+    "start": "NODE_OPTIONS=--experimental-wasm-modules tsx server/index.ts",
+    "test": "tsx --test server/*.test.ts",
+    "contract:build": "cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release",
+    "contract:test": "cargo test --manifest-path contract/Cargo.toml",
+    "setup:wallet": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/setup-wallet.ts",
+    "deploy:contract": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-contract.ts"
+  },
+  "dependencies": {
+    "@tari-project/ootle": "0.9.0",
+    "@tari-project/ootle-indexer": "0.9.0",
+    "express": "^5.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^3.24.0",
+    "@tari-project/wallet_jrpc_client": "1.25.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=22.15.0"
+  }
+}

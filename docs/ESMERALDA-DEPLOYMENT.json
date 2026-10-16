@@ -1,0 +1,36 @@
+{
+  "network": "esmeralda",
+  "template": "template_6297b0e44172619ec116b9f2d8ac935921fc9095c090fcd2282de8b020777a32",
+  "component": "component_cf27eae3ce0b6ed1d5fc4286ccee9aac9a541a6472732c172974722910e32da0",
+  "resource": "resource_cf62ef7b5b334e82b5974c12949bf3f5e10b44279cdd99657220355838f1a732",
+  "operator": "component_dc3b2d6b447cc32d7233bf592d84ecbb88dabba41a03c7f822c0c239b7b0fb00",
+  "publicationTx": "c3d123ba596a787dcba977e8b18fe97011d72a3b266455998679df664298f694",
+  "creationTx": "0f02cb4a9d513502d98420ba2c97207d71fc12babc26e94a7e947f4809c6f270",
+  "createdAt": "2026-10-15T21:34:39.460Z",
+  "verification": {
+    "build": "354b420667ecdb2bd57359ea73f6350e2460f8f2",
+    "incubation": {
+      "id": "0e399b41cb3d432bafeae232e1b4274b",
+      "door": 0,
+      "commitment": "f9c69681dc2fafcd2210a2722d1847895207c097726daeadd502d2ebc3306944",
+      "stage": "hatched",
+      "createdAt": "2026-10-15T21:34:50.297Z",
+      "startTx": "5c2b6dd5f88937773478dae1eb5d9fe56e83afb5836d7e069bb26eb5c7f7a8c7",
+      "sealTx": "c381f9bbeb9629d21fad3f693f7f41cab2303311f695a2aee3dbfca1c7d44d9b",
+      "deliveryTx": "8aadb261e19955f824fef78af27e811657b0ee390429503b33a9b196dd703da0",
+      "hatchTx": "c54e21dc1f22c4bbe7f2187917e8f1d66c268989d36baa90a183f6c9cbb02372"
+    },
+    "nft": {
+      "id": "0e399b41cb3d432bafeae232e1b4274b",
+      "variant": 3,
+      "name": "PoodlOS Echelon",
+      "genes": "HHHHHHHH",
+      "color": "A",
+      "genotype": "CANI-HHHHHHHH-GA",
+      "generation": 0,
+      "resource": "resource_cf62ef7b5b334e82b5974c12949bf3f5e10b44279cdd99657220355838f1a732"
+    },
+    "mintStatus": "Accepted",
+    "retryPreservedReceipt": true
+  }
+}
