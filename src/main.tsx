@@ -13,9 +13,11 @@ import {
   Sparkles,
   Wallet,
   X,
-  RefreshCw,
+  Eye,
+  Globe,
 } from "lucide-react";
 import { CanineArt, DoorArt } from "./CanineArt";
+import { SecretExperience } from "./SecretExperience";
 import {
   CONTEST_URL,
   RULES_URL,
@@ -253,14 +255,14 @@ function App() {
                   <Ghost size={16} /> GOOD DOGS. SPOOKY SECRETS.
                 </div>
                 <h1>
-                  A little spooky.
+                  A spooky secret.
                   <br />
-                  <em>Entirely yours.</em>
+                  <em>Yours to reveal.</em>
                 </h1>
                 <p>
-                  Knock on a door. Incubate a mystery.
+                  Knock on a door. Receive an encrypted surprise.
                   <br />
-                  Meet the canine hiding on the other side.
+                  Peek at your canine privately. Choose when the world meets it.
                 </p>
                 <button
                   className="primary"
@@ -273,8 +275,8 @@ function App() {
                   Find your familiar <ArrowRight size={18} />
                 </button>
                 <div className="hero-foot">
-                  <LockKeyhole size={15} /> Your surprise stays secret until you
-                  reveal it.
+                  <LockKeyhole size={15} /> An encrypted message in your Tari
+                  wallet. A secret you choose to reveal.
                 </div>
               </div>
               <div className="hero-art">
@@ -287,8 +289,8 @@ function App() {
                 <div className="art-note">
                   <span className="note-dot" />
                   <div>
-                    Something good is hatching.
-                    <small>Or something a little mischievous.</small>
+                    One of four possible familiars.
+                    <small>Your own surprise arrives sealed.</small>
                   </div>
                 </div>
                 <span className="edition">
@@ -303,20 +305,20 @@ function App() {
                 [
                   <Ghost />,
                   "01",
-                  "Pick a porch",
-                  "Three doors. One little mystery.",
+                  "Receive a secret",
+                  "Pick a porch. Tari delivers it encrypted.",
                 ],
                 [
                   <LockKeyhole />,
                   "02",
-                  "Keep a secret",
-                  "Your wallet opens your surprise.",
+                  "Peek privately",
+                  "Meet your canine before the public can.",
                 ],
                 [
                   <PawPrint />,
                   "03",
-                  "Hatch your canine",
-                  "Reveal it. Mint it. Make it yours.",
+                  "Choose to reveal",
+                  "Make the traits public and mint your NFT.",
                 ],
               ].map(([icon, n, title, desc], i) => (
                 <div className="step" key={i}>
@@ -346,63 +348,25 @@ function App() {
                 Choose a doorstep. Every door can lead to any canine. Even the
                 tricks have a wagging tail.
               </p>
-              {pending && (
-                <div className="incubation">
-                  <div className="incubation-icon">
-                    <LockKeyhole />
-                  </div>
-                  <div className="incubation-copy">
-                    <span className="eyebrow">YOUR INCUBATION</span>
-                    <h3>
-                      {pending.stage === "ready"
-                        ? "A secret has arrived."
-                        : pending.stage === "reserved"
-                          ? "Preparing your wallet…"
-                          : pending.stage === "hatching"
-                            ? "Your canine is hatching…"
-                            : "A little mystery is on its way."}
-                    </h3>
-                    <p>
-                      {DOORS[pending.door].name} ·{" "}
-                      {pending.stage.replaceAll("_", " ")} · {short(pending.id)}
-                    </p>
-                    {pending.error && (
-                      <p className="inline-error">{pending.error}</p>
-                    )}
-                  </div>
-                  {pending.stage === "ready" ? (
-                    <button
-                      className="primary"
-                      disabled={busy}
-                      onClick={() =>
-                        void action(async () =>
-                          setOpening(
-                            await api<Opening>(
-                              `/incubations/${pending.id}/open`,
-                              {},
-                            ),
-                          ),
-                        )
-                      }
-                    >
-                      <LockKeyhole size={16} /> Open privately
-                    </button>
-                  ) : (
-                    <button
-                      className="secondary"
-                      disabled={busy}
-                      onClick={() =>
-                        void action(async () => {
-                          await api(`/incubations/${pending.id}/resume`, {});
-                          await refresh();
-                        })
-                      }
-                    >
-                      <RefreshCw size={16} /> Check progress
-                    </button>
-                  )}
-                </div>
-              )}
+              <SecretExperience
+                incubation={pending}
+                busy={busy}
+                onOpen={() =>
+                  pending &&
+                  void action(async () => {
+                    setOpening(
+                      await api<Opening>(`/incubations/${pending.id}/open`, {}),
+                    );
+                  })
+                }
+                onResume={() =>
+                  pending &&
+                  void action(async () => {
+                    await api(`/incubations/${pending.id}/resume`, {});
+                    await refresh();
+                  })
+                }
+              />
               <div className="door-grid">
                 {DOORS.map((door, i) => (
                   <article className={"door-card door-" + i} key={door.name}>
@@ -459,7 +423,8 @@ function App() {
               My <em>canines.</em>
             </h1>
             <p className="section-intro">
-              Real NFTs held by your connected testnet account.
+              Your revealed canines. Their traits and ownership are now public
+              on Tari.
             </p>
             {state.canines.length ? (
               <div className="collection-grid">
@@ -482,6 +447,9 @@ function App() {
                         ? "Preserved from the first testnet collection, rendered from its original NFT genes."
                         : VARIANTS[c.variant].description}
                     </p>
+                    <div className="public-nft">
+                      <Globe size={14} /> Public NFT · held by your wallet
+                    </div>
                     <details>
                       <summary>NFT details</summary>
                       <dl>
@@ -718,48 +686,74 @@ function App() {
               <X />
             </button>
             <span className="pill">
-              <LockKeyhole size={14} /> PRIVATE PREVIEW
+              <Eye size={14} /> PRIVATE PREVIEW · NOT YET PUBLIC
             </span>
-            <CanineArt variant={opening.variant} />
-            <div className="eyebrow">
-              IT’S A {VARIANTS[opening.variant].kind.toUpperCase()}!
-            </div>
-            <h2 id="reveal-title">{VARIANTS[opening.variant].name}</h2>
-            <p>{VARIANTS[opening.variant].description}</p>
-            <p className="gene-strip">
-              {genotypeFor(
-                VARIANTS[opening.variant].genes,
-                colorForSalt(opening.salt),
-              )}
+            <h2 id="reveal-title">Your secret, opened.</h2>
+            <p className="private-intro">
+              Delivered through Tari’s encrypted message. Looking here hasn’t
+              revealed your canine to the public.
             </p>
-            <p>
-              Genesis · {COLOR_NAMES[colorForSalt(opening.salt)]} · eight gene
-              positions
-            </p>
-            {error && (
-              <p className="inline-error" role="alert">
-                {error}
-              </p>
-            )}
-            <div className="reveal-warning">
-              Hatching publishes this canine’s traits and the secret opening on
-              Tari. Your NFT will be public.
+            <div className="private-reveal-content">
+              <div className="private-canine">
+                <CanineArt variant={opening.variant} />
+                <div className="eyebrow">
+                  IT’S A {VARIANTS[opening.variant].kind.toUpperCase()}!
+                </div>
+                <h3 className="revealed-name">
+                  {VARIANTS[opening.variant].name}
+                </h3>
+                <p className="gene-strip">
+                  {genotypeFor(
+                    VARIANTS[opening.variant].genes,
+                    colorForSalt(opening.salt),
+                  )}
+                </p>
+                <p>
+                  Genesis · {COLOR_NAMES[colorForSalt(opening.salt)]} · eight
+                  gene positions
+                </p>
+              </div>
+              <div className="private-decision">
+                {error && (
+                  <p className="inline-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <div className="reveal-warning">
+                  <Globe size={18} />
+                  <div>
+                    <strong>The next step makes it public.</strong>
+                    Reveal your canine’s genes, colour and trick-or-treat result
+                    to mint the NFT. Tari checks it matches the sealed surprise.
+                  </div>
+                </div>
+                <button
+                  className="primary"
+                  disabled={busy}
+                  onClick={() =>
+                    void action(async () => {
+                      await api(`/incubations/${opening.id}/hatch`, {});
+                      setOpening(null);
+                      await refresh();
+                      setTab("collection");
+                    })
+                  }
+                >
+                  {busy ? "Minting on Tari…" : "Make public & mint NFT"}{" "}
+                  <PawPrint size={17} />
+                </button>
+                <button
+                  className="secondary keep-secret"
+                  disabled={busy}
+                  onClick={() => setOpening(null)}
+                >
+                  <LockKeyhole size={16} /> Keep it secret for now
+                </button>
+                <p className="preview-boundary">
+                  The game operator knows the result. Staging hosts your wallet.
+                </p>
+              </div>
             </div>
-            <button
-              className="primary"
-              disabled={busy}
-              onClick={() =>
-                void action(async () => {
-                  await api(`/incubations/${opening.id}/hatch`, {});
-                  setOpening(null);
-                  await refresh();
-                  setTab("collection");
-                })
-              }
-            >
-              {busy ? "Minting on Tari…" : "Reveal & mint NFT"}{" "}
-              <PawPrint size={17} />
-            </button>
           </section>
         </div>
       )}

@@ -791,11 +791,12 @@ dt {
   display: flex;
 }
 .reveal-modal {
+  width: 760px;
   text-align: center;
   padding: 35px;
 }
-.reveal-modal > .canine-art {
-  height: 245px;
+.private-canine > .canine-art {
+  height: 205px;
   width: 100%;
 }
 .reveal-modal .eyebrow {
@@ -805,6 +806,8 @@ dt {
   margin-top: 13px;
 }
 .reveal-warning {
+  display: flex;
+  gap: 12px;
   border: 1px solid #dfd6c7;
   border-radius: 8px;
   background: #f0eade;
@@ -812,6 +815,235 @@ dt {
   font-size: 11px;
   line-height: 1.8;
   text-align: left;
+}
+.reveal-warning > svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.reveal-warning strong {
+  display: block;
+  margin-bottom: 4px;
+}
+.secret-experience {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 28px;
+  padding: 28px;
+  margin: 24px 0;
+  background: #eee8f4;
+  border: 1px solid #cfc2de;
+  border-radius: 16px;
+}
+.secret-ready {
+  border-color: #9e87b6;
+  box-shadow: 0 6px 26px #65517e0e;
+}
+.secret-envelope {
+  align-self: start;
+  min-height: 155px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  position: relative;
+  color: #66517d;
+  background: #e3d9ed;
+  border-radius: 12px;
+  border: 1px dashed #b9a8cb;
+}
+.envelope-seal {
+  position: absolute;
+  top: 63px;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #704628;
+  background: #edaa78;
+  box-shadow: 0 2px 0 #b4795050;
+}
+.envelope-caption {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 17px;
+}
+.secret-body h3 {
+  font-size: 23px;
+  line-height: 1.35;
+  margin: 10px 0;
+}
+.secret-description {
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 0;
+  color: #62556e;
+  max-width: 650px;
+}
+.hidden-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 16px;
+}
+.hidden-traits > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid #d1c4de;
+  background: #f8f4fb;
+  border-radius: 6px;
+  padding: 7px 9px;
+  font-size: 11px;
+  color: #62556e;
+}
+.hidden-traits b {
+  margin-left: 5px;
+}
+.secret-choice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  margin: 18px 0 0;
+}
+.secret-choice > svg {
+  flex-shrink: 0;
+}
+.secret-progress {
+  list-style: none;
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 0;
+  margin: 22px 0;
+}
+.secret-progress li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: #74687e;
+}
+.secret-progress li > span {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #b5a5c5;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.secret-progress .done {
+  color: #3d694b;
+}
+.secret-progress .done > span {
+  color: #fff;
+  background: #54785d;
+  border-color: #54785d;
+}
+.secret-progress .current {
+  color: #49315f;
+  font-weight: 700;
+}
+.secret-progress .current > span {
+  background: #ded0ea;
+  border-color: #8e74a7;
+}
+.secret-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+.secret-actions > span {
+  font-size: 11px;
+  color: #62556e;
+}
+.secret-boundary {
+  font-size: 11px;
+  color: #74687e;
+  line-height: 1.7;
+  margin: 17px 0 0;
+}
+.secret-proof {
+  border-top: 1px solid #d8cce2;
+  margin-top: 17px;
+  padding-top: 12px;
+  font-size: 11px;
+  color: #62556e;
+}
+.secret-proof summary {
+  cursor: pointer;
+}
+.secret-proof p {
+  line-height: 1.7;
+}
+.secret-proof dd {
+  margin: 5px 0 12px;
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+.public-nft {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #62556e;
+  font-size: 11px;
+  margin: 16px 0;
+}
+.reveal-modal .revealed-name {
+  font-size: 23px;
+  margin: 12px 0;
+}
+.reveal-modal .private-intro {
+  font-size: 12px;
+  margin: 0;
+  color: #62556e;
+}
+.reveal-modal .keep-secret {
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+}
+.reveal-modal .preview-boundary {
+  font-size: 10px;
+  margin: 14px 0 0;
+}
+@media (max-width: 680px) {
+  .secret-experience {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+    padding: 21px;
+  }
+  .secret-envelope {
+    width: 130px;
+    min-height: 140px;
+    justify-self: center;
+  }
+  .envelope-seal {
+    top: 55px;
+  }
+  .secret-body h3 {
+    font-size: 22px;
+  }
+  .secret-progress {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .secret-actions .primary {
+    width: 100%;
+    justify-content: center;
+  }
+  .private-canine > .canine-art {
+    height: 150px;
+  }
+  .reveal-modal > .pill {
+    font-size: 9px;
+    white-space: normal;
+  }
 }
 @media (min-width: 1400px) {
   .hero {
@@ -1130,5 +1362,55 @@ dt {
   text-decoration: underline;
 }
 
-.canine-art { display: block; object-fit: contain; max-width: 100%; }
-.gene-strip { overflow-wrap: anywhere; font-family: monospace; }
+.canine-art {
+  display: block;
+  object-fit: contain;
+  max-width: 100%;
+}
+.gene-strip {
+  overflow-wrap: anywhere;
+  font-family: monospace;
+}
+
+.private-reveal-content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: center;
+  margin-top: 20px;
+}
+.private-canine {
+  min-width: 0;
+}
+.private-canine p {
+  font-size: 11px;
+  margin: 8px 0;
+}
+.private-decision {
+  border-left: 1px solid var(--line);
+  padding-left: 28px;
+}
+.private-decision .reveal-warning {
+  background: transparent;
+  border: none;
+  padding: 0 0 12px;
+  font-size: 12px;
+}
+@media (max-width: 680px) {
+  .private-reveal-content {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+    margin-top: 10px;
+  }
+  .private-decision {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    padding: 18px 0 0;
+  }
+  .reveal-modal {
+    padding: 30px 22px 22px;
+  }
+  .reveal-modal h2 {
+    font-size: 23px;
+  }
+}

@@ -48,3 +48,14 @@ Report: case number, **Pass / Fail / Blocked**, actual visible result, browser/d
 Eighteen application tests pass after adding confidential-only account activation, own-wallet destination/amount limits, pending receipt/restart recovery, lost acknowledgement and delayed balance protection, unfunded-account handling, and legacy missing-account reconciliation. Reconciliation tests preserve ID/secret/commitment/history and reject existing chain requests, matching wallet receipts, unfamiliar schemas and unknown lost acknowledgements. Production build passes. Live repair/deployment results are recorded in the Jira handoff after rollout; these automated tests alone do not establish the user's incubation recovered.
 
 Live repair on 16 October 2026: account activation and the original stuck incubation reached Ready on build `35addec936d8559afb7a60c2a0abbdaf13f513cc`. The same secret and commitment were retained; exactly one start receipt was recorded. No NFT was automatically revealed/minted. The subsequent fix also verifies that queued Check progress requests return valid JSON when the backend returns void.
+
+## Secret experience feedback — 18 October 2026
+
+The main journey now names what stays secret (canine, genes, colour and trick-or-treat result), shows a sealed envelope and confirmed delivery stages, and separates private viewing from public NFT minting. The private preview offers “Keep it secret for now” and “Make public & mint NFT”. The operator/custody boundary remains visible in the journey. Collection cards identify the resulting NFT as public.
+
+Observed in the Codex in-app browser using the production frontend build and a temporary loopback API fixture (simulated data; no chain transactions):
+- PASS: desktop doorstep explanation and hidden-trait labels; delivering state disables additional doors; ready state shows encrypted delivery and Open privately.
+- PASS: preview identifies itself as not yet public, shows original canine art/genes/colour, and displays both keep-secret and public-mint choices together on desktop.
+- PASS: keeping the secret closes the preview without adding an NFT; reopening shows the same canine; simulated explicit mint switches to the public-labelled collection.
+- PASS: 390 × 844 phone layout for the secret card and preview; both preview choices remain accessible, with no horizontal document overflow.
+- Developer checks: 18 existing application tests and production TypeScript/Vite build pass. No wallet, contract, transaction or recovery logic changed. These fixture checks do not claim a new live mint; final staging checks and the administrator retest handoff are recorded in Jira.
