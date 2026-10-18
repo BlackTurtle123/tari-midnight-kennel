@@ -18,9 +18,15 @@
 | Player wallet                            | Decrypts its delivered opening                                                                                   | Owns NFT in the fixed recipient account             |
 | Someone with the host/daemon access | Can potentially access both operator and player data                                                             | Same                                                |
 
-Local mode uses operator and player accounts in one development daemon. Hosted staging provisions one player account per signed browser identity, with Secure/HttpOnly/SameSite cookies, origin/host checks and mutation headers. The operator queue and append-only journal are shared. The staging server still holds every wallet key and knows every opening: browser isolation does not provide privacy from the operator or self-custody. Disconnect clears the active session while a private identity cookie permits reconnecting to the same test account. Clearing cookies loses that access. No wallet keys, openings or deployment data belong in Git.
+Local mode uses operator and player accounts in one development daemon. Hosted staging provisions one player account per signed browser identity, with Secure/HttpOnly/SameSite cookies, origin/host checks and mutation headers. The operator queue and append-only journal are shared. For the existing hosted-wallet path, the staging server still holds its wallet keys and knows every opening: browser isolation does not provide privacy from the operator or self-custody. Disconnect clears the active session while a private identity cookie permits reconnecting to the same test account. Clearing cookies loses that access. No wallet keys, openings or deployment data belong in Git.
 
 The wallet RPC always remains on loopback. Only the game API is published through the configured HTTPS staging proxy. The hosted session secret and wallet encryption password persist outside the image and must be included in protected recovery captures. Staging accounts hold testnet coins only.
+
+## External player wallets
+
+Sapient signs player transactions in the extension. The game server never receives its seed or private/view keys. Opening privately requests revocable wallet view access and a scan for the specific delivery transaction; the browser checks the memo against the on-chain commitment. This permission can expose private wallet balances and memos to this site, so it is requested only on the explicit Open privately action. The operator still knows the surprise and retains its own server signing wallet.
+
+An external incubation ID commits to network, game component, player component, complete payment address (including its view key), door and a random nonce. The player signs that ID in begin_incubation. The server checks this binding, the on-chain signer and built-in account ownership before sealing or delivery. Merely knowing an account address never authorizes a new delivery destination. Existing hosted-wallet IDs and records remain unchanged. See [the exact binding and recovery rules](EXTERNAL-WALLET.md).
 
 ## Limits
 

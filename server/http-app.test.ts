@@ -25,6 +25,7 @@ function fetch(
 }
 import { createApp, type Backend } from "./http-app.ts";
 test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect identity", async () => {
+  let hostedCalls = 0;
   const app = createApp({
     hosted: true,
     origin: "https://staging.example.test",
@@ -33,8 +34,28 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
     version: "test",
     health: async () => true,
     fund: async (account) => ({ account }),
-    backend: async (account) =>
-      ({
+    external: {
+      config: () => ({
+        component: "component_" + "a".repeat(64),
+        resource: "resource_" + "b".repeat(64),
+        network: "esmeralda",
+      }),
+      state: async (account) => ({
+        connected: true,
+        network: "Esmeralda",
+        account,
+        incubations: [],
+        canines: [],
+      }),
+      prepare: async () => ({ ok: true }),
+      register: async () => {
+        throw new Error("Not used by this test");
+      },
+      resume: async () => ({ ok: true }),
+    },
+    backend: async (account) => {
+      hostedCalls++;
+      return {
         state: async () => ({
           connected: true,
           network: "Esmeralda",
@@ -46,7 +67,8 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
         resume: async () => undefined,
         preview: async () => ({}),
         hatch: async () => ({}),
-      }) satisfies Backend,
+      } satisfies Backend;
+    },
   });
   const server = app.listen(0, "127.0.0.1");
   await once(server, "listening");
@@ -97,14 +119,44 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
     const auth = cookies
       .find((c) => c.startsWith("kennel_staging_session="))!
       .split(";")[0];
-    const resumed = await fetch(url + "/incubations/" + "a".repeat(32) + "/resume", {
-      method: "POST", headers: { ...headers, cookie: auth },
-    });
+    const resumed = await fetch(
+      url + "/incubations/" + "a".repeat(32) + "/resume",
+      {
+        method: "POST",
+        headers: { ...headers, cookie: auth },
+      },
+    );
     assert.equal(resumed.status, 200);
-    assert.deepEqual(await resumed.json(), { ok: true }, "Queued progress must return valid JSON even when the service returns void");
+    assert.deepEqual(
+      await resumed.json(),
+      { ok: true },
+      "Queued progress must return valid JSON even when the service returns void",
+    );
     const identity = cookies
       .find((c) => c.startsWith("kennel_staging_session_identity="))!
       .split(";")[0];
+    const beforeExternal = hostedCalls;
+    const external = await fetch(
+      url + "/external/state?account=component_" + "a".repeat(64),
+      {
+        headers: { ...headers, cookie: identity },
+      },
+    );
+    assert.equal(external.status, 200);
+    assert.equal(
+      hostedCalls,
+      beforeExternal,
+      "External wallet must never provision/access the hosted player backend",
+    );
+    assert.equal(
+      external.headers.get("set-cookie"),
+      null,
+      "External connection must not replace either legacy identity cookie",
+    );
+    assert.equal(
+      (await fetch(url + "/external/state?account=bad", { headers })).status,
+      400,
+    );
     const state = await fetch(url + "/state", {
       headers: { ...headers, cookie: auth },
     });

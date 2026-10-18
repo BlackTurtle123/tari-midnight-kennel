@@ -1,7 +1,4 @@
-import {
-  ActivationStore,
-  ensureSpendableAccount,
-} from "./account-readiness.ts";
+import { ensureSpendableAccount } from "./account-readiness.ts";
 import {
   reconcileMissingAccount,
   recoverableMissingAccount,
@@ -44,9 +41,8 @@ import {
 } from "./config.ts";
 
 const sharedJournal = new Journal();
-const activations = new ActivationStore();
 const busyIncubations = new Set<string>();
-let walletQueue: Promise<unknown> = Promise.resolve();
+import { serializeWallet, activations } from "./wallet-queue.ts";
 export class GameService {
   constructor(
     private readonly playerName = PLAYER_NAME,
@@ -145,8 +141,7 @@ export class GameService {
     if (this.busy.has(id)) return;
     this.busy.add(id);
     // Serialize wallet writes; avoid competing fee inputs from parallel operations.
-    const run = walletQueue.catch(() => undefined).then(() => this.advance(id));
-    walletQueue = run;
+    const run = serializeWallet(() => this.advance(id));
     void run
       .catch((e) => this.recordFailure(id, e))
       .finally(() => this.busy.delete(id));
@@ -313,49 +308,46 @@ export class GameService {
     if (this.busy.has(id))
       throw new Error("This incubation is still processing");
     this.busy.add(id);
-    const run = walletQueue
-      .catch(() => undefined)
-      .then(async () => {
-        const r = structuredClone(await this.owned(id));
-        if (r.stage === "hatched") return publicRecord(r);
-        if (!r.hatchTx) {
-          if (r.stage === "hatching")
-            throw new Error(
-              "Hatch acknowledgement was lost. Developer reconciliation is required before retrying.",
-            );
-          await ensureSpendableAccount(
-            await wallet(),
-            this.playerName,
-            activations,
+    const run = serializeWallet(async () => {
+      const r = structuredClone(await this.owned(id));
+      if (r.stage === "hatched") return publicRecord(r);
+      if (!r.hatchTx) {
+        if (r.stage === "hatching")
+          throw new Error(
+            "Hatch acknowledgement was lost. Developer reconciliation is required before retrying.",
           );
-          const o = await this.preview(id);
-          r.stage = "hatching";
-          delete r.error;
-          this.journal.save(r);
-          const sent = await submit(
-            this.playerName,
-            callInstructions(deployment().component, "hatch", [
-              stringLiteral(id),
-              intLiteral(BigInt(o.variant)),
-              stringLiteral(o.salt),
-            ]),
-          );
-          r.hatchTx = sent.transaction_id;
-          this.journal.save(r);
-        }
-        await waitAccepted(r.hatchTx);
-        r.stage = "hatched";
+        await ensureSpendableAccount(
+          await wallet(),
+          this.playerName,
+          activations,
+        );
+        const o = await this.preview(id);
+        r.stage = "hatching";
         delete r.error;
         this.journal.save(r);
-        await (
-          await wallet()
-        ).accountsGetBalances({
-          account: { Name: this.playerName },
-          refresh: true,
-        });
-        return publicRecord(r);
+        const sent = await submit(
+          this.playerName,
+          callInstructions(deployment().component, "hatch", [
+            stringLiteral(id),
+            intLiteral(BigInt(o.variant)),
+            stringLiteral(o.salt),
+          ]),
+        );
+        r.hatchTx = sent.transaction_id;
+        this.journal.save(r);
+      }
+      await waitAccepted(r.hatchTx);
+      r.stage = "hatched";
+      delete r.error;
+      this.journal.save(r);
+      await (
+        await wallet()
+      ).accountsGetBalances({
+        account: { Name: this.playerName },
+        refresh: true,
       });
-    walletQueue = run;
+      return publicRecord(r);
+    });
     try {
       return await run;
     } catch (e) {

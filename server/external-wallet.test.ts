@@ -1,0 +1,349 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  stringLiteral,
+  intLiteral,
+  componentAddressLiteral,
+} from "@tari-project/ootle";
+import { callInstructions } from "./wallet.ts";
+import {
+  intentId,
+  playerInstructions,
+  type WalletIntent,
+} from "../shared/external-wallet.ts";
+import { verifyAuthorizedIntent } from "./external-service.ts";
+import { checkAccount, readGame } from "./external-chain.ts";
+import { publicRecord } from "./journal.ts";
+import {
+  ExternalWallet,
+  readSaved,
+  type TariProvider,
+} from "../src/external-wallet.ts";
+import { commitmentFor } from "./crypto.ts";
+import type { GameState } from "../shared/game.ts";
+
+const component = "component_" + "ab".repeat(32),
+  account = "component_" + "cd".repeat(32);
+const intent: WalletIntent = {
+  component,
+  account,
+  paymentAddress: "otl_esm_testaddress",
+  door: 1,
+  nonce: "ef".repeat(32),
+};
+test("signed incubation ID binds the full address, account, door, deployment and nonce", async () => {
+  const id = await intentId(intent),
+    signer = "12".repeat(32);
+  const chain = {
+    id,
+    signer,
+    owner: account,
+    door: 1,
+    commitment: "",
+    hatched: false,
+  };
+  verifyAuthorizedIntent(intent, id, signer, chain);
+  for (const altered of [
+    { ...intent, paymentAddress: "otl_esm_attacker_view_key" },
+    { ...intent, account: component },
+    { ...intent, door: 2 },
+    { ...intent, component: account },
+    { ...intent, nonce: "00".repeat(32) },
+  ])
+    assert.throws(() => verifyAuthorizedIntent(altered, id, signer, chain));
+  assert.throws(() =>
+    verifyAuthorizedIntent(intent, id, "34".repeat(32), chain),
+  );
+  assert.throws(() => verifyAuthorizedIntent(intent, id, signer));
+});
+test("browser begin and hatch encodings exactly match the official SDK", () => {
+  const id = "01".repeat(16),
+    salt = "fe".repeat(32);
+  for (let door = 0; door < 3; door++)
+    assert.deepEqual(
+      playerInstructions(component, id, { kind: "begin", account, door }),
+      callInstructions(component, "begin_incubation", [
+        stringLiteral(id),
+        componentAddressLiteral(account),
+        intLiteral(BigInt(door)),
+      ]),
+    );
+  for (let variant = 0; variant < 4; variant++)
+    assert.deepEqual(
+      playerInstructions(component, id, { kind: "hatch", variant, salt }),
+      callInstructions(component, "hatch", [
+        stringLiteral(id),
+        intLiteral(BigInt(variant)),
+        stringLiteral(salt),
+      ]),
+    );
+});
+test("account proof requires built-in account and its public owner; public records omit address and opening", () => {
+  const signer = "ab".repeat(32),
+    raw = {
+      header: {
+        template_address: "0".repeat(64),
+        owner_rule: { ByPublicKey: signer },
+      },
+    };
+  checkAccount(raw, signer);
+  assert.throws(() => checkAccount(raw, "00".repeat(32)));
+  assert.throws(() =>
+    checkAccount(
+      { header: { ...raw.header, template_address: signer } },
+      signer,
+    ),
+  );
+  const view = publicRecord({
+    id: "01".repeat(16),
+    door: 0,
+    owner: account,
+    externalAddress: intent.paymentAddress,
+    stage: "ready",
+    commitment: signer,
+    createdAt: "now",
+    opening: { id: "01".repeat(16), variant: 0, salt: "ee".repeat(32) },
+  });
+  assert.equal("opening" in view, false);
+  assert.equal("externalAddress" in view, false);
+  assert.equal("owner" in view, false);
+  assert.throws(() =>
+    readGame(
+      { header: { template_address: signer }, body: { state: [] } },
+      signer,
+      "resource_" + signer,
+    ),
+  );
+});
+
+class MemoryStorage implements Storage {
+  data = new Map<string, string>();
+  get length() {
+    return this.data.size;
+  }
+  clear() {
+    this.data.clear();
+  }
+  getItem(k: string) {
+    return this.data.get(k) ?? null;
+  }
+  key(i: number) {
+    return [...this.data.keys()][i] ?? null;
+  }
+  removeItem(k: string) {
+    this.data.delete(k);
+  }
+  setItem(k: string, v: string) {
+    this.data.set(k, v);
+  }
+}
+function fixture(failure: "none" | "create" | "submit" = "none") {
+  const storage = new MemoryStorage();
+  let network = "esmeralda",
+    creates = 0,
+    submits = 0,
+    registered = false,
+    requestStatus = "approved";
+  const requests = new Map<
+    string,
+    { method: string; args: { Literal: string }[] }
+  >();
+  let chain: GameState = {
+    connected: true,
+    network: "Esmeralda",
+    account,
+    incubations: [],
+    canines: [],
+  };
+  const calls: string[] = [];
+  const p: TariProvider = {
+    isTariWallet: true,
+    async request<T>({
+      method,
+      params,
+    }: {
+      method: string;
+      params?: any;
+    }): Promise<T> {
+      calls.push(method);
+      let value: unknown;
+      switch (method) {
+        case "tari_requestAccounts":
+        case "tari_getAccounts":
+          value = [account];
+          break;
+        case "tari_getNetwork":
+          value = network;
+          break;
+        case "tari_getWalletAddress":
+          value = intent.paymentAddress;
+          break;
+        case "tari_getCapabilities":
+          value = {
+            transactionRequests: true,
+            walletAddress: true,
+            privateScan: true,
+          };
+          break;
+        case "tari_createTransactionRequest": {
+          creates++;
+          if (failure === "create") throw new Error("Lost acknowledgement");
+          requests.set(String(creates), params.instructions[0].CallMethod);
+          requestStatus = "approved";
+          value = { requestId: String(creates) };
+          break;
+        }
+        case "tari_getTransactionRequest":
+          value = { status: requestStatus };
+          break;
+        case "tari_submitTransactionRequest": {
+          submits++;
+          requestStatus = "submitted";
+          const op = requests.get(params.requestId)!;
+          const id = Buffer.from(op.args[0].Literal.slice(4), "hex").toString();
+          if (op.method === "begin_incubation")
+            chain.incubations = [
+              {
+                id,
+                door: 1,
+                stage: "started",
+                createdAt: "now",
+                commitment: "",
+              },
+            ];
+          else chain.incubations[0].stage = "hatched";
+          if (failure === "submit") throw new Error("Lost submission response");
+          value = { transactionId: "11".repeat(32) };
+          break;
+        }
+        case "tari_requestViewAccess":
+          value = { granted: true };
+          break;
+        case "tari_scanForResourceUtxos":
+          value = {
+            found: [
+              {
+                transactionId: "22".repeat(32),
+                memo: `MK2:${chain.incubations[0].id}:2:${"ad".repeat(32)}`,
+              },
+            ],
+          };
+          break;
+        default:
+          throw new Error("Unexpected method " + method);
+      }
+      return value as T;
+    },
+  };
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { tari: p, addEventListener() {}, removeEventListener() {} },
+  });
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: storage,
+  });
+  Object.defineProperty(globalThis, "navigator", {
+    configurable: true,
+    value: {
+      locks: {
+        request: async (
+          _name: string,
+          _options: unknown,
+          fn: (lock: {}) => unknown,
+        ) => fn({}),
+      },
+    },
+  });
+  const api = async <T>(path: string, body?: any): Promise<T> => {
+    let result: unknown;
+    if (path === "/external/config")
+      result = { component, network: "esmeralda" };
+    else if (path.startsWith("/external/state"))
+      result = structuredClone(chain);
+    else if (path === "/external/prepare") result = { ok: true };
+    else if (path === "/external/register") {
+      registered = true;
+      assert.equal(body.id, chain.incubations[0].id);
+      result = {};
+    } else throw new Error("Unexpected server call " + path);
+    return result as T;
+  };
+  return {
+    storage,
+    api,
+    calls,
+    p,
+    chain,
+    get creates() {
+      return creates;
+    },
+    get submits() {
+      return submits;
+    },
+    get registered() {
+      return registered;
+    },
+    setNetwork(n: string) {
+      network = n;
+    },
+  };
+}
+test("external flow signs twice in wallet, reads memo only on request, stores no opening, and never provisions hosted wallet", async () => {
+  const f = fixture(),
+    w = await ExternalWallet.connect(f.api, () => {});
+  await w.begin(1);
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 1);
+  assert.equal(f.registered, true);
+  assert.equal(f.calls.includes("tari_requestViewAccess"), false);
+  const c = f.chain.incubations[0];
+  c.stage = "ready";
+  c.deliveryTx = "22".repeat(32);
+  c.commitment = commitmentFor({ id: c.id, variant: 2, salt: "ad".repeat(32) });
+  const opening = await w.open(c);
+  assert.equal(opening.variant, 2);
+  await w.hatch(opening);
+  await w.hatch(opening);
+  assert.equal(f.creates, 2);
+  assert.equal(f.submits, 2);
+  assert.equal(
+    JSON.stringify([...f.storage.data.values()]).includes(opening.salt),
+    false,
+  );
+  assert.equal(readSaved(f.storage, account, component).length, 1);
+});
+test("lost creation acknowledgement cannot create a duplicate after reconnect", async () => {
+  const f = fixture("create"),
+    w = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(w.begin(1), /Lost acknowledgement/);
+  const id = readSaved(f.storage, account, component)[0].id;
+  w.stop();
+  const restored = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(restored.resume(id), /acknowledgement was lost/);
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 0);
+});
+test("lost submission response recovers from on-chain receipt without submitting twice", async () => {
+  const f = fixture("submit"),
+    w = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(w.begin(1), /Lost submission/);
+  w.stop();
+  const restored = await ExternalWallet.connect(f.api, () => {});
+  await restored.resume(f.chain.incubations[0].id);
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 1);
+  assert.equal(f.registered, true);
+});
+test("network switch invalidates the connection before any signature or private read", async () => {
+  const f = fixture();
+  let invalidated = false;
+  const w = await ExternalWallet.connect(f.api, () => {
+    invalidated = true;
+  });
+  f.setNetwork("igor");
+  await assert.rejects(w.begin(1), /changed/);
+  assert.equal(invalidated, true);
+  assert.equal(f.creates, 0);
+  assert.equal(f.calls.includes("tari_requestViewAccess"), false);
+});

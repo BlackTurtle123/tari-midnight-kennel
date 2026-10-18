@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { z } from "zod";
 import type { GameState } from "../shared/game.ts";
 import { Sessions } from "./sessions.ts";
+import type { ExternalService } from "./external-service.ts";
 export interface Backend {
   state(): Promise<GameState>;
   start(door: number, id: string): Promise<unknown>;
@@ -19,6 +20,10 @@ interface Options {
   backend(account: string): Promise<Backend>;
   health(): Promise<boolean>;
   fund(account: string): Promise<unknown>;
+  external?: Pick<
+    ExternalService,
+    "config" | "prepare" | "register" | "resume" | "state"
+  >;
 }
 export function createApp(options: Options) {
   const app = express();
@@ -125,6 +130,40 @@ export function createApp(options: Options) {
     res.cookie(cookieName + "_identity", token, cookieOptions);
     res.json(state);
   });
+  if (options.external) {
+    const external = options.external;
+    const account = z.string().regex(/^component_[a-f0-9]{64}$/);
+    const id = z.string().regex(/^[a-f0-9]{32}$/);
+    const intent = z
+      .object({
+        account,
+        component: account,
+        paymentAddress: z
+          .string()
+          .regex(/^otl_esm_[a-z0-9]+$/)
+          .max(512),
+        nonce: z.string().regex(/^[a-f0-9]{64}$/),
+        door: z.number().int().min(0).max(2),
+      })
+      .strict();
+    // External connections never create a hosted account, set cookies, accept keys,
+    // or expose the operator's opening. Only public chain data is returned.
+    app.get("/api/external/config", (_req, res) => res.json(external.config()));
+    app.get("/api/external/state", async (req, res) =>
+      res.json(await external.state(account.parse(req.query.account))),
+    );
+    app.post("/api/external/prepare", async (req, res) =>
+      res.json(await external.prepare(intent.parse(req.body))),
+    );
+    app.post("/api/external/register", async (req, res) => {
+      const body = z.object({ intent, id }).strict().parse(req.body);
+      res.json(await external.register(body.intent, body.id));
+    });
+    app.post("/api/external/resume", async (req, res) => {
+      const body = z.object({ account, id }).strict().parse(req.body);
+      res.json(await external.resume(body.account, body.id));
+    });
+  }
   app.use("/api", async (req, res, next) => {
     const session = identity(req);
     if (!session)
@@ -176,14 +215,12 @@ export function createApp(options: Options) {
       res: express.Response,
       _next: express.NextFunction,
     ) =>
-      res
-        .status(error instanceof z.ZodError ? 400 : 503)
-        .json({
-          error:
-            error instanceof Error
-              ? error.message.slice(0, 600)
-              : "Request failed",
-        }),
+      res.status(error instanceof z.ZodError ? 400 : 503).json({
+        error:
+          error instanceof Error
+            ? error.message.slice(0, 600)
+            : "Request failed",
+      }),
   );
   return app;
 }

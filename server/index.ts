@@ -4,6 +4,7 @@ import { GameService, resumeRecoverableStarts } from "./game-service.ts";
 import { wallet } from "./wallet.ts";
 import { PLAYER_NAME } from "./config.ts";
 import { createApp } from "./http-app.ts";
+import { ExternalService } from "./external-service.ts";
 const hosted = process.env.KENNEL_HOSTED === "true";
 const port = Number(process.env.PORT || 8787);
 const services = new Map<string, GameService>();
@@ -59,6 +60,7 @@ const app = createApp({
   sessionSecret: secret,
   version: process.env.KENNEL_VERSION || "development",
   backend,
+  external: new ExternalService(),
   health: async () => {
     try {
       const client = await wallet();

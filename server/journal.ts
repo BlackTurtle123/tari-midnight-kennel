@@ -15,6 +15,7 @@ export interface Incubation extends IncubationView {
   owner: string;
   opening: Opening;
   reconciliation?: { at: string; reason: string };
+  externalAddress?: string;
 }
 interface Entry {
   previous: string;
@@ -95,6 +96,7 @@ export function publicRecord(record: Incubation): IncubationView {
     owner: _owner,
     opening: _opening,
     reconciliation: _reconciliation,
+    externalAddress: _externalAddress,
     ...view
   } = record;
   return view;

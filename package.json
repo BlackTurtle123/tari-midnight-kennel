@@ -7,7 +7,7 @@
     "dev": "NODE_OPTIONS=--experimental-wasm-modules concurrently -k -n api,ui \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
     "build": "tsc --noEmit && vite build",
     "start": "NODE_OPTIONS=--experimental-wasm-modules tsx server/index.ts",
-    "test": "tsx --test server/*.test.ts",
+    "test": "NODE_OPTIONS=--experimental-wasm-modules tsx --test server/*.test.ts",
     "contract:build": "cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release",
     "contract:test": "cargo test --manifest-path contract/Cargo.toml",
     "setup:wallet": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/setup-wallet.ts",

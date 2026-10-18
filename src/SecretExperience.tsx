@@ -6,11 +6,13 @@ export function SecretExperience({
   busy,
   onOpen,
   onResume,
+  externalWallet,
 }: {
   incubation?: IncubationView;
   busy: boolean;
   onOpen: () => void;
   onResume: () => void;
+  externalWallet?: boolean;
 }) {
   const stage = incubation?.stage;
   const ready = stage === "ready";
@@ -136,7 +138,12 @@ export function SecretExperience({
         )}
         <p className="secret-boundary">
           Hidden from public view until you reveal. The game operator knows the
-          result; staging hosts your wallet.
+          result.{" "}
+          {externalWallet === undefined
+            ? "Choose Sapient to keep player keys in your extension, or reconnect your existing hosted staging wallet."
+            : externalWallet
+              ? "Your wallet keys stay in Sapient. Opening asks permission to read private wallet memos and balances; you can revoke that permission in Sapient."
+              : "Staging hosts your wallet."}
         </p>
         {incubation && (
           <details className="secret-proof">
