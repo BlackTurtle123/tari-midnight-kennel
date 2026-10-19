@@ -163,8 +163,14 @@ export class Transfers {
         transfers: [
           {
             destination_address: r.destination,
-            blinded_output_amount: microTari(r.asset.amount).toString(),
-            revealed_output_amount: "0",
+            blinded_output_amount:
+              r.asset.visibility === "public"
+                ? "0"
+                : microTari(r.asset.amount).toString(),
+            revealed_output_amount:
+              r.asset.visibility === "public"
+                ? microTari(r.asset.amount).toString()
+                : "0",
             output_memo: null,
             attach_sender_address: false,
             pay_to: "StealthPublicKey",

@@ -22,6 +22,7 @@ export function WalletTools({
   const [destination, setDestination] = useState("");
   const [selection, setSelection] = useState("tari");
   const [amount, setAmount] = useState("");
+  const [visibility, setVisibility] = useState<"private" | "public">("public");
   const [review, setReview] = useState<TransferReceipt | null>(null);
   const [receipts, setReceipts] = useState<TransferReceipt[]>([]);
   const [busy, setBusy] = useState(false),
@@ -54,7 +55,7 @@ export function WalletTools({
     let asset: TransferInput["asset"];
     if (selection === "tari") {
       microTari(amount);
-      asset = { kind: "tari", amount };
+      asset = { kind: "tari", amount, visibility };
     } else {
       const canine = state.canines.find(
         (c) => c.resource + "/" + c.id === selection,
@@ -90,6 +91,14 @@ export function WalletTools({
               To move assets out of your old staging wallet, disconnect Sapient
               here and choose <strong>Existing staging wallet</strong>, then
               open Transfer assets.
+            </p>
+            <p>
+              If Sapient reports “No vault for resource” while unshielding Tari,
+              its public balance may not be initialized. From your funded
+              Existing staging wallet, send a small Tari amount to your Sapient
+              address using{" "}
+              <strong>Public balance — for fees and unshielding</strong>. After
+              it confirms, retry Unshield in Sapient.
             </p>
           </div>
         ) : (
@@ -138,6 +147,16 @@ export function WalletTools({
                       ? review.asset.amount + " tTARI"
                       : "Canine NFT " + review.asset.id}
                   </dd>
+                  {review.asset.kind === "tari" && (
+                    <>
+                      <dt>Recipient balance</dt>
+                      <dd>
+                        {review.asset.visibility === "public"
+                          ? "Public — the amount and recipient are visible on-chain"
+                          : "Private — recipient may need to scan incoming payments"}
+                      </dd>
+                    </>
+                  )}
                   {review.asset.kind === "canine" && (
                     <>
                       <dt>Collection</dt>
@@ -222,17 +241,38 @@ export function WalletTools({
                   </select>
                 </label>
                 {selection === "tari" && (
-                  <label>
-                    Amount in tTARI
-                    <input
-                      required
-                      inputMode="decimal"
-                      autoComplete="off"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      placeholder="0.000001"
-                    />
-                  </label>
+                  <>
+                    <label>
+                      Amount in tTARI
+                      <input
+                        required
+                        inputMode="decimal"
+                        autoComplete="off"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.000001"
+                      />
+                    </label>
+                    <label>
+                      Recipient balance
+                      <select
+                        value={visibility}
+                        onChange={(e) =>
+                          setVisibility(e.target.value as "private" | "public")
+                        }
+                      >
+                        <option value="private">Private balance</option>
+                        <option value="public">
+                          Public balance — for fees and unshielding
+                        </option>
+                      </select>
+                    </label>
+                    <p className="fine-print">
+                      {visibility === "public"
+                        ? "This deposits into the recipient’s public Tari vault, creating it if needed. The amount and recipient are public. A small deposit can enable Sapient fees and Unshield."
+                        : "This creates a private payment. It does not fund the recipient’s public vault. Choose Public balance if Sapient reports “No vault for resource”."}
+                    </p>
+                  </>
                 )}
                 <button
                   className="primary"
@@ -271,6 +311,14 @@ export function WalletTools({
                       {r.transactionId && (
                         <p>
                           Transaction: <code>{r.transactionId}</code>
+                        </p>
+                      )}
+                      {r.asset.kind === "tari" && (
+                        <p>
+                          Recipient balance:{" "}
+                          {r.asset.visibility === "public"
+                            ? "Public"
+                            : "Private"}
                         </p>
                       )}
                       {r.error && <p>{r.error}</p>}

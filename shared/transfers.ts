@@ -1,5 +1,5 @@
 export type TransferAsset =
-  | { kind: "tari"; amount: string }
+  | { kind: "tari"; amount: string; visibility?: "private" | "public" }
   | { kind: "canine"; id: string; resource: string };
 export interface TransferInput {
   destination: string;

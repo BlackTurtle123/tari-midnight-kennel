@@ -201,7 +201,11 @@ export function createApp(options: Options) {
             .max(512),
           asset: z.discriminatedUnion("kind", [
             z
-              .object({ kind: z.literal("tari"), amount: z.string().max(24) })
+              .object({
+                kind: z.literal("tari"),
+                amount: z.string().max(24),
+                visibility: z.enum(["private", "public"]).optional(),
+              })
               .strict(),
             z
               .object({

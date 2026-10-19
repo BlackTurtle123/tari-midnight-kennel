@@ -130,6 +130,7 @@ test("review only simulates; explicit confirmation binds exact destination, amou
     input.destination,
   );
   assert.equal(f.calls[1].request.transfers[0].blinded_output_amount, "123456");
+  assert.equal(f.calls[1].request.transfers[0].revealed_output_amount, "0");
   assert.deepEqual(f.calls[1].request.owner_account, { Name: "alice" });
   assert.equal(f.calls[1].request.max_fee, 1000000);
   await f.create().confirm("alice", review.id);
@@ -137,6 +138,34 @@ test("review only simulates; explicit confirmation binds exact destination, amou
   assert.equal(service.list("bob").length, 0);
   await assert.rejects(service.confirm("bob", review.id), /not found/);
   assert.equal("accountName" in accepted, false);
+});
+test("public Tari funds the recipient's revealed balance and keeps that choice across restart and confirmation", async () => {
+  const f = setup();
+  const request: TransferInput = {
+    destination: input.destination,
+    asset: { kind: "tari", amount: "1", visibility: "public" },
+  };
+  const review = await f.create().prepare("alice", request);
+  request.asset = { kind: "tari", amount: "2", visibility: "private" };
+  assert.deepEqual(review.asset, {
+    kind: "tari",
+    amount: "1",
+    visibility: "public",
+  });
+  const result = await f.create().confirm("alice", review.id);
+  assert.equal(result.status, "accepted");
+  assert.equal(f.calls.length, 2);
+  for (const call of f.calls) {
+    assert.equal(call.request.transfers[0].blinded_output_amount, "0");
+    assert.equal(call.request.transfers[0].revealed_output_amount, "1000000");
+    assert.equal(
+      call.request.transfers[0].destination_address,
+      input.destination,
+    );
+    assert.deepEqual(call.request.owner_account, { Name: "alice" });
+  }
+  assert.equal(f.calls[0].request.dry_run, true);
+  assert.equal(f.calls[1].request.dry_run, false);
 });
 test("lost acknowledgement survives restart and blocks all new sends without duplicating", async () => {
   const f = setup(),
