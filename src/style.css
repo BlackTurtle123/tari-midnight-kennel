@@ -1414,3 +1414,98 @@ dt {
     font-size: 23px;
   }
 }
+
+.wallet-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 16px 0 28px;
+  align-items: start;
+}
+.wallet-tools > details {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #faf8f2;
+}
+.wallet-tools summary {
+  cursor: pointer;
+  padding: 17px 20px;
+  font-size: 14px;
+  font-weight: 650;
+}
+.wallet-tools summary svg {
+  vertical-align: middle;
+  margin-right: 8px;
+}
+.wallet-tool-body {
+  padding: 0 20px 20px;
+  font-size: 13px;
+  line-height: 1.65;
+}
+.wallet-tool-body p {
+  margin: 10px 0;
+}
+.wallet-tool-body h3 {
+  font-size: 17px;
+}
+.wallet-tool-body form label {
+  display: block;
+  margin: 14px 0;
+  font-weight: 600;
+}
+.wallet-tool-body input:not([type="checkbox"]),
+.wallet-tool-body select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  border: 1px solid #ccc5d1;
+  border-radius: 8px;
+  font: inherit;
+  background: white;
+  color: #302c37;
+}
+.wallet-tool-body button {
+  margin: 8px 8px 0 0;
+}
+.wallet-tool-body a {
+  color: inherit;
+  text-decoration: underline;
+}
+.wallet-tool-body code,
+.transfer-review dd {
+  overflow-wrap: anywhere;
+}
+.transfer-review dl {
+  margin: 12px 0;
+}
+.transfer-review dt {
+  font-weight: 650;
+  margin-top: 8px;
+}
+.transfer-review dd {
+  margin: 3px 0 0;
+  font-family: monospace;
+}
+.transfer-ack {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.transfer-ack input {
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+.transfer-history {
+  border-top: 1px solid #ded8e2;
+  margin-top: 18px;
+  padding-top: 10px;
+}
+.transfer-history summary {
+  padding: 10px 0;
+}
+@media (max-width: 700px) {
+  .wallet-tools {
+    grid-template-columns: 1fr;
+  }
+}

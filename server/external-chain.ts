@@ -2,8 +2,8 @@ import { IndexerProvider } from "@tari-project/ootle-indexer";
 import { Network, getVaultIdsForAccount } from "@tari-project/ootle";
 import { parseOotleAddress } from "@tari-project/ootle-wasm";
 import { z } from "zod";
-import { deployment, TARI_RESOURCE } from "./config.ts";
-import { parseCanine } from "./nft.ts";
+import { deployment, legacyResource, TARI_RESOURCE } from "./config.ts";
+import { parseCanine, parseLegacyCanine } from "./nft.ts";
 import type { Canine } from "../shared/game.ts";
 
 const hex = z.string().regex(/^[a-f0-9]{64}$/);
@@ -133,18 +133,26 @@ export async function publicInventory(
     const c = v.substate.Vault.resource_container;
     if ("Stealth" in c && c.Stealth.address === TARI_RESOURCE)
       balance += BigInt(c.Stealth.revealed_amount);
-    if (!("NonFungible" in c) || c.NonFungible.address !== d.resource) continue;
+    if (
+      !("NonFungible" in c) ||
+      ![d.resource, legacyResource()].includes(c.NonFungible.address)
+    )
+      continue;
     if (c.NonFungible.token_ids.length > 100)
       throw new Error("Unexpected canine supply");
     for (const token of c.NonFungible.token_ids) {
       if (!("String" in token) || !/^[a-f0-9]{32}$/.test(token.String))
         continue;
+      const resource = c.NonFungible.address;
       const nft = await p.getSubstate(
-        `nft_${d.resource.slice(9)}_str_${token.String}`,
+        `nft_${resource.slice(9)}_str_${token.String}`,
       );
       if (!("NonFungible" in nft.substate) || !nft.substate.NonFungible)
         continue;
-      const canine = parseCanine(nft.substate.NonFungible.data, d.resource);
+      const canine =
+        resource === d.resource
+          ? parseCanine(nft.substate.NonFungible.data, resource)
+          : parseLegacyCanine(nft.substate.NonFungible.data, resource);
       if (canine && canine.id === token.String) canines.push(canine);
     }
   }

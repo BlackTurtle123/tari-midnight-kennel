@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { GameState } from "../shared/game.ts";
 import { Sessions } from "./sessions.ts";
 import type { ExternalService } from "./external-service.ts";
+import type { Transfers } from "./transfers.ts";
 export interface Backend {
   state(): Promise<GameState>;
   start(door: number, id: string): Promise<unknown>;
@@ -20,6 +21,7 @@ interface Options {
   backend(account: string): Promise<Backend>;
   health(): Promise<boolean>;
   fund(account: string): Promise<unknown>;
+  transfers?: Pick<Transfers, "list" | "prepare" | "confirm" | "check">;
   external?: Pick<
     ExternalService,
     "config" | "prepare" | "register" | "resume" | "state"
@@ -184,6 +186,47 @@ export function createApp(options: Options) {
   app.post("/api/fund", async (_req, res) =>
     res.json(await options.fund(res.locals.account)),
   );
+  if (options.transfers) {
+    const transfers = options.transfers;
+    const id = z.string().regex(/^[a-f0-9]{32}$/);
+    app.get("/api/wallet/transfers", (_req, res) =>
+      res.json(transfers.list(res.locals.account)),
+    );
+    app.post("/api/wallet/transfers/review", async (req, res) => {
+      const input = z
+        .object({
+          destination: z
+            .string()
+            .regex(/^otl_esm_[a-z0-9]+$/)
+            .max(512),
+          asset: z.discriminatedUnion("kind", [
+            z
+              .object({ kind: z.literal("tari"), amount: z.string().max(24) })
+              .strict(),
+            z
+              .object({
+                kind: z.literal("canine"),
+                id,
+                resource: z.string().regex(/^resource_[a-f0-9]{64}$/),
+              })
+              .strict(),
+          ]),
+        })
+        .strict()
+        .parse(req.body);
+      res.json(await transfers.prepare(res.locals.account, input));
+    });
+    for (const method of ["send", "check"] as const)
+      app.post("/api/wallet/transfers/:id/" + method, async (req, res) => {
+        z.object({}).strict().parse(req.body);
+        res.json(
+          await transfers[method === "send" ? "confirm" : "check"](
+            res.locals.account,
+            id.parse(req.params.id),
+          ),
+        );
+      });
+  }
   app.post("/api/incubations", async (req, res) => {
     const { door, id } = z
       .object({

@@ -4,7 +4,11 @@ import { once } from "node:events";
 import { request as httpRequest } from "node:http";
 function fetch(
   url: string,
-  init: { method?: string; headers?: Record<string, string> } = {},
+  init: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  } = {},
 ) {
   return new Promise<Response>((resolve, reject) => {
     const req = httpRequest(url, init, (res) => {
@@ -20,12 +24,13 @@ function fetch(
       });
     });
     req.on("error", reject);
-    req.end();
+    req.end(init.body);
   });
 }
 import { createApp, type Backend } from "./http-app.ts";
 test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect identity", async () => {
   let hostedCalls = 0;
+  const transferCalls: string[] = [];
   const app = createApp({
     hosted: true,
     origin: "https://staging.example.test",
@@ -34,6 +39,24 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
     version: "test",
     health: async () => true,
     fund: async (account) => ({ account }),
+    transfers: {
+      list: (account) => {
+        transferCalls.push(account);
+        return [];
+      },
+      prepare: async (account) => {
+        transferCalls.push(account);
+        throw new Error("Validation test only");
+      },
+      confirm: async (account) => {
+        transferCalls.push(account);
+        throw new Error("Validation test only");
+      },
+      check: async (account) => {
+        transferCalls.push(account);
+        throw new Error("Validation test only");
+      },
+    },
     external: {
       config: () => ({
         component: "component_" + "a".repeat(64),
@@ -83,6 +106,10 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
   try {
     assert.equal((await fetch(url + "/state", { headers })).status, 401);
     assert.equal(
+      (await fetch(url + "/wallet/transfers", { headers })).status,
+      401,
+    );
+    assert.equal(
       (
         await fetch(url + "/connect", {
           method: "POST",
@@ -119,6 +146,62 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
     const auth = cookies
       .find((c) => c.startsWith("kennel_staging_session="))!
       .split(";")[0];
+    assert.equal(
+      (
+        await fetch(url + "/wallet/transfers", {
+          headers: { ...headers, cookie: auth },
+        })
+      ).status,
+      200,
+    );
+    assert.deepEqual(transferCalls, [a.account]);
+    const transferHeaders = {
+      ...headers,
+      cookie: auth,
+      "content-type": "application/json",
+    };
+    assert.equal(
+      (
+        await fetch(url + "/wallet/transfers/review", {
+          method: "POST",
+          headers: transferHeaders,
+          body: JSON.stringify({
+            source: "operator",
+            destination: "otl_esm_recipient",
+            asset: { kind: "tari", amount: "1" },
+          }),
+        })
+      ).status,
+      400,
+    );
+    assert.equal(
+      (
+        await fetch(url + "/wallet/transfers/review", {
+          method: "POST",
+          headers: { ...transferHeaders, origin: "https://evil.example" },
+          body: JSON.stringify({
+            destination: "otl_esm_recipient",
+            asset: { kind: "tari", amount: "1" },
+          }),
+        })
+      ).status,
+      403,
+    );
+    assert.equal(
+      (
+        await fetch(url + "/wallet/transfers/" + "f".repeat(32) + "/send", {
+          method: "POST",
+          headers: transferHeaders,
+          body: JSON.stringify({ destination: "otl_esm_replaced" }),
+        })
+      ).status,
+      400,
+    );
+    assert.deepEqual(
+      transferCalls,
+      [a.account],
+      "Rejected requests must not reach wallet transfer service",
+    );
     const resumed = await fetch(
       url + "/incubations/" + "a".repeat(32) + "/resume",
       {

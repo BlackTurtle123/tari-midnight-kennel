@@ -77,6 +77,8 @@ Local mode uses separate operator and player accounts in one daemon. The staging
 
 ## Verify
 
+Hosted test wallets can transfer test Tari and individual canine NFTs through a review-and-confirm flow. See [wallet transfers and seed backup](docs/WALLET-TRANSFERS.md). Sapient seed export stays inside the extension; the shared hosted master seed is never exposed to player sessions.
+
 ```sh
 npm test
 npm run build

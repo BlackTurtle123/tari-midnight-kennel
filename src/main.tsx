@@ -19,6 +19,7 @@ import {
 import { CanineArt, DoorArt } from "./CanineArt";
 import { SecretExperience } from "./SecretExperience";
 import { ExternalWallet } from "./external-wallet";
+import { WalletTools } from "./WalletTools";
 import {
   CONTEST_URL,
   RULES_URL,
@@ -280,6 +281,15 @@ function App() {
               </p>
             </details>
           </section>
+        )}
+        {state.connected && (
+          <WalletTools
+            key={walletMode + state.account}
+            state={state}
+            external={walletMode === "sapient"}
+            api={api}
+            refresh={refresh}
+          />
         )}
         {tab === "incubator" && (
           <>

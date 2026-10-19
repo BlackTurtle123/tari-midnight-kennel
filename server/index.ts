@@ -5,6 +5,8 @@ import { wallet } from "./wallet.ts";
 import { PLAYER_NAME } from "./config.ts";
 import { createApp } from "./http-app.ts";
 import { ExternalService } from "./external-service.ts";
+import { Transfers, TransferStore } from "./transfers.ts";
+import { serializeWallet } from "./wallet-queue.ts";
 const hosted = process.env.KENNEL_HOSTED === "true";
 const port = Number(process.env.PORT || 8787);
 const services = new Map<string, GameService>();
@@ -61,6 +63,22 @@ const app = createApp({
   version: process.env.KENNEL_VERSION || "development",
   backend,
   external: new ExternalService(),
+  transfers: (() => {
+    const transfer = new Transfers(
+      wallet,
+      new TransferStore(),
+      async (name) => (await backend(name)).state(),
+      serializeWallet,
+    );
+    const name = (account: string) =>
+      account === "local" ? PLAYER_NAME : account;
+    return {
+      list: (account) => transfer.list(name(account)),
+      prepare: (account, input) => transfer.prepare(name(account), input),
+      confirm: (account, id) => transfer.confirm(name(account), id),
+      check: (account, id) => transfer.check(name(account), id),
+    };
+  })(),
   health: async () => {
     try {
       const client = await wallet();
