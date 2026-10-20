@@ -27,36 +27,16 @@ function fetch(
     req.end(init.body);
   });
 }
-import { createApp, type Backend } from "./http-app.ts";
-test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect identity", async () => {
-  let hostedCalls = 0;
-  const transferCalls: string[] = [];
+import { createApp } from "./http-app.ts";
+import { Sessions } from "./sessions.ts";
+test("external-only HTTP rejects retired signing routes even with a valid legacy identity", async () => {
+  let preparations = 0;
   const app = createApp({
     hosted: true,
     origin: "https://staging.example.test",
     basePath: "/tari/",
-    sessionSecret: "a".repeat(64),
     version: "test",
     health: async () => true,
-    fund: async (account) => ({ account }),
-    transfers: {
-      list: (account) => {
-        transferCalls.push(account);
-        return [];
-      },
-      prepare: async (account) => {
-        transferCalls.push(account);
-        throw new Error("Validation test only");
-      },
-      confirm: async (account) => {
-        transferCalls.push(account);
-        throw new Error("Validation test only");
-      },
-      check: async (account) => {
-        transferCalls.push(account);
-        throw new Error("Validation test only");
-      },
-    },
     external: {
       config: () => ({
         component: "component_" + "a".repeat(64),
@@ -70,27 +50,14 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
         incubations: [],
         canines: [],
       }),
-      prepare: async () => ({ ok: true }),
+      prepare: async () => {
+        preparations++;
+        return { ok: true };
+      },
       register: async () => {
         throw new Error("Not used by this test");
       },
       resume: async () => ({ ok: true }),
-    },
-    backend: async (account) => {
-      hostedCalls++;
-      return {
-        state: async () => ({
-          connected: true,
-          network: "Esmeralda",
-          account,
-          incubations: [],
-          canines: [],
-        }),
-        start: async () => ({}),
-        resume: async () => undefined,
-        preview: async () => ({}),
-        hatch: async () => ({}),
-      } satisfies Backend;
     },
   });
   const server = app.listen(0, "127.0.0.1");
@@ -98,171 +65,119 @@ test("hosted HTTP sessions isolate players, reject CSRF and retain reconnect ide
   const address = server.address();
   assert.ok(address && typeof address === "object");
   const url = `http://127.0.0.1:${address.port}/api`;
+  const token = new Sessions("a".repeat(64)).issue();
   const headers = {
     host: "staging.example.test",
     origin: "https://staging.example.test",
     "x-kennel-request": "1",
+    "content-type": "application/json",
+    cookie: `kennel_staging_session=${token}; kennel_staging_session_identity=${token}`,
   };
   try {
-    assert.equal((await fetch(url + "/state", { headers })).status, 401);
-    assert.equal(
-      (await fetch(url + "/wallet/transfers", { headers })).status,
-      401,
-    );
+    for (const [method, path] of [
+      ["POST", "/connect"],
+      ["POST", "/disconnect"],
+      ["GET", "/state"],
+      ["POST", "/fund"],
+      ["POST", "/incubations"],
+      ["POST", "/incubations/" + "a".repeat(32) + "/open"],
+      ["POST", "/incubations/" + "a".repeat(32) + "/hatch"],
+      ["POST", "/incubations/" + "a".repeat(32) + "/resume"],
+      ["GET", "/rebirths"],
+      ["POST", "/rebirths"],
+      ["POST", "/rebirths/" + "a".repeat(64) + "/check"],
+      ["POST", "/economy/actions"],
+      ["GET", "/wallet/transfers"],
+      ["POST", "/wallet/transfers/review"],
+      ["POST", "/wallet/transfers/" + "a".repeat(32) + "/send"],
+      ["POST", "/wallet/transfers/" + "a".repeat(32) + "/check"],
+    ]) {
+      const response = await fetch(url + path, { method, headers });
+      assert.equal(response.status, 410, method + " " + path);
+      assert.match((await response.json()).error, /external Esmeralda wallet/);
+      assert.equal(
+        response.headers.get("set-cookie"),
+        null,
+        "Retired identity must be preserved, not replaced or deleted",
+      );
+    }
     assert.equal(
       (
         await fetch(url + "/connect", {
           method: "POST",
-          headers: { ...headers, origin: "https://evil.example" },
+          headers: { ...headers, cookie: "" },
         })
       ).status,
-      403,
+      410,
     );
-    assert.equal(
-      (
-        await fetch(url + "/connect", {
-          method: "POST",
-          headers: { host: headers.host },
-        })
-      ).status,
-      403,
-    );
-    const alice = await fetch(url + "/connect", { method: "POST", headers }),
-      bob = await fetch(url + "/connect", { method: "POST", headers });
-    assert.equal(alice.status, 200);
-    assert.equal(bob.status, 200);
-    const a = (await alice.json()) as { account: string },
-      b = (await bob.json()) as { account: string };
-    assert.notEqual(a.account, b.account);
-    const cookies = alice.headers.getSetCookie();
-    assert.ok(
-      cookies.every(
-        (c) =>
-          c.includes("Secure") &&
-          c.includes("HttpOnly") &&
-          c.includes("Path=/tari/"),
-      ),
-    );
-    const auth = cookies
-      .find((c) => c.startsWith("kennel_staging_session="))!
-      .split(";")[0];
-    assert.equal(
-      (
-        await fetch(url + "/wallet/transfers", {
-          headers: { ...headers, cookie: auth },
-        })
-      ).status,
-      200,
-    );
-    assert.deepEqual(transferCalls, [a.account]);
-    const transferHeaders = {
-      ...headers,
-      cookie: auth,
-      "content-type": "application/json",
-    };
-    assert.equal(
-      (
-        await fetch(url + "/wallet/transfers/review", {
-          method: "POST",
-          headers: transferHeaders,
-          body: JSON.stringify({
-            source: "operator",
-            destination: "otl_esm_recipient",
-            asset: { kind: "tari", amount: "1" },
-          }),
-        })
-      ).status,
-      400,
-    );
-    assert.equal(
-      (
-        await fetch(url + "/wallet/transfers/review", {
-          method: "POST",
-          headers: { ...transferHeaders, origin: "https://evil.example" },
-          body: JSON.stringify({
-            destination: "otl_esm_recipient",
-            asset: { kind: "tari", amount: "1" },
-          }),
-        })
-      ).status,
-      403,
-    );
-    assert.equal(
-      (
-        await fetch(url + "/wallet/transfers/" + "f".repeat(32) + "/send", {
-          method: "POST",
-          headers: transferHeaders,
-          body: JSON.stringify({ destination: "otl_esm_replaced" }),
-        })
-      ).status,
-      400,
-    );
-    assert.deepEqual(
-      transferCalls,
-      [a.account],
-      "Rejected requests must not reach wallet transfer service",
-    );
-    const resumed = await fetch(
-      url + "/incubations/" + "a".repeat(32) + "/resume",
-      {
-        method: "POST",
-        headers: { ...headers, cookie: auth },
-      },
-    );
-    assert.equal(resumed.status, 200);
-    assert.deepEqual(
-      await resumed.json(),
-      { ok: true },
-      "Queued progress must return valid JSON even when the service returns void",
-    );
-    const identity = cookies
-      .find((c) => c.startsWith("kennel_staging_session_identity="))!
-      .split(";")[0];
-    const beforeExternal = hostedCalls;
-    const external = await fetch(
+    const state = await fetch(
       url + "/external/state?account=component_" + "a".repeat(64),
-      {
-        headers: { ...headers, cookie: identity },
-      },
+      { headers },
     );
-    assert.equal(external.status, 200);
-    assert.equal(
-      hostedCalls,
-      beforeExternal,
-      "External wallet must never provision/access the hosted player backend",
-    );
-    assert.equal(
-      external.headers.get("set-cookie"),
-      null,
-      "External connection must not replace either legacy identity cookie",
-    );
+    assert.equal(state.status, 200);
+    assert.equal((await state.json()).account, "component_" + "a".repeat(64));
+    assert.equal(state.headers.get("set-cookie"), null);
     assert.equal(
       (await fetch(url + "/external/state?account=bad", { headers })).status,
       400,
     );
-    const state = await fetch(url + "/state", {
-      headers: { ...headers, cookie: auth },
-    });
-    assert.equal(
-      ((await state.json()) as { account: string }).account,
-      a.account,
-    );
+    const config = await fetch(url + "/config", { headers });
+    assert.equal((await config.json()).walletMode, "external");
+    assert.equal((await fetch(url + "/unrecognized", { headers })).status, 404);
     assert.equal(
       (
-        await fetch(url + "/state", {
-          headers: { ...headers, cookie: identity },
+        await fetch(
+          url + "/external/state?account=component_" + "a".repeat(64),
+          { headers: { ...headers, host: "evil.example" } },
+        )
+      ).status,
+      403,
+    );
+    const intent = {
+      account: "component_" + "a".repeat(64),
+      component: "component_" + "b".repeat(64),
+      paymentAddress: "otl_esm_test",
+      nonce: "c".repeat(64),
+      door: 0,
+    };
+    for (const badHeaders of [
+      { ...headers, origin: "https://evil.example" },
+      { host: headers.host, "content-type": "application/json" },
+    ]) {
+      assert.equal(
+        (
+          await fetch(url + "/external/prepare", {
+            method: "POST",
+            headers: badHeaders,
+            body: JSON.stringify(intent),
+          })
+        ).status,
+        403,
+      );
+    }
+    assert.equal(preparations, 0);
+    assert.equal(
+      (
+        await fetch(url + "/external/prepare", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ ...intent, seed: "never accept seeds" }),
         })
       ).status,
-      401,
+      400,
     );
-    const reconnect = await fetch(url + "/connect", {
-      method: "POST",
-      headers: { ...headers, cookie: identity },
-    });
+    assert.equal(preparations, 0);
     assert.equal(
-      ((await reconnect.json()) as { account: string }).account,
-      a.account,
+      (
+        await fetch(url + "/external/prepare", {
+          method: "POST",
+          headers,
+          body: JSON.stringify(intent),
+        })
+      ).status,
+      200,
     );
+    assert.equal(preparations, 1);
   } finally {
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) =>

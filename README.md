@@ -15,11 +15,11 @@ A small canine incubation game for Tari Ootle’s October 2026 **Spooky Secrets*
 - Halloween rebirth: offer one canine + 8 test tTARI, wait for a fixed future draw and mint one of six original-art Halloween NFTs. A separate NFT staking contract distributes 75% of completed ritual fees; 25% goes to the treasury. See [rebirth, staking and recovery](docs/REBIRTH.md).
 - Supply of 100 per deployed event (contract supports 1–250), 12 reservations per signer, one unfinished incubation at a time in this UI. No artificial incubation timer.
 
-Breeding, treasury yield, payments for gameplay and the broader economy are deferred. See [the full-game port checklist](docs/PORT-CHECKLIST.md), [privacy boundaries](docs/PRIVACY.md), [contest requirements](docs/CONTEST.md) and [verification status](docs/VALIDATION.md).
+Breeding, native staking/leasing yield and the broader main-game economy are deferred. See [the full-game port checklist](docs/PORT-CHECKLIST.md), [privacy boundaries](docs/PRIVACY.md), [contest requirements](docs/CONTEST.md) and [verification status](docs/VALIDATION.md).
 
 ## Run against Esmeralda
 
-Prerequisites: Node.js 22.15+, npm, Rust stable with `wasm32-unknown-unknown`, and the official Tari Ootle wallet daemon **v0.46.1**. The contract pins `tari_template_lib 0.34.0` and tests use `tari_template_test_tooling 0.46.1`. Linux native build tools including a C/C++ compiler are required for engine tests. Download wallet binaries from [official Tari releases](https://github.com/tari-project/tari-ootle/releases/tag/v0.46.1).
+Prerequisites: Node.js 22.15+, npm, Rust stable with `wasm32-unknown-unknown`, and the official Tari Ootle wallet daemon **v0.47.0**. The contract pins `tari_template_lib 0.34.0` and tests use `tari_template_test_tooling 0.46.1`. Linux native build tools including a C/C++ compiler are required for engine tests. Download wallet binaries from [official Tari releases](https://github.com/tari-project/tari-ootle/releases/tag/v0.47.0).
 
 Use a **new, dedicated testnet wallet**. The following local PoC configuration uses no wallet authentication and therefore must remain on loopback, on a trusted single-user development computer. Never expose it through a tunnel, reverse proxy or public host. Do not point this app at a valuable wallet.
 
@@ -46,7 +46,7 @@ npm run deploy:economy
 npm run dev
 ```
 
-Open **http://127.0.0.1:5173**, connect the local test wallet, and knock on a door. Leave the wallet and API running for the incubation. After a confirmed encrypted delivery, choose **Open privately**, then **Reveal & mint NFT**. Inspect **My pack** after confirmation. The confirmation may take several blocks; the UI polls actual state.
+Open **http://127.0.0.1:5173**, connect your Esmeralda account through Sapient, and knock on a door. Leave the wallet and API running for the incubation. After a confirmed encrypted delivery, choose **Open privately**, then **Reveal & mint NFT**. Inspect **My pack** after confirmation. The confirmation may take several blocks; the UI polls actual state.
 
 For a production frontend build served by the local API:
 
@@ -60,13 +60,13 @@ Scripts enable Node’s experimental WASM module loader required by the pinned T
 
 ### Funding blocker
 
-On 15 October 2026 the public Esmeralda faucet rejected the fixed 1,000 tTARI claim because its available balance was 999.651320 tTARI, below that claim. The pool needs another 0.348680 tTARI even for one claim. See [Tari wallet funding](https://ootle.tari.com/guides/setup-a-wallet/) and [L1 testnet burn-and-claim](https://ootle.tari.com/guides/burn-minotari/). `setup:wallet` creates both accounts and reports funding failures. Fund **both** `kennel-operator` and `kennel-player` using test coins and rerun setup/deploy. The operator needs the template publication fee and each seal/memo delivery fee; the player needs incubation and hatch fees. No mainnet purchase or burn is performed automatically.
+On 15 October 2026 the public Esmeralda faucet rejected the fixed 1,000 tTARI claim because its available balance was 999.651320 tTARI, below that claim. The pool needs another 0.348680 tTARI even for one claim. See [Tari wallet funding](https://ootle.tari.com/guides/setup-a-wallet/) and [L1 testnet burn-and-claim](https://ootle.tari.com/guides/burn-minotari/). `setup:wallet` creates only `kennel-operator` and reports funding failures. Fund the operator with test coins and rerun setup/deploy. Fund your player account separately in Sapient. The operator needs the template publication fee and each seal/memo delivery fee; the player needs incubation and hatch fees. No mainnet purchase or burn is performed automatically.
 
 Deployment estimates the template fee and refuses a budget above 100 tTARI. Subsequent calls have a 1 tTARI maximum fee. Each encrypted memo carries one microtari as a stealth output; it is a message carrier, not a game reward with financial value.
 
 ### Configuration and data
 
-Environment overrides: `TARI_WALLET_URL` (default local port 15101 JSON RPC URL), `TARI_WALLET_TOKEN` (optional existing daemon token), `TARI_OPERATOR_ACCOUNT`, `TARI_PLAYER_ACCOUNT`, `KENNEL_DATA_DIR`, `PORT` (default 8787). See `server/config.ts` for exact defaults. Keep credentials in the environment, outside Git.
+Environment overrides: `TARI_WALLET_URL` (default local port 15101 JSON RPC URL), `TARI_WALLET_TOKEN` (optional existing daemon token), `TARI_OPERATOR_ACCOUNT`, `KENNEL_DATA_DIR`, `PORT` (default 8787). See `server/config.ts` for exact defaults. Keep credentials in the environment, outside Git.
 
 State is outside the repository, under `~/.local/share/tari-midnight-kennel` by default:
 
@@ -77,11 +77,11 @@ State is outside the repository, under `~/.local/share/tari-midnight-kennel` by 
 
 A timeout is not a rejection: **Check progress** waits for the existing transaction. A confirmed rejection can be retried without changing the committed result. If a process or network fails between submission and recording its transaction ID, the app deliberately stops automatic resubmission. A developer must inspect the wallet’s transaction history and reconcile the missing receipt. There is no destructive reset button. Before repairing, copy the complete data directory outside itself and verify checksums; preserve keys separately as required by the wallet. Do not delete the journal to “retry”.
 
-Local mode uses separate operator and player accounts in one daemon. The staging deployment adds a separate server-custodied test account per browser, signed session cookies and serialized operator processing. It is testnet-only; the server retains operator and existing hosted-player keys. New Sapient player keys remain in the extension. See [staging setup, funding and recovery](docs/STAGING.md). Sapient now provides a separate self-custody player connection; see [wallet connection and recovery](docs/EXTERNAL-WALLET.md). Production hosting remains future work. A static upload of this frontend is not a functional hosted game.
+Players connect and sign through Sapient only, both locally and on staging. The operator daemon handles encrypted deliveries and draw capture. Legacy browser login and cookie-authenticated signing endpoints are retired; existing hosted wallets, seeds, cookies and journals remain intact for controlled recovery. No assets are automatically migrated. See [wallet connection and recovery](docs/EXTERNAL-WALLET.md) and [staging setup](docs/STAGING.md). A static frontend upload alone is not a functional game.
 
 ## Verify
 
-Hosted test wallets can transfer test Tari and individual canine NFTs through a review-and-confirm flow. See [wallet transfers and seed backup](docs/WALLET-TRANSFERS.md). Sapient seed export stays inside the extension; the shared hosted master seed is never exposed to player sessions.
+Transfers use Sapient’s Send controls. See [wallet transfers and seed backup](docs/WALLET-TRANSFERS.md). Sapient seed export stays inside the extension; the shared hosted master seed is never exposed to player sessions.
 
 ```sh
 npm test

@@ -2,9 +2,9 @@
 
 Use **Connect wallet → Connect Sapient** in Chrome with [Sapient](https://sapient.tari.mw/) installed. Select Esmeralda and a seed-derived local extension account, fund it with test Tari, and activate its account in Sapient if needed (unshield a small fee reserve). The app refuses mainnet, Igor and daemon-relayed accounts for this path. Every player incubation and mint requires wallet approval, with a maximum fee of 1 tTARI per transaction. The wallet chooses its supported fee mechanism.
 
-**Existing staging wallet** reconnects the previous browser's account using unchanged session cookies and the same persisted session signing key. Connecting Sapient neither transfers assets nor imports/replaces/deletes any previous seed. A fresh browser cannot recover another browser's hosted identity. Pending hosted incubations still require their original signer. Keep the old cookies and finish them using the existing-wallet option.
+Player login is **external-wallet only**. The old staging/local login and all cookie-authenticated player-signing API routes return HTTP 410. Existing cookies are neither used to log in nor cleared. Startup and setup provision only the operator account, never a player account. Public external endpoints do not accept seeds or sign player transactions.
 
-The operator remains hosted and signs seals/encrypted deliveries. Existing hosted player seeds also remain on the server. Only new Sapient player seeds stay exclusively in the extension. Never import the shared hosted master seed into an individual player's wallet: it could expose other players and the operator. Any future asset transfer must be a separate, explicitly approved flow.
+The operator remains hosted and signs seals/encrypted deliveries and scheduled draw capture. Existing hosted player wallets, keys, session signing key, cookies and journals remain preserved for controlled recovery; removing the login does not migrate their assets to Sapient. Pending legacy incubations still require their original signer. Contact the operator for an explicit, independently verified recovery/transfer if assets remain there. Never import the shared hosted master seed into a player's extension: it could expose other players and the operator. No recovery or asset transfer happens automatically.
 
 ## Protocol binding
 
@@ -16,7 +16,7 @@ Before requesting a signature, the browser saves a public recovery intent contai
 
 The player signs this ID in `begin_incubation`. The server checks the ID, chain signer/recipient/door, built-in account owner and address network before generating a secret. This binds both the address owner key and view key; matching only an owner public key would permit substitution of an attacker's view key. IDs have 128-bit preimage resistance. The existing deployed contract and old hosted IDs are unchanged.
 
-External records use a separate append-only `external-wallets/incubations-v2.jsonl` under the data directory. All operator writes share the same queue and account-activation recovery store as hosted gameplay. Public endpoints cannot return openings, change recipients or sign player operations. Public holdings come from account vault membership and canonical NFT substates, not an assumption that the original recipient still owns every minted NFT.
+External records use a separate append-only `external-wallets/incubations-v2.jsonl` under the data directory. All operator writes share the same queue and account-activation recovery store used by the operator. Public endpoints cannot return openings, change recipients or sign player operations. Public holdings come from account vault membership and canonical NFT substates, not an assumption that the original recipient still owns every minted NFT.
 
 ## Approvals, private preview and recovery
 

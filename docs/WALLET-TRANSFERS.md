@@ -1,31 +1,19 @@
 # Transfers and seed backup
 
-Connect the **Existing staging wallet**, then open **Transfer assets**. Choose test Tari or one of the canine NFTs actually held by that wallet, enter the recipient's full Esmeralda payment address, and select **Review transfer**. The server checks ownership, balance, network and pending incubations, then simulates that exact transfer. Review the destination, selected asset and 1 tTARI maximum fee, acknowledge the address, and press **Confirm transfer** to submit.
+Player login now uses Sapient only. Open its extension, select the connected Esmeralda account and use Send to transfer Tari or supported NFTs. Verify the complete recipient and asset inside Sapient. The game never receives signing keys. Connecting, disconnecting or reading backup instructions moves no assets.
 
-Finish existing incubations first. Transfer NFTs before sending the remaining coins: NFT transfers need a public fee reserve in the sender. Tari is sent as a native private output; the recipient may need to scan for incoming payments in their wallet. Canine NFTs are public and remain in their original collection with unchanged genes. The external inventory reader also recognizes transferred original-collection canines.
+## Public Tari for rebirth and fees
 
-Transfers from Sapient itself use its native Send controls. The game does not take custody of its keys. No transfer is executed simply by connecting, switching wallets, opening a preview, or viewing seed-backup instructions.
+Rebirth needs 8 public spendable tTARI plus network fees. Private funds must be unshielded inside Sapient first. If an account holds only private Tari and lacks the public native-Tari vault, a small public deposit from a funded wallet can initialize it before unshielding. Any such transfer requires the owner's explicit intent; the game does not perform it automatically.
 
-### Public Tari for Sapient fees and unshielding
+## Seed backup
 
-For Tari, **Recipient balance** defaults to **Public balance — for fees and unshielding**, with private transfers available as an explicit choice. Public sends deposit the amount into the recipient's public Tari vault, creating that vault when needed. The review and saved receipt preserve the selected visibility. Existing receipts without a visibility field keep their original private behavior.
+Back up recovery words inside Sapient following its own recovery instructions. The game cannot export the phrase and never asks users to paste it. There are no seed import, export or backup panels in the game UI.
 
-A Sapient account can hold canine NFTs and private Tari without having a public Tari vault. Its Unshield flow may try to pay a public fee and withdraw a tiny public input before revealing the private funds, producing “No vault for resource resource_0101…”. A small public Tari deposit from an already funded wallet initializes the missing vault. From Existing staging wallet, review and confirm a public transfer to your own Sapient payment address (for example 1 tTARI); after confirmation, retry Unshield inside Sapient. This exposes the deposited amount and recipient on-chain, does not export keys, and does not automatically move or unshield the rest of your private funds.
+## Retired hosted wallets
 
-## Recovery and duplicate prevention
+Legacy login, transfers and player-signing HTTP routes are disabled, including for existing valid cookies. They cannot create new hosted accounts. Existing wallet databases, shared master seed, private configuration, session key, identity cookies, NFTs and append-only journals remain intact. Their assets are not automatically transferred to Sapient. Keep the original browser identity for operator-assisted recovery if needed.
 
-The new `wallet-transfers-v1.jsonl` journal is append-only, hash chained and fsynced before submission. It preserves the entire review and every state transition, separately from all existing wallet and incubation data. Source account and fee payer are resolved from the authenticated browser session, never from a client-supplied name. Confirmation accepts only a saved review ID, so its recipient and asset cannot be replaced. Reviews expire after ten minutes; accepted or uncertain transfer IDs cannot submit again.
+There is no per-player hosted mnemonic: these old accounts share a master seed with other players and the operator. Never disclose that seed to a player or import it into their extension.
 
-The hosted UI reloads saved transfer history. **Check transfer** waits for the existing transaction receipt. A missing submission acknowledgement blocks subsequent transfers for that account until a developer reconciles it; it never silently retries. Confirmed rejections are shown explicitly, including the possibility of charged fees. Operator/game transactions and transfers share the same serialized wallet queue.
-
-Before manual recovery, capture and verify the complete data and secrets directories outside the live target. Preserve the original transfer journal and inspect the wallet's transaction history for the exact source, recipient and asset before recording a reconciled receipt. Never delete the journal to retry a transfer.
-
-## Seed export boundary
-
-The **Export / back up seed** panel is guidance, not a seed-reading API. For Sapient, open the extension's Settings and recovery-phrase/mnemonic screen and complete its password check there. The game never requests, receives, copies or stores the words.
-
-Existing hosted player accounts derive from one shared wallet master seed. There is no separate per-player mnemonic that can be exported from this setup. Publishing that master seed to any player would also expose other players and the operator. Therefore no browser endpoint exports it. To obtain an independent exportable recovery phrase, create a personal Sapient wallet, back it up inside the extension, and explicitly transfer assets to its address. Existing hosted wallets, seeds, cookies and recovery files remain intact.
-
-## Verification scope
-
-Automated tests cover exact decimal conversion; simulation before confirmation; immutable destination/asset/source; fee payer isolation; NFT ownership revalidation; cross-session and cross-origin denial; unknown acknowledgement/restart recovery; pending/rejected receipts; insufficient funds and pending-incubation blocks. SDK requests were checked against the pinned Tari walletd v0.46.1 source. A live transfer is not claimed until someone explicitly chooses a recipient/asset and completes confirmation; local mocked wallet responses are not chain settlement.
+The legacy service modules and their tests remain available for maintenance review; they are not wired into the public application. Before any manual recovery, capture and verify complete data and secrets outside the live target. Match the exact original owner, recipient, asset and saved transaction state; reconcile unknown acknowledgements before any retry. Preserve original journals and never reset them to force a send. Migration requires explicit authorization for the selected assets and destination.

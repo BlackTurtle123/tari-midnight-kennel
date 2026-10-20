@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Flame, Sparkles, Coins } from "lucide-react";
-import {
-  HALLOWEEN_REWARDS,
-  type EconomyAction,
-  type RebirthReceipt,
-} from "../shared/rebirth";
+import { HALLOWEEN_REWARDS, type EconomyAction } from "../shared/rebirth";
 import type { GameState } from "../shared/game";
 import { CanineArt } from "./CanineArt";
 import type { ExternalWallet } from "./external-wallet";
@@ -24,7 +20,6 @@ export function RewardArt({
     />
   ) : null;
 }
-type Api = <T>(path: string, body?: unknown) => Promise<T>;
 const tari = (micro: string | number) =>
   (Number(micro) / 1_000_000).toLocaleString(undefined, {
     maximumFractionDigits: 6,
@@ -32,14 +27,12 @@ const tari = (micro: string | number) =>
 export function Rebirth({
   state,
   external,
-  api,
   refresh,
   connect,
   incubate,
 }: {
   state: GameState;
   external: ExternalWallet | null;
-  api: Api;
   refresh: () => Promise<unknown>;
   connect: () => void;
   incubate: () => void;
@@ -51,23 +44,13 @@ export function Rebirth({
     [ack, setAck] = useState(false),
     [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [message, setMessage] = useState(""),
-    [receipts, setReceipts] = useState<RebirthReceipt[]>([]);
-  const load = async () => {
-    if (state.connected && !external) setReceipts(await api("/rebirths"));
-  };
-  useEffect(() => {
-    void load().catch((e) => setError(e.message));
-  }, [state.account]);
+    [message, setMessage] = useState("");
   useEffect(() => {
     if (review)
       document
         .getElementById("economy-review")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [review]);
-  const pending = receipts.filter((r) =>
-    ["submitting", "submitted"].includes(r.status),
-  );
   const externalPending =
     external && state.rebirth ? external.pendingEconomy(state.rebirth) : [];
   const beginReview = (action: EconomyAction) => {
@@ -87,21 +70,12 @@ export function Rebirth({
       );
     } finally {
       setBusy(false);
-      await load().catch(() => {});
     }
   }
   async function send(request: { action: EconomyAction; nonce: string }) {
-    if (external) {
-      await external.act(request.action, request.nonce);
-      setMessage("Submitted in Sapient. Refresh to see the confirmed result.");
-    } else {
-      const result = await api<RebirthReceipt>("/economy/actions", request);
-      if (result.status !== "accepted")
-        throw new Error(
-          "Transaction was rejected. Your assets were not exchanged.",
-        );
-      setMessage("Transaction confirmed. Your pack is updating.");
-    }
+    if (!external) throw new Error("Connect Sapient to continue");
+    await external.act(request.action, request.nonce);
+    setMessage("Submitted in Sapient. Refresh to see the confirmed result.");
     setReview(null);
   }
   const fee = state.rebirth?.fee ?? 8_000_000;
@@ -169,29 +143,6 @@ export function Rebirth({
         </div>
       ) : (
         <>
-          {pending.map((r) => (
-            <div className="notice" key={r.key}>
-              A saved wallet action needs checking.{" "}
-              <button
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    const result = await api<RebirthReceipt>(
-                      `/rebirths/${r.key}/check`,
-                      {},
-                    );
-                    setMessage(
-                      result.status === "accepted"
-                        ? "Transaction confirmed."
-                        : "Transaction rejected; assets were not exchanged.",
-                    );
-                  })
-                }
-              >
-                Check saved action
-              </button>
-            </div>
-          ))}
           {externalPending.map((r) => (
             <div className="notice" key={r.nonce}>
               Saved Sapient {r.action.kind} request.{" "}
@@ -222,10 +173,7 @@ export function Rebirth({
                     <div className="economy-actions">
                       <button
                         disabled={
-                          busy ||
-                          !!review ||
-                          pending.length > 0 ||
-                          externalPending.length > 0
+                          busy || !!review || externalPending.length > 0
                         }
                         onClick={() =>
                           beginReview({
@@ -246,7 +194,6 @@ export function Rebirth({
                           ) ||
                           busy ||
                           !!review ||
-                          pending.length > 0 ||
                           externalPending.length > 0
                         }
                         onClick={() =>
@@ -289,6 +236,12 @@ export function Rebirth({
                         ? `Draw epoch ${r.targetEpoch} · current epoch ${economy.epoch}`
                         : `Original canine ${r.token.slice(0, 10)}…`}
                     </p>
+                    {r.status === 0 && (
+                      <p>
+                        The ritual fee is held until Reveal &amp; mint
+                        completes. Staking rewards are not funded yet.
+                      </p>
+                    )}
                   </div>
                   {r.status === 0 &&
                     (r.captured || economy.epoch === r.targetEpoch ? (
@@ -327,7 +280,9 @@ export function Rebirth({
             <p>
               75% of completed rebirth fees goes to the canines staked at that
               moment; 25% goes to the treasury. If the pool is empty, that fee
-              also goes to the treasury. Rewards come only from collected fees.
+              also goes to the treasury. Starting a ritual does not pay rewards:
+              they become claimable after Reveal &amp; mint completes. Use Claim
+              rewards to collect them into your wallet.
             </p>
             <div className="staking-totals">
               <span>

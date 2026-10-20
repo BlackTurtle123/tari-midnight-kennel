@@ -55,13 +55,6 @@ const short = (s?: string) => (s ? `${s.slice(0, 16)}…${s.slice(-8)}` : "");
 function App() {
   const external = useRef<ExternalWallet | null>(null);
   const generation = useRef(0);
-  const [walletMode, setWalletMode] = useState("hosted");
-  const [hosted, setHosted] = useState(false);
-  useEffect(() => {
-    void api<{ hosted: boolean }>("/config")
-      .then((c) => setHosted(c.hosted))
-      .catch(() => {});
-  }, []);
   const [tab, setTab] = useState("incubator"),
     [state, setState] = useState<GameState>(empty),
     [error, setError] = useState(""),
@@ -70,16 +63,13 @@ function App() {
     [connectDialog, setConnectDialog] = useState(false);
   const refresh = async () => {
     const g = generation.current;
-    const s = external.current
-      ? await external.current.state()
-      : await api<GameState>("/state");
+    const s = external.current ? await external.current.state() : empty;
     if (g === generation.current) setState(s);
     return s;
   };
   useEffect(() => {
-    if (localStorage.getItem("kennel-wallet-choice") !== "sapient")
-      void refresh().catch(() => {});
-    else setConnectDialog(true);
+    if (localStorage.getItem("kennel-wallet-choice") === "sapient")
+      setConnectDialog(true);
     return () => {
       generation.current++;
       external.current?.stop();
@@ -181,7 +171,6 @@ function App() {
                   setState(empty);
                   setOpening(null);
                   if (wallet) await wallet.disconnect();
-                  else await api("/disconnect", {});
                 })
               : setConnectDialog(true)
           }
@@ -208,7 +197,7 @@ function App() {
             </button>
           </div>
         )}
-        {busy && walletMode === "sapient" && (
+        {busy && (
           <div className="notice" role="status">
             Check Sapient for an approval request. Your wallet signs
             transactions; Arkimals never receives its seed.
@@ -226,18 +215,10 @@ function App() {
         {state.connected && (
           <section className="wallet-summary">
             <div>
-              <strong>
-                {walletMode === "sapient"
-                  ? "Your Sapient wallet"
-                  : hosted
-                    ? "Your existing staging wallet"
-                    : "Your test wallet"}
-              </strong>
+              <strong>Your Sapient wallet</strong>
               <span>
-                {state.balance ?? "—"} tTARI{" "}
-                {walletMode === "sapient"
-                  ? "public balance · private balance stays in Sapient"
-                  : "· Esmeralda"}
+                {state.balance ?? "—"} tTARI public balance · private balance
+                stays in Sapient
               </span>
             </div>
             <details>
@@ -256,20 +237,6 @@ function App() {
               >
                 Copy address
               </button>
-              {walletMode !== "sapient" && (
-                <button
-                  className="secondary"
-                  disabled={busy}
-                  onClick={() =>
-                    void action(async () => {
-                      await api("/fund", {});
-                      await refresh();
-                    })
-                  }
-                >
-                  Try public faucet
-                </button>
-              )}
               <p>
                 The public faucet needs at least 1,000 tTARI for a claim. If it
                 is empty, use a funded test wallet or Tari’s{" "}
@@ -285,15 +252,7 @@ function App() {
             </details>
           </section>
         )}
-        {state.connected && (
-          <WalletTools
-            key={"wallet-tools:" + walletMode + state.account}
-            state={state}
-            external={walletMode === "sapient"}
-            api={api}
-            refresh={refresh}
-          />
-        )}
+        {state.connected && <WalletTools />}
         {tab === "incubator" && (
           <>
             <section className="hero">
@@ -397,30 +356,24 @@ function App() {
                 tricks have a wagging tail.
               </p>
               <SecretExperience
-                externalWallet={
-                  state.connected ? walletMode === "sapient" : undefined
-                }
                 incubation={pending}
                 busy={busy}
                 onOpen={() =>
                   pending &&
                   void action(async () => {
                     const g = generation.current;
-                    const result = external.current
-                      ? await external.current.open(pending)
-                      : await api<Opening>(
-                          `/incubations/${pending.id}/open`,
-                          {},
-                        );
+                    if (!external.current)
+                      throw new Error("Connect Sapient to continue");
+                    const result = await external.current.open(pending);
                     if (g === generation.current) setOpening(result);
                   })
                 }
                 onResume={() =>
                   pending &&
                   void action(async () => {
-                    if (external.current)
-                      await external.current.resume(pending.id);
-                    else await api(`/incubations/${pending.id}/resume`, {});
+                    if (!external.current)
+                      throw new Error("Connect Sapient to continue");
+                    await external.current.resume(pending.id);
                     await refresh();
                   })
                 }
@@ -437,12 +390,9 @@ function App() {
                       onClick={() =>
                         state.connected
                           ? void action(async () => {
-                              const id = crypto
-                                .randomUUID()
-                                .replaceAll("-", "");
-                              if (external.current)
-                                await external.current.begin(i);
-                              else await api("/incubations", { door: i, id });
+                              if (!external.current)
+                                throw new Error("Connect Sapient to continue");
+                              await external.current.begin(i);
                               await refresh();
                             })
                           : setConnectDialog(true)
@@ -493,10 +443,9 @@ function App() {
         )}
         {tab === "rebirth" && (
           <Rebirth
-            key={"rebirth:" + walletMode + state.account}
+            key={"rebirth:" + state.account}
             state={state}
             external={external.current}
-            api={api}
             refresh={refresh}
             connect={() => setConnectDialog(true)}
             incubate={() => setTab("incubator")}
@@ -630,12 +579,12 @@ function App() {
                 <p>
                   The operator creates the result and knows it. Sapient keeps
                   player keys in your extension and asks you to approve
-                  transactions. Existing staging wallets remain hosted: the
-                  server can access those keys. The operator wallet remains on
-                  the server. Incubation account, door, commitment, timing, fees
-                  and transaction links can be public. Outcomes are
-                  operator-selected randomness, not provably fair draws. This is
-                  a private surprise, not anonymous play.
+                  transactions. The operator wallet remains on the server for
+                  encrypted deliveries. Login uses Sapient only. Incubation
+                  account, door, commitment, timing, fees and transaction links
+                  can be public. Outcomes are operator-selected randomness, not
+                  provably fair draws. This is a private surprise, not anonymous
+                  play.
                 </p>
               </div>
             </div>
@@ -721,15 +670,14 @@ function App() {
               <X />
             </button>
             <Wallet size={32} />
-            <h2 id="connect-title">Choose your wallet</h2>
+            <h2 id="connect-title">Connect your wallet</h2>
             <p>
               With Sapient, your seed stays in the extension. Connect an
               Esmeralda account and approve each incubation and mint in your
               wallet.
             </p>
             <p>
-              No seed phrase is requested here. Use test coins only. Back up a
-              new Sapient wallet using its own recovery instructions.
+              Use Esmeralda test coins only. Approvals happen inside Sapient.
             </p>
             {error && (
               <p className="inline-error" role="alert">
@@ -753,7 +701,6 @@ function App() {
                   external.current?.stop();
                   generation.current++;
                   external.current = wallet;
-                  setWalletMode("sapient");
                   localStorage.setItem("kennel-wallet-choice", "sapient");
                   setOpening(null);
                   setState(empty);
@@ -773,42 +720,6 @@ function App() {
                 Get Sapient for Chrome
               </a>{" "}
               · Open staging in that browser after installation.
-            </p>
-            <hr />
-            <h3>Existing staging wallet</h3>
-            <p>
-              Your previous wallet, funds and NFTs remain in place. Keep this
-              browser’s cookies and finish existing incubations with that
-              wallet. Connecting Sapient creates no transfer and does not import
-              or replace the old seed.
-            </p>
-            <button
-              className="secondary"
-              disabled={busy}
-              onClick={() =>
-                void action(async () => {
-                  external.current?.stop();
-                  external.current = null;
-                  generation.current++;
-                  setWalletMode("hosted");
-                  localStorage.setItem("kennel-wallet-choice", "hosted");
-                  setOpening(null);
-                  setState(await api<GameState>("/connect", {}));
-                  setConnectDialog(false);
-                })
-              }
-            >
-              {busy
-                ? "Connecting…"
-                : hosted
-                  ? "Use existing staging wallet"
-                  : "Connect local wallet"}{" "}
-              <ArrowRight size={17} />
-            </button>
-            <p className="fine-print">
-              Existing staging keys remain on the server. On a new browser, this
-              option creates a separate hosted test account; it cannot recover
-              another browser’s account.
             </p>
           </section>
         </div>
@@ -876,9 +787,9 @@ function App() {
                   disabled={busy}
                   onClick={() =>
                     void action(async () => {
-                      if (external.current)
-                        await external.current.hatch(opening);
-                      else await api(`/incubations/${opening.id}/hatch`, {});
+                      if (!external.current)
+                        throw new Error("Connect Sapient to continue");
+                      await external.current.hatch(opening);
                       setOpening(null);
                       await refresh();
                       setTab("collection");
@@ -896,10 +807,8 @@ function App() {
                   <LockKeyhole size={16} /> Keep it secret for now
                 </button>
                 <p className="preview-boundary">
-                  The game operator knows the result.{" "}
-                  {walletMode === "sapient"
-                    ? "Your wallet keys stay in Sapient."
-                    : "Staging hosts your wallet."}
+                  The game operator knows the result. Your wallet keys stay in
+                  Sapient.
                 </p>
               </div>
             </div>

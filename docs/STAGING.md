@@ -2,6 +2,10 @@
 
 Target: `https://staging.wavesducks.com/tari/`, on verified host `arkimals-c` / `217.100.219.253`. The existing Waves application and Mongo Compose projects remain separate. The PoC has its own `tari-midnight-kennel` project and publishes only `127.0.0.1:18787` to the host proxy.
 
+## Current wallet access
+
+Player login is Sapient-only. Legacy login and cookie-authenticated player-signing APIs are retired. Startup provisions only the operator. Preserve the existing wallet database, session key, identity cookies and journals for controlled recovery; never remove them merely because the public login is gone. Existing external-wallet pending operations and draw capture continue unchanged.
+
 ## Deployment status and verification
 
 **Live:** https://staging.wavesducks.com/tari/. The 15 October 2026 genetics release deploys original main-game art and committed genesis traits. The v2 contract is published and the live browser incubation → native encrypted memo → preview → mint → collection/reload flow passed. See [validation](VALIDATION.md) and [public receipts](ESMERALDA-DEPLOYMENT.json). The exact running application commit is available from `/tari/api/health`.

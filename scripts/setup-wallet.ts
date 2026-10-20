@@ -1,11 +1,11 @@
 import { wallet } from "../server/wallet.ts";
-import { OPERATOR_NAME, PLAYER_NAME } from "../server/config.ts";
+import { OPERATOR_NAME } from "../server/config.ts";
 const client = await wallet();
 let failed = false;
-for (const name of [OPERATOR_NAME, PLAYER_NAME]) {
+for (const name of [OPERATOR_NAME]) {
   const result = await client.accountsCreateOrGet({
     account: { Name: name },
-    is_default: name === PLAYER_NAME,
+    is_default: false,
     key_index: null,
   });
   console.log(`${name}: ${result.account.component_address}`);

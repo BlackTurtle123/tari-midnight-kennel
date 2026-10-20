@@ -109,7 +109,7 @@ export class ExternalWallet {
     const p = window.tari;
     if (!p?.isTariWallet)
       throw new Error(
-        "Open this page in Chrome with Sapient installed and unlocked, then connect again. Your existing staging wallet remains available below.",
+        "Open this page in Chrome with Sapient installed and unlocked, then connect again.",
       );
     const accounts = await p.request<string[]>({
       method: "tari_requestAccounts",

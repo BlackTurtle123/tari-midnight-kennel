@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { wallet } from "../server/wallet.ts";
-import { DATA_DIR, OPERATOR_NAME, PLAYER_NAME } from "../server/config.ts";
+import { DATA_DIR, OPERATOR_NAME } from "../server/config.ts";
 mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
 const daemon = spawn(
   "/usr/local/bin/tari_ootle_walletd",
@@ -46,10 +46,10 @@ let connected = false;
 for (let attempt = 0; attempt < 60; attempt++) {
   try {
     const client = await wallet();
-    for (const name of [OPERATOR_NAME, PLAYER_NAME])
+    for (const name of [OPERATOR_NAME])
       await client.accountsCreateOrGet({
         account: { Name: name },
-        is_default: name === PLAYER_NAME,
+        is_default: false,
         key_index: null,
       });
     connected = true;
