@@ -11,6 +11,7 @@ import {
   breedingDeployment,
   unifiedRebirthDeployment,
   TARI_RESOURCE,
+  incubationTreasury,
 } from "./config.ts";
 import {
   parseCanine,
@@ -116,6 +117,21 @@ export async function chainIncubations() {
   if (!("Component" in r.substate))
     throw new Error("Game component unavailable");
   return readGame(r.substate.Component, d.template, d.resource);
+}
+export function readIncubationPayments(raw: unknown, config: NonNullable<ReturnType<typeof incubationTreasury>>) {
+  const c = z.object({
+    header: z.object({ template_address: z.literal(config.template.replace(/^template_/, "")) }),
+    body: z.object({ state: z.tuple([address(128), address(128), z.literal(config.amount), z.record(address(128))]) }),
+  }).parse(raw);
+  const [game, treasury, , payments] = c.body.state;
+  if ("component_" + game.value.hex !== config.game || "component_" + treasury.value.hex !== config.treasury)
+    throw new Error("On-chain incubation treasury does not match its configuration");
+  return Object.fromEntries(Object.entries(payments).map(([id, a]) => [id, "component_" + a.value.hex]));
+}
+export async function incubationPayments(config: NonNullable<ReturnType<typeof incubationTreasury>>) {
+  const r = liveSubstate(await (await indexer()).getSubstate(config.component));
+  if (!("Component" in r.substate)) throw new Error("Incubation treasury unavailable");
+  return readIncubationPayments(r.substate.Component, config);
 }
 export async function validateExternalAccount(
   account: string,

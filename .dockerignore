@@ -10,3 +10,4 @@ test-results
 playwright-report
 
 staking-contract/target
+treasury-contract/target

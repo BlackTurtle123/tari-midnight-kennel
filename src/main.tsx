@@ -76,6 +76,7 @@ function App() {
     [state, setState] = useState<GameState>(empty),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
+    [restoring, setRestoring] = useState(false),
     [opening, setOpening] = useState<Opening | null>(null),
     [connectDialog, setConnectDialog] = useState(false);
   const setTab = (page: string) => {
@@ -97,14 +98,51 @@ function App() {
     return s;
   };
   useEffect(() => {
-    const page = fromHash();
-    if (
-      page !== "ranking" &&
-      !page.startsWith("farm/") &&
-      localStorage.getItem("kennel-wallet-choice") === "sapient"
-    )
-      setConnectDialog(true);
+    let disposed = false;
+    let attempted = false;
+    const g = generation.current;
+    const restore = async () => {
+      if (disposed || attempted || g !== generation.current ||
+          localStorage.getItem("kennel-wallet-choice") !== "sapient" ||
+          !window.tari?.isTariWallet) return;
+      attempted = true;
+      setRestoring(true);
+      let wallet: ExternalWallet | null = null;
+      try {
+        wallet = await ExternalWallet.restore(api, () => {
+          if (g !== generation.current) return;
+          generation.current++;
+          external.current = null;
+          setOpening(null);
+          setState(empty);
+        });
+        if (!wallet) return;
+        const expected = localStorage.getItem("kennel-wallet-account");
+        if (expected && wallet.account !== expected) {
+          wallet.stop();
+          return;
+        }
+        const restored = await wallet.state();
+        if (disposed || g !== generation.current) {
+          wallet.stop();
+          return;
+        }
+        external.current = wallet;
+        localStorage.setItem("kennel-wallet-account", wallet.account);
+        setState(restored);
+      } catch {
+        wallet?.stop();
+        // Locked, unavailable or revoked permission: leave the explicit Connect
+        // action available, including on anonymous ranking and farm routes.
+      } finally {
+        if (!disposed) setRestoring(false);
+      }
+    };
+    window.addEventListener("tari#initialized", restore);
+    void restore();
     return () => {
+      disposed = true;
+      window.removeEventListener("tari#initialized", restore);
       generation.current++;
       external.current?.stop();
     };
@@ -160,7 +198,7 @@ function App() {
     }
   }
   const pending = state.incubations.find((r) => r.stage !== "hatched");
-  const disabled = busy || !!pending || !!state.setupError;
+  const disabled = busy || restoring || !!pending || !!state.setupError;
   return (
     <>
       <header className="header">
@@ -199,12 +237,14 @@ function App() {
         </nav>
         <button
           className="wallet-button"
-          disabled={busy}
+          disabled={busy || restoring}
           onClick={() =>
             state.connected
               ? void action(async () => {
                   const wallet = external.current;
                   generation.current++;
+                  localStorage.removeItem("kennel-wallet-choice");
+                  localStorage.removeItem("kennel-wallet-account");
                   external.current = null;
                   setState(empty);
                   setOpening(null);
@@ -214,7 +254,7 @@ function App() {
           }
         >
           <Wallet size={16} />
-          {state.connected ? "Disconnect wallet" : "Connect wallet"}
+          {restoring ? "Connecting wallet…" : state.connected ? "Disconnect wallet" : "Connect wallet"}
         </button>
       </header>
       <main>
@@ -250,11 +290,7 @@ function App() {
           </div>
         )}
         {state.connected && (
-          <WalletTools
-            balance={state.balance}
-            address={state.paymentAddress}
-            copy={(address) => navigator.clipboard.writeText(address)}
-          />
+          <WalletTools balance={state.balance} />
         )}
         {tab === "incubator" && (
           <>
@@ -389,7 +425,7 @@ function App() {
                     <h3>{door.name}</h3>
                     <p>{door.subtitle}</p>
                     <button
-                      disabled={state.connected ? disabled : busy}
+                      disabled={state.connected ? disabled : busy || restoring}
                       onClick={() =>
                         state.connected
                           ? void action(async () => {
@@ -401,14 +437,18 @@ function App() {
                           : setConnectDialog(true)
                       }
                     >
-                      Knock on this door <ArrowUpRight size={17} />
+                      Knock on this door{state.incubationFee ? " · 20 tTARI" : ""} <ArrowUpRight size={17} />
                     </button>
                   </article>
                 ))}
               </div>
               <p className="fine-print">
-                Testnet only · No purchase or cash prizes · Network fees apply ·
-                One incubation at a time
+                {state.connected
+                  ? state.incubationFee
+                    ? "20 test tTARI once per new incubation funds delivery and the game treasury. Network fees are separate. Resuming or hatching adds no second treasury fee."
+                    : "No treasury fee on this deployment. Network fees apply."
+                  : "Connect your wallet to see the current incubation fee before approval."}
+                {" "}Testnet only · No cash prizes · One incubation at a time
               </p>
             </section>
             <section className="rebirth-teaser">
@@ -444,7 +484,7 @@ function App() {
             </section>
           </>
         )}
-        {tab === "rules" && <Rules />}
+        {tab === "rules" && <Rules incubationFee={state.incubationFee} connected={state.connected} />}
         {(tab === "ranking" || tab.startsWith("farm/")) && (
           <Community
             key={tab}
@@ -710,6 +750,7 @@ function App() {
               disabled={busy}
               onClick={() =>
                 void action(async () => {
+                  generation.current++;
                   const wallet = await ExternalWallet.connect(api, () => {
                     generation.current++;
                     external.current = null;
@@ -723,6 +764,7 @@ function App() {
                   generation.current++;
                   external.current = wallet;
                   localStorage.setItem("kennel-wallet-choice", "sapient");
+                  localStorage.setItem("kennel-wallet-account", wallet.account);
                   setOpening(null);
                   setState(empty);
                   setConnectDialog(false);

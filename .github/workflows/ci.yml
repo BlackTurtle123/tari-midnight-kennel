@@ -34,3 +34,6 @@ jobs:
       - run: cargo test --locked --manifest-path rebirth-contract/Cargo.toml
       - run: cargo build --locked --manifest-path breeding-contract/Cargo.toml --target wasm32-unknown-unknown --release
       - run: cargo test --locked --manifest-path breeding-contract/Cargo.toml
+
+      - run: cargo build --locked --manifest-path treasury-contract/Cargo.toml --target wasm32-unknown-unknown --release
+      - run: cargo test --locked --manifest-path treasury-contract/Cargo.toml

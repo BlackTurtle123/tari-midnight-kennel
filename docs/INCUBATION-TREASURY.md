@@ -1,0 +1,19 @@
+# TLK-1557: incubation treasury and delivery recovery
+
+Each new paid incubation contributes **20 public test tTARI** (20,000,000 microTari) to the existing operator account. The wallet separately pays its network fee. There is no second treasury fee for checking progress, opening the secret, or hatching. On 20 October 2026, two accepted operator deliveries each spent 1 tTARI and their seals spent 0.004588 / 0.004840 tTARI. Twenty tTARI therefore funds about 20 such delivery cycles at those observed costs; fees can change.
+
+The new `IncubationTreasury` contract wraps the existing incubator. Its fixed 20 tTARI payment, original-contract reservation and operator deposit are atomic. An invalid payment, duplicate reservation, exhausted supply or failed deposit rolls everything back. The immutable on-chain payment map records the recipient. The API verifies the contract template, original game, treasury, amount and recipient before generating/sealing a new secret. The signed incubation ID includes the fee configuration.
+
+This preserves the existing canine collection and all farming/breeding contracts. The original incubator's public reservation method remains callable, but an unpaid direct reservation cannot get a new delivery through the API once the treasury is active. Such reservations can still consume the original contract's capped slots; removing that inherited limitation would require a replacement incubator and collection migration. Do not claim the wrapper disables the original entry point.
+
+Existing server-journal incubations retain their original secrets and resume without a new payment. An old wallet approval that was never registered before activation needs operator review; do not charge it again or invent a replacement secret. Unknown seal or delivery submissions remain blocked, while known pending receipts are checked again without resubmission. Definitive network rejection or a narrowly proven pre-submission failure can retry the affected step.
+
+## Activation and rollback
+
+The staging pipeline builds and tests the treasury WASM and includes it in the immutable application image. Its normal deployment gateway stops the one application container, captures and verifies complete data/secrets and runtime before-images outside the deployment root, then starts the new image. `KENNEL_ACTIVATE_INCUBATION_TREASURY=true` opts into startup activation before HTTP/keeper startup. It requires sufficient public operator funds; top up and verify them before pushing this deployment branch.
+
+`scripts/deploy-incubation-treasury.ts` estimates publication fees with a bound, journals publication/creation intent before submitting, records accepted transaction IDs and verifies the created component. It creates `incubation-treasury-v1.json` exclusively and leaves every existing descriptor intact. A missing acknowledgement must be reconciled, never erased to force a retry. An activation failure blocks startup instead of silently serving fee-free new incubations.
+
+Once the descriptor exists, startup skips publication. A read-only `/api/external/config` check must show amount `20000000`, the verified new component and the original operator treasury. Check public ranking/farms, the balance-only wallet display, reload reconnection, and both old and newly paid incubation paths. Automated browser checks use a simulated Sapient provider; a real-extension approval remains a separate acceptance check.
+
+Do not roll back to an app that ignores paid receipts after players have paid. Preserve the new descriptor/journal and all new incubation records. Before any rollback, capture and verify current state again, reconcile chain receipts, and deploy a compatible application through the pipeline. On-chain publication and payments cannot be undone by restoring local files.

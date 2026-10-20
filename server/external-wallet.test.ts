@@ -269,7 +269,7 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
   const api = async <T>(path: string, body?: any): Promise<T> => {
     let result: unknown;
     if (path === "/external/config")
-      result = { component, network: "esmeralda" };
+      result = { component, network: "esmeralda", incubationFee: chain.incubationFee };
     else if (path.startsWith("/external/state"))
       result = structuredClone(chain);
     else if (path === "/external/prepare") result = { ok: true };
@@ -504,4 +504,62 @@ test("shared farm transition resumes an old signed rebirth but rejects new depos
       /recovery-only/,
     );
   assert.equal(f.creates, 1);
+});
+
+test("refresh restores existing Sapient permission without requesting access or creating a transaction", async () => {
+  const f = fixture();
+  const wallet = await ExternalWallet.restore(f.api, () => {});
+  assert.ok(wallet);
+  assert.equal(wallet.account, account);
+  await wallet.state();
+  assert.equal(f.calls.includes("tari_requestAccounts"), false);
+  assert.equal(f.calls.includes("tari_requestViewAccess"), false);
+  assert.equal(f.creates, 0);
+  assert.equal(f.submits, 0);
+  wallet.stop();
+});
+
+test("refresh with revoked permission or no provider stays disconnected without prompting", async () => {
+  const f = fixture();
+  const request = f.p.request.bind(f.p);
+  f.p.request = async <T>(r: {method: string; params?: unknown}) =>
+    r.method === "tari_getAccounts" ? [] as T : request<T>(r);
+  assert.equal(await ExternalWallet.restore(f.api, () => {}), null);
+  assert.equal(f.calls.includes("tari_requestAccounts"), false);
+  window.tari = undefined;
+  assert.equal(await ExternalWallet.restore(f.api, () => {}), null);
+});
+
+test("refresh refuses the wrong network and removes listeners after failed validation", async () => {
+  const f = fixture();
+  f.setNetwork("igor");
+  await assert.rejects(ExternalWallet.restore(f.api, () => {}), /Esmeralda/);
+  assert.equal(f.calls.includes("tari_requestAccounts"), false);
+  f.setNetwork("esmeralda");
+  let unsubscribed = false;
+  f.p.on = () => () => { unsubscribed = true; };
+  const request = f.p.request.bind(f.p);
+  let checks = 0;
+  f.p.request = async <T>(r: {method: string; params?: unknown}) => {
+    if (r.method === "tari_getAccounts" && ++checks > 1) throw new Error("Wallet locked");
+    return request<T>(r);
+  };
+  await assert.rejects(ExternalWallet.restore(f.api, () => {}), /Wallet locked/);
+  assert.equal(unsubscribed, true);
+});
+
+
+test("paid incubation preserves the original approval after a lost submission response", async () => {
+  const f = fixture("submit");
+  f.chain.incubationFee = { component: "component_" + "11".repeat(32), treasury: "component_" + "22".repeat(32), amount: 20_000_000 };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(w.begin(1), /Lost submission response/);
+  const saved = readSaved(f.storage, account, component)[0];
+  assert.deepEqual(saved.intent.fee, f.chain.incubationFee);
+  w.stop();
+  const restored = await ExternalWallet.restore(f.api, () => {});
+  await restored!.resume(saved.id);
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 1);
+  assert.equal(f.registered, true);
 });

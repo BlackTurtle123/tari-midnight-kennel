@@ -22,7 +22,8 @@
     "breeding:test": "cargo test --locked --manifest-path breeding-contract/Cargo.toml",
     "deploy:unified-economy": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-staking.ts --unified && NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-rebirth.ts --unified",
     "deploy:offspring-economy": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-offspring-economy.ts",
-    "deploy:breeding": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-breeding.ts"
+    "deploy:breeding": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-breeding.ts",
+    "deploy:incubation-treasury": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-incubation-treasury.ts"
   },
   "dependencies": {
     "@tari-project/ootle": "0.10.0",

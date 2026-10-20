@@ -12,6 +12,7 @@ import {
   recoveryRebirthDeployments,
   OPERATOR_NAME,
   TARI_RESOURCE,
+  incubationTreasury,
 } from "./config.ts";
 import { Journal, publicRecord, type Incubation } from "./journal.ts";
 import {
@@ -19,6 +20,7 @@ import {
   validateExternalAccount,
   publicInventory,
   type ChainIncubation,
+  incubationPayments,
 } from "./external-chain.ts";
 import { commitmentFor, createOpening, encodeMemo } from "./crypto.ts";
 import {
@@ -27,10 +29,12 @@ import {
   wallet,
   waitAccepted,
   RejectedTransaction,
+  PendingTransaction,
 } from "./wallet.ts";
 import { serializeWallet, activations } from "./wallet-queue.ts";
-import { ensureSpendableAccount } from "./account-readiness.ts";
+import { checkFeeFunds, ensureSpendableAccount, InsufficientFeeFunds } from "./account-readiness.ts";
 import { NotSubmitted } from "./submission-errors.ts";
+import { sameIncubationFee } from "../shared/incubation-fee.ts";
 
 export function verifyAuthorizedIntent(
   intent: WalletIntent,
@@ -59,11 +63,14 @@ export function verifyAuthorizedIntent(
 // Separate append-only journal. Existing wallet seeds, accounts, cookies and
 // hosted incubation histories are never migrated or replaced by this service.
 export class ExternalService {
-  readonly journal = new Journal(join(DATA_DIR, "external-wallets"));
+  constructor(
+    readonly journal = new Journal(join(DATA_DIR, "external-wallets")),
+    private readonly delivery = { chainIncubations, wallet, ensureSpendableAccount, submit, waitAccepted },
+  ) {}
   private busy = new Set<string>();
-  config() {
+  config(): { component: string; resource: string; network: string; incubationFee?: import("../shared/incubation-fee.ts").IncubationFee } {
     const d = deployment();
-    return { component: d.component, resource: d.resource, network: d.network };
+    return { component: d.component, resource: d.resource, network: d.network, incubationFee: incubationTreasury() };
   }
   async prepare(intent: WalletIntent) {
     if (intent.component !== deployment().component)
@@ -78,6 +85,24 @@ export class ExternalService {
       throw new Error(
         "Finish the incubation already owned by this wallet first",
       );
+    const fee = incubationTreasury();
+    if (!sameIncubationFee(intent.fee, fee))
+      throw new Error("Incubation fee changed. Reconnect to review the current price before approving.");
+    if (fee) {
+      // Verify the immutable fee destination before approval. The player's
+      // atomic payment supplies the public reserve needed for delivery.
+      await incubationPayments(fee);
+      return { ok: true };
+    }
+    // Reserve both maximum network fees and the encrypted delivery's one
+    // microTari before asking the player to approve a paid incubation.
+    try {
+      await checkFeeFunds(await this.delivery.wallet(), OPERATOR_NAME, 2_000_001n);
+    } catch (error) {
+      if (error instanceof InsufficientFeeFunds)
+        throw new Error("The game's delivery wallet needs test Tari for network fees. Please try again after it is funded; no new incubation approval was requested.");
+      throw new Error("Unable to check the game's delivery wallet. Please try again shortly; no new incubation approval was requested.");
+    }
     return { ok: true };
   }
   async register(intent: WalletIntent, id: string) {
@@ -97,6 +122,11 @@ export class ExternalService {
       )
         throw new Error("Incubation recipient is fixed");
     } else {
+      const fee = incubationTreasury();
+      if (!sameIncubationFee(intent.fee, fee))
+        throw new Error("This incubation needs operator review of its original approval; no additional payment was requested.");
+      if (fee && (await incubationPayments(fee))[id] !== intent.account)
+        throw new Error("Waiting for the same incubation's treasury payment to confirm. No additional payment was requested.");
       if (chain!.hatched || chain!.commitment)
         throw new Error(
           "This incubation needs its original recovery record; no new secret was generated",
@@ -113,7 +143,7 @@ export class ExternalService {
         createdAt: new Date().toISOString(),
       });
     }
-    this.launch(id);
+    void this.launch(id);
     return publicRecord(this.journal.get(id)!);
   }
   async resume(account: string, id: string) {
@@ -123,7 +153,7 @@ export class ExternalService {
         "Reconnect the original wallet and resume its saved approval request",
       );
     // No recipient or signing keys can be changed by this public, idempotent trigger.
-    this.launch(id);
+    void this.launch(id);
     return { ok: true };
   }
   async state(account: string): Promise<GameState> {
@@ -135,6 +165,7 @@ export class ExternalService {
       account,
       component: d.component,
       resource: d.resource,
+      incubationFee: incubationTreasury(),
       rebirth: activeRebirthDeployment(),
       recoveryEconomies: recoveryRebirthDeployments().map((config) => ({
         config,
@@ -177,7 +208,7 @@ export class ExternalService {
   private launch(id: string) {
     if (this.busy.has(id)) return;
     this.busy.add(id);
-    void serializeWallet(() => this.advance(id))
+    return serializeWallet(() => this.advance(id))
       .catch((error) => {
         const r = structuredClone(this.journal.get(id)!);
         if (error instanceof NotSubmitted && r.stage === "sealing" && !r.sealTx)
@@ -193,15 +224,20 @@ export class ExternalService {
           }
         }
         // Never reflect wallet/provider payloads: the delivery call contains a plaintext memo.
-        r.error =
-          "Delivery is waiting for confirmation or operator recovery. Check progress; an uncertain submission will not be repeated.";
+        r.error = error instanceof InsufficientFeeFunds
+          ? "The game's delivery wallet needs test Tari for network fees. Your incubation is saved. Once the operator funds it, use Check progress to continue the same incubation; do not start or pay for another one."
+          : error instanceof PendingTransaction
+            ? "Delivery is waiting for network confirmation. Check progress to check the same transaction; it will not be submitted again."
+            : error instanceof NotSubmitted || error instanceof RejectedTransaction
+              ? "The last delivery step was not submitted or was rejected by the network. Check progress to retry that step of your saved incubation."
+              : "Delivery needs an operator check of the saved transaction and network status. Your incubation is saved. Check progress safely; an uncertain submission will not be repeated.";
         this.journal.save(r);
       })
       .finally(() => this.busy.delete(id));
   }
   private async advance(id: string) {
     const r = structuredClone(this.journal.get(id)!);
-    const c = (await chainIncubations()).find((c) => c.id === id);
+    const c = (await this.delivery.chainIncubations()).find((c) => c.id === id);
     if (!c || c.owner !== r.owner || c.door !== r.door)
       throw new Error("Incubation mismatch");
     const save = () => {
@@ -218,15 +254,15 @@ export class ExternalService {
     if (!c.commitment) {
       if (!r.sealTx) {
         if (r.stage === "sealing") throw new Error("Unknown seal submission");
-        await ensureSpendableAccount(
-          await wallet(),
+        await this.delivery.ensureSpendableAccount(
+          await this.delivery.wallet(),
           OPERATOR_NAME,
           activations,
         );
         r.stage = "sealing";
         save();
         r.sealTx = (
-          await submit(
+          await this.delivery.submit(
             OPERATOR_NAME,
             callInstructions(deployment().component, "seal_incubation", [
               stringLiteral(id),
@@ -236,17 +272,19 @@ export class ExternalService {
         ).transaction_id;
         save();
       }
-      await waitAccepted(r.sealTx);
+      await this.delivery.waitAccepted(r.sealTx);
     }
     if (!r.deliveryTx) {
       if (r.stage === "delivering")
         throw new Error("Unknown delivery submission");
-      await ensureSpendableAccount(await wallet(), OPERATOR_NAME, activations);
+      r.stage = "sealed";
+      save();
+      await this.delivery.ensureSpendableAccount(await this.delivery.wallet(), OPERATOR_NAME, activations, 1_000_001n);
       r.stage = "delivering";
       save();
       r.deliveryTx = (
         await (
-          await wallet()
+          await this.delivery.wallet()
         ).stealthTransfer({
           owner_account: { Name: OPERATOR_NAME },
           fee_params: {
@@ -271,7 +309,7 @@ export class ExternalService {
       ).transaction_id;
       save();
     }
-    await waitAccepted(r.deliveryTx);
+    await this.delivery.waitAccepted(r.deliveryTx);
     r.stage = "ready";
     save();
   }

@@ -24,6 +24,7 @@ services:
       KENNEL_SESSION_SECRET_FILE: /run/kennel-secrets/session-key
       KENNEL_MAX_ACCOUNTS: "27"
       KENNEL_VERSION: ${KENNEL_VERSION}
+      KENNEL_ACTIVATE_INCUBATION_TREASURY: "true"
     logging:
       driver: json-file
       options: { max-size: 10m, max-file: "3" }

@@ -9,6 +9,7 @@ A small canine incubation game for Tari Ootle’s October 2026 **Spooky Secrets*
 - Three Halloween doorways; four current main-game genesis canines (E–H), using the original modular artwork and eight-position genome. All doors use the same outcome distribution.
 - An incubation reserves one NFT; a salted commitment binds its outcome.
 - The operator delivers the opening using a Tari stealth transfer with an encrypted memo.
+- With the incubation treasury activated, a new reservation atomically pays 20 test tTARI into the operator treasury. Resume and hatch never collect a second treasury fee. Existing saved incubations remain recoverable without the new fee. See [treasury activation and recovery](docs/INCUBATION-TREASURY.md).
 - The player wallet decrypts the memo for a private preview.
 - The owner chooses to reveal the opening. The contract verifies it, mints one canine NFT and deposits it atomically into the originally selected recipient.
 - Collection UI reads actual wallet NFT inventory. It never fabricates a collectible.
@@ -79,6 +80,8 @@ A timeout is not a rejection: **Check progress** waits for the existing transact
 
 Players connect and sign through Sapient only, both locally and on staging. The operator daemon handles encrypted deliveries and draw capture. Legacy browser login and cookie-authenticated signing endpoints are retired; existing hosted wallets, seeds, cookies and journals remain intact for controlled recovery. No assets are automatically migrated. See [wallet connection and recovery](docs/EXTERNAL-WALLET.md) and [staging setup](docs/STAGING.md). A static frontend upload alone is not a functional game.
 
+Page refresh silently restores an already-authorized Sapient connection when available, preserving the remembered account. Locked/revoked or absent wallets leave Connect available without a popup; public farms and rankings remain browsable. Disconnect clears the reconnect preference. The game shows only a small wallet balance; Send and Receive controls belong in the wallet extension.
+
 ## Verify
 
 Transfers use Sapient’s Send controls. See [wallet transfers and seed backup](docs/WALLET-TRANSFERS.md). Sapient seed export stays inside the extension; the shared hosted master seed is never exposed to player sessions.
@@ -101,6 +104,6 @@ Rebirth and Staking now have separate pages (`#rebirth`, `#staking`). `#breeding
 
 Activation uses `TARI_BREEDING_FEE=1000000 npm run deploy:breeding` (1 native test tTARI, not an EGG exchange rate), followed by `npm run deploy:offspring-economy`. The latter instantiates the existing tested staking/rebirth templates for the bred collection and writes additive `offspring-staking-v1.json` / `offspring-rebirth-v1.json` descriptors. Existing founding stakes, rebirths, resources and recovery journals are preserved. Each collection pool receives 75% of its own completed rebirth fees. Select Founding canines or Bred canines on Rebirth/Staking; both pools use equal shares and the six-art Halloween edition. Separate epoch capture journals keep both generations of pending requests recoverable.
 
-This activates the supported canine lifecycle, not the remaining production rule inventory. Paid incubation, perches, FP-weighted rewards and functional main-game items still require implementation. Do not present testnet activation as production readiness.
+This activates the supported canine lifecycle, not the remaining production rule inventory. The fixed incubation treasury fee is separate from the main game's supply-based pricing; perches, FP-weighted rewards and functional main-game items still require implementation. Do not present testnet activation as production readiness.
 
 Verification: `npm test`, `npm run build`, `cargo test --locked --manifest-path breeding-contract/Cargo.toml`. Production readiness also requires the remaining gates in the checklist; this release does not claim complete main-game parity.

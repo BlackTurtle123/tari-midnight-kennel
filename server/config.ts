@@ -1,6 +1,7 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
+import { validateIncubationFee, type IncubationFee } from "../shared/incubation-fee.ts";
 export const DATA_DIR =
   process.env.KENNEL_DATA_DIR ||
   join(homedir(), ".local/share/tari-midnight-kennel");
@@ -34,6 +35,18 @@ export function deployment(): Deployment {
   )
     throw new Error("Invalid testnet deployment configuration");
   return d;
+}
+
+export function incubationTreasury(): (IncubationFee & { template: string; game: string }) | undefined {
+  const path = join(DATA_DIR, "incubation-treasury-v1.json");
+  if (!existsSync(path)) return undefined;
+  const fee = JSON.parse(readFileSync(path, "utf8"));
+  validateIncubationFee(fee);
+  const d = deployment();
+  if (fee.network !== "esmeralda" || fee.game !== d.component || fee.treasury !== d.operator ||
+      !/^(?:template_)?[a-f0-9]{64}$/.test(fee.template))
+    throw new Error("Incubation treasury does not match the active game and operator");
+  return fee;
 }
 
 export function legacyDeployment(): Deployment | undefined {

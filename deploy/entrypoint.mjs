@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdirSync } from "node:fs";
+import { existsSync, mkdirSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { wallet } from "../server/wallet.ts";
 import { DATA_DIR, OPERATOR_NAME } from "../server/config.ts";
@@ -64,4 +64,20 @@ if (!connected) {
   );
   daemon.kill("SIGTERM");
   process.exitCode = 1;
-} else await import("../server/index.ts");
+} else {
+  // Opt-in activation runs only after the deployment gateway's verified state
+  // capture. The script keeps durable submission markers and creates an additive
+  // descriptor; an unknown acknowledgement blocks automatic re-publication.
+  if (process.env.KENNEL_ACTIVATE_INCUBATION_TREASURY === "true" &&
+      !existsSync(DATA_DIR + "/incubation-treasury-v1.json")) {
+    try {
+      await import("../scripts/deploy-incubation-treasury.ts");
+    } catch {
+      console.error("Incubation treasury activation did not finish. Preserve its journal and reconcile receipts before retrying.");
+      daemon.kill("SIGTERM");
+      process.exitCode = 1;
+      throw new Error("Incubation treasury activation incomplete");
+    }
+  }
+  await import("../server/index.ts");
+}

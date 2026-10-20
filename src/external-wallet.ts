@@ -1,4 +1,5 @@
 import { breedingInstructions, type BreedingAction } from "../shared/breeding";
+import { sameIncubationFee, validateIncubationFee, type IncubationFee } from "../shared/incubation-fee";
 import type { GameState, Opening, IncubationView } from "../shared/game";
 import {
   rebirthInstructions,
@@ -94,6 +95,7 @@ export class ExternalWallet {
     readonly account: string,
     readonly paymentAddress: string,
     readonly component: string,
+    readonly incubationFee: IncubationFee | undefined,
     private api: Api,
     private invalidate: () => void,
   ) {
@@ -109,14 +111,25 @@ export class ExternalWallet {
     };
   }
   static async connect(api: Api, invalidate: () => void) {
+    return this.attach(api, invalidate, true);
+  }
+  // Read existing site permission only: refresh must never open an approval popup.
+  static async restore(api: Api, invalidate: () => void) {
+    if (!window.tari?.isTariWallet) return null;
+    return this.attach(api, invalidate, false);
+  }
+  private static async attach(api: Api, invalidate: () => void, requestAccess: true): Promise<ExternalWallet>;
+  private static async attach(api: Api, invalidate: () => void, requestAccess: false): Promise<ExternalWallet | null>;
+  private static async attach(api: Api, invalidate: () => void, requestAccess: boolean) {
     const p = window.tari;
     if (!p?.isTariWallet)
       throw new Error(
         "Open this page in Chrome with Sapient installed and unlocked, then connect again.",
       );
     const accounts = await p.request<string[]>({
-      method: "tari_requestAccounts",
+      method: requestAccess ? "tari_requestAccounts" : "tari_getAccounts",
     });
+    if (!requestAccess && accounts.length === 0) return null;
     if (accounts.length !== 1 || !/^component_[a-f0-9]{64}$/.test(accounts[0]))
       throw new Error("Choose one account in Sapient");
     if ((await p.request({ method: "tari_getNetwork" })) !== "esmeralda")
@@ -133,7 +146,7 @@ export class ExternalWallet {
     });
     if (!/^otl_esm_[a-z0-9]+$/.test(address))
       throw new Error("Invalid Esmeralda payment address");
-    const config = await api<{ component: string; network: string }>(
+    const config = await api<{ component: string; network: string; incubationFee?: IncubationFee }>(
       "/external/config",
     );
     if (config.network !== "esmeralda")
@@ -143,10 +156,16 @@ export class ExternalWallet {
       accounts[0],
       address,
       config.component,
+      config.incubationFee ? validateIncubationFee(config.incubationFee) : undefined,
       api,
       invalidate,
     );
-    await wallet.check();
+    try {
+      await wallet.check();
+    } catch (error) {
+      wallet.stop();
+      throw error;
+    }
     return wallet;
   }
   stop() {
@@ -228,13 +247,17 @@ export class ExternalWallet {
   async begin(door: number) {
     return this.locked(async () => {
       await this.check();
-      if ((await this.state()).incubations.some((i) => i.stage !== "hatched"))
+      const state = await this.state();
+      if (state.incubations.some((i) => i.stage !== "hatched"))
         throw new Error("Resume your existing incubation first");
+      if (!sameIncubationFee(state.incubationFee, this.incubationFee))
+        throw new Error("Incubation fee changed. Reconnect to review the current price.");
       const intent: WalletIntent = {
         account: this.account,
         paymentAddress: this.paymentAddress,
         component: this.component,
         door,
+        ...(this.incubationFee ? { fee: this.incubationFee } : {}),
         nonce: Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
           b.toString(16).padStart(2, "0"),
         ).join(""),
@@ -267,6 +290,7 @@ export class ExternalWallet {
           kind: "begin",
           account: this.account,
           door: r.intent.door,
+          fee: r.intent.fee,
         }),
       );
     }

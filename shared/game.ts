@@ -107,6 +107,7 @@ export interface IncubationView {
   error?: string;
 }
 export interface GameState {
+  incubationFee?: import("./incubation-fee.ts").IncubationFee;
   recoveryEconomies?: {
     config: import("./rebirth.ts").RebirthConfig;
     state?: import("./rebirth.ts").EconomyState;

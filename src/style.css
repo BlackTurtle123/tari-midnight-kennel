@@ -1347,37 +1347,6 @@ dt {
 .wallet-balance small {
   font-weight: 400;
 }
-.wallet-summary summary {
-  cursor: pointer;
-}
-.receive-coins {
-  position: absolute;
-  z-index: 5;
-  right: 0;
-  top: calc(100% + 10px);
-  width: min(340px, calc(100vw - 48px));
-  padding: 16px;
-  background: #242c3d;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  box-shadow: 0 8px 30px #251a151a;
-}
-.wallet-summary code {
-  display: block;
-  overflow-wrap: anywhere;
-  padding: 12px;
-  background: #eee9e2;
-  border-radius: 6px;
-  margin: 10px 0;
-}
-.wallet-summary button {
-  margin: 6px 10px 0 0;
-}
-.wallet-summary a {
-  display: inline-flex;
-  gap: 4px;
-  align-items: center;
-}
 
 .canine-art {
   display: block;
@@ -1597,7 +1566,6 @@ main {
 .steps,
 .canine-card,
 .pending-card,
-.wallet-summary,
 .wallet-tools,
 .rebirth-panel {
   background: #242c3d;
@@ -1943,10 +1911,6 @@ textarea {
 }
 .rules a {
   color: #ffd346;
-}
-.wallet-summary code {
-  background: #19202e;
-  color: #d4dfef;
 }
 .reveal-warning {
   background: #344337;

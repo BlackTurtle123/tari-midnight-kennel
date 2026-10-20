@@ -5,6 +5,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   ActivationStore,
+  checkFeeFunds,
+  InsufficientFeeFunds,
   ensureSpendableAccount,
 } from "./account-readiness.ts";
 import { TARI_RESOURCE } from "./config.ts";
@@ -164,5 +166,18 @@ test("unfunded wallets do not submit or leave an activation marker; ready wallet
   assert.equal(f.requests.length, 0);
   f.set({ revealed: 2_000_000n, confirmed: true });
   await ensureSpendableAccount(f.client, "alice", store);
+  assert.equal(f.requests.length, 0);
+});
+
+
+test("delivery preflight blocks the observed low operator balance without a transfer", async () => {
+  const f = fixture();
+  f.set({ confirmed: true, revealed: 186_424n, confidential: 0n });
+  await assert.rejects(checkFeeFunds(f.client, "operator", 2_000_001n), InsufficientFeeFunds);
+  assert.equal(f.requests.length, 0);
+  f.set({ revealed: 2_000_000n });
+  await assert.rejects(checkFeeFunds(f.client, "operator", 2_000_001n), InsufficientFeeFunds);
+  f.set({ revealed: 2_000_001n });
+  await checkFeeFunds(f.client, "operator", 2_000_001n);
   assert.equal(f.requests.length, 0);
 });

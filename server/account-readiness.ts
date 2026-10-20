@@ -70,6 +70,27 @@ function digest(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 
+export class InsufficientFeeFunds extends Error {
+  constructor() {
+    super("This wallet needs test Tari for network fees. Receive test coins, then check progress to retry the same incubation.");
+  }
+}
+
+// The same reserve calculation is used for preflight and activation. This check
+// only reads balances; it cannot activate an account or submit a transfer.
+export async function checkFeeFunds(
+  client: Pick<Client, "accountsGetBalances">,
+  name: string,
+  required: bigint,
+) {
+  const balances = await client.accountsGetBalances({ account: { Name: name }, refresh: true });
+  const native = balances.balances.find((b) => b.resource_address === TARI_RESOURCE);
+  const revealed = BigInt(native?.balance ?? 0);
+  const confidential = BigInt(native?.confidential_balance ?? 0);
+  if (revealed < required && confidential < required + 1_000_000n - revealed + 50_000n)
+    throw new InsufficientFeeFunds();
+}
+
 export async function ensureSpendableAccount(
   client: Client,
   name: string,
@@ -116,9 +137,7 @@ export async function ensureSpendableAccount(
     );
   const fee = 50_000;
   if (confidential < amount + BigInt(fee))
-    throw new Error(
-      "This wallet needs test Tari for network fees. Receive test coins, then check progress to retry the same incubation.",
-    );
+    throw new InsufficientFeeFunds();
   const request = {
     owner_account: { Name: name },
     fee_params: {

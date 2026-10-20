@@ -1,4 +1,5 @@
 import type { Instruction } from "@tari-project/ootle-ts-bindings";
+import { validateIncubationFee, type IncubationFee } from "./incubation-fee.ts";
 
 export interface WalletIntent {
   account: string;
@@ -6,6 +7,7 @@ export interface WalletIntent {
   component: string;
   door: number;
   nonce: string;
+  fee?: IncubationFee;
 }
 export function intentMessage(i: WalletIntent) {
   if (
@@ -19,14 +21,16 @@ export function intentMessage(i: WalletIntent) {
     throw new Error("Invalid wallet incubation intent");
   // The player signs this ID on chain. Binding the entire payment address prevents
   // substituting a different view key while retaining the player's public owner key.
+  if (i.fee) validateIncubationFee(i.fee);
   return JSON.stringify([
-    "midnight-kennel:external:v1",
+    i.fee ? "midnight-kennel:external:v2" : "midnight-kennel:external:v1",
     "esmeralda",
     i.component,
     i.account,
     i.paymentAddress,
     i.door,
     i.nonce,
+    ...(i.fee ? [i.fee.component, i.fee.treasury, i.fee.amount] : []),
   ]);
 }
 export async function sha256(text: string) {
@@ -60,7 +64,7 @@ export function playerInstructions(
   component: string,
   id: string,
   operation:
-    | { kind: "begin"; account: string; door: number }
+    | { kind: "begin"; account: string; door: number; fee?: IncubationFee }
     | { kind: "hatch"; variant: number; salt: string },
 ): Instruction[] {
   if (!/^component_[a-f0-9]{64}$/.test(component) || !/^[a-f0-9]{32}$/.test(id))
@@ -73,10 +77,20 @@ export function playerInstructions(
     !/^component_[a-f0-9]{64}$/.test(operation.account)
   )
     throw new Error("Invalid recipient");
+  const fee = operation.kind === "begin" && operation.fee
+    ? validateIncubationFee(operation.fee) : undefined;
+  const funding: Instruction[] = fee && operation.kind === "begin" ? [
+    { CallMethod: { call: { Address: operation.account as `component_${string}` }, method: "withdraw", args: [
+      { Literal: "d8835820" + "01".repeat(32) },
+      { Literal: "1a" + fee.amount.toString(16).padStart(8, "0") },
+    ] } },
+    { PutLastInstructionOutputOnWorkspace: { key: 0 } },
+  ] : [];
   return [
+    ...funding,
     {
       CallMethod: {
-        call: { Address: component as `component_${string}` },
+        call: { Address: (fee?.component ?? component) as `component_${string}` },
         method: operation.kind === "begin" ? "begin_incubation" : "hatch",
         args:
           operation.kind === "begin"
@@ -84,6 +98,7 @@ export function playerInstructions(
                 textLiteral(id),
                 { Literal: "d8805820" + operation.account.slice(10) },
                 { Literal: "0" + n },
+                ...(fee ? [{ Workspace: { id: 0, offset: null } }] : []),
               ]
             : [
                 textLiteral(id),
