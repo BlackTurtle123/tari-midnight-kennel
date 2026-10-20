@@ -82,6 +82,11 @@ export function checkAccount(raw: unknown, expectedOwner: string) {
     }),
   }).parse(raw);
 }
+export function liveSubstate(r: import("@tari-project/ootle-ts-bindings").IndexerGetSubstateResponse) {
+  if (!r.verified || !("up" in r.state))
+    throw new Error("A verified live substate is not available yet. Try again after the network confirms it.");
+  return { substate: r.state.up.substate };
+}
 let provider: Promise<IndexerProvider> | undefined;
 async function indexer() {
   return (provider ??= IndexerProvider.connect({
@@ -94,7 +99,7 @@ async function indexer() {
 }
 export async function chainIncubations() {
   const d = deployment();
-  const r = await (await indexer()).getSubstate(d.component);
+  const r = liveSubstate(await (await indexer()).getSubstate(d.component));
   if (!("Component" in r.substate))
     throw new Error("Game component unavailable");
   return readGame(r.substate.Component, d.template, d.resource);
@@ -106,7 +111,7 @@ export async function validateExternalAccount(
   const owner = addressOwner(paymentAddress);
   let r;
   try {
-    r = await (await indexer()).getSubstate(account);
+    r = liveSubstate(await (await indexer()).getSubstate(account));
   } catch {
     throw new Error(
       "Your account is not available on Esmeralda yet. Fund and activate it in Sapient first (receive test Tari, then unshield a small fee reserve in the wallet).",
@@ -122,7 +127,7 @@ export async function publicInventory(
 ): Promise<{ canines: Canine[]; halloween: HalloweenNFT[]; balance: string }> {
   const p = await indexer(),
     d = deployment();
-  const r = await p.getSubstate(account);
+  const r = liveSubstate(await p.getSubstate(account));
   if (!("Component" in r.substate))
     throw new Error("Wallet account unavailable");
   const vaults = await getVaultIdsForAccount(
@@ -136,7 +141,7 @@ export async function publicInventory(
     rebirth = rebirthDeployment();
   let balance = 0n;
   for (const id of vaults) {
-    const v = await p.getSubstate(id);
+    const v = liveSubstate(await p.getSubstate(id));
     if (!("Vault" in v.substate)) throw new Error("Wallet vault unavailable");
     const c = v.substate.Vault.resource_container;
     if ("Stealth" in c && c.Stealth.address === TARI_RESOURCE)
@@ -157,9 +162,9 @@ export async function publicInventory(
       )
         continue;
       const resource = c.NonFungible.address;
-      const nft = await p.getSubstate(
+      const nft = liveSubstate(await p.getSubstate(
         `nft_${resource.slice(9)}_str_${token.String}`,
-      );
+      ));
       if (!("NonFungible" in nft.substate) || !nft.substate.NonFungible)
         continue;
       if (resource === rebirth?.resource) {
