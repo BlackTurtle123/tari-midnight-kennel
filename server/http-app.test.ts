@@ -37,6 +37,13 @@ test("external-only HTTP rejects retired signing routes even with a valid legacy
     basePath: "/tari/",
     version: "test",
     health: async () => true,
+    community: {
+      ranking: async () => ({ updatedAt: "2026-10-20T00:00:00Z", stale: false, farms: [], totalNFTs: 0 }),
+      farm: async (account) => account.endsWith("a".repeat(64)) ? {
+        updatedAt: "2026-10-20T00:00:00Z", stale: false,
+        farm: { account, total: 0, canines: 0, halloween: 0, staked: 0, nfts: [] },
+      } : undefined,
+    },
     external: {
       config: () => ({
         component: "component_" + "a".repeat(64),
@@ -123,6 +130,18 @@ test("external-only HTTP rejects retired signing routes even with a valid legacy
     );
     const config = await fetch(url + "/config", { headers });
     assert.equal((await config.json()).walletMode, "external");
+    // Browsing is public: no signing, session cookie or wallet connection needed.
+    const publicHeaders = { host: headers.host };
+    const ranking = await fetch(url + "/community/ranking", { headers: publicHeaders });
+    assert.equal(ranking.status, 200);
+    assert.equal((await ranking.json()).totalNFTs, 0);
+    assert.equal(ranking.headers.get("set-cookie"), null);
+    const farm = await fetch(url + "/community/farms/component_" + "a".repeat(64), { headers: publicHeaders });
+    assert.equal(farm.status, 200);
+    assert.equal((await farm.json()).farm.total, 0);
+    assert.equal((await fetch(url + "/community/farms/component_" + "b".repeat(64), { headers: publicHeaders })).status, 404);
+    assert.equal((await fetch(url + "/community/farms/invalid", { headers: publicHeaders })).status, 400);
+    assert.equal((await fetch(url + "/community/ranking", { headers: { host: "evil.example" } })).status, 403);
     assert.equal((await fetch(url + "/unrecognized", { headers })).status, 404);
     assert.equal(
       (

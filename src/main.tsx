@@ -23,6 +23,7 @@ import { Rules } from "./Rules";
 import { Breeding } from "./Breeding";
 import { Rebirth, RewardArt } from "./Rebirth";
 import { WalletTools } from "./WalletTools";
+import { Community } from "./Community";
 import {
   CONTEST_URL,
   RULES_URL,
@@ -65,9 +66,10 @@ function App() {
     "collection",
     "secrets",
     "rules",
+    "ranking",
   ];
   const fromHash = () =>
-    pages.includes(location.hash.slice(1))
+    pages.includes(location.hash.slice(1)) || /^#farm\/component_[a-f0-9]{64}$/.test(location.hash)
       ? location.hash.slice(1)
       : "incubator";
   const [tab, setTabState] = useState(fromHash),
@@ -174,12 +176,13 @@ function App() {
             ["rebirth", "Rebirth"],
             ["staking", "Staking"],
             ["collection", "My pack"],
+            ["ranking", "Rankings"],
             ["secrets", "Spooky Secrets"],
             ["rules", "Game rules"],
           ].map(([key, label]) => (
             <button
               key={key}
-              className={tab === key ? "nav active" : "nav"}
+              className={tab === key || (key === "ranking" && tab.startsWith("farm/")) ? "nav active" : "nav"}
               onClick={() => setTab(key)}
             >
               {label}
@@ -437,6 +440,13 @@ function App() {
           </>
         )}
         {tab === "rules" && <Rules />}
+        {(tab === "ranking" || tab.startsWith("farm/")) && (
+          <Community
+            key={tab}
+            account={tab.startsWith("farm/") ? tab.slice(5) : undefined}
+            currentAccount={state.account}
+          />
+        )}
         {tab === "breeding" && (
           <Breeding
             key={state.account ?? "guest"}

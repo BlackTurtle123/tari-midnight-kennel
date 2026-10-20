@@ -2228,3 +2228,106 @@ textarea {
 .breeding-rules-details summary {
   cursor: pointer;
 }
+.community-heading, .community-toolbar, .community-actions, .community-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.community-heading { align-items: flex-start; }
+.community-heading .eyebrow, .community-toolbar h2, .community-back,
+.community-actions .secondary, .ranking-visit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.community-heading h1 { margin-bottom: 16px; }
+.community-actions { justify-content: flex-end; padding-top: 10px; }
+.community-actions .secondary { white-space: nowrap; }
+.community-back { color: var(--muted); margin-bottom: 28px; font-size: 13px; }
+.farm-title-note { display: block; font: 400 17px "DM Sans", sans-serif; color: var(--muted); margin-top: 14px; letter-spacing: normal; }
+.community-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #202a3b;
+  margin: 28px 0 42px;
+  overflow: hidden;
+}
+.community-stats > div { display: flex; flex-direction: column; gap: 6px; padding: 24px 30px; }
+.community-stats > div + div { border-left: 1px solid var(--line); }
+.community-stats strong { font: 800 32px Manrope, sans-serif; }
+.community-stats span { color: var(--muted); font-size: 13px; }
+.community-toolbar { margin: 28px 0 20px; flex-wrap: wrap; }
+.community-toolbar h2 { margin: 0; font-size: 22px; }
+.community-search { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; background: #141d2b; padding: 12px 16px; color: var(--muted); }
+.community-search input { width: 220px; min-width: 0; background: none; border: 0; color: var(--ink); font: inherit; font-size: 13px; outline: none; }
+.community-search:focus-within { outline: 2px solid var(--orange); outline-offset: 2px; }
+.ranking-list { display: flex; flex-direction: column; gap: 12px; }
+.ranking-row { display: grid; grid-template-columns: 56px 150px minmax(0, 1fr) 70px 112px; align-items: center; gap: 20px; padding: 20px 24px; border: 1px solid var(--line); border-radius: 18px; background: #202a3b; transition: border-color .15s, background .15s; }
+.ranking-row:hover { border-color: var(--orange); background: #263248; }
+.ranking-row.own-farm { border-color: #bd9b35; }
+.ranking-place { font: 800 22px Manrope, sans-serif; color: var(--muted); }
+.ranking-place.place-1 { color: #ffd346; }
+.ranking-place.place-2 { color: #d2dcef; }
+.ranking-place.place-3 { color: #dfaa7e; }
+.ranking-pack { display: flex; align-items: center; height: 80px; }
+.ranking-pack > img { width: 70px; height: 80px; object-fit: contain; margin: 0; }
+.ranking-pack > img + img { margin-left: -30px; }
+.ranking-name { min-width: 0; }
+.ranking-name h3 { margin: 0 0 8px; font-size: 16px; }
+.ranking-name p { margin: 0; color: var(--muted); font-size: 12px; }
+.ranking-total { text-align: center; display: flex; flex-direction: column; gap: 3px; }
+.ranking-total strong { font: 800 26px Manrope, sans-serif; }
+.ranking-total span, .ranking-visit { font-size: 12px; }
+.ranking-visit { color: var(--orange); justify-content: flex-end; }
+.ranking-rules { margin: 26px 0; font-size: 13px; color: var(--muted); line-height: 1.7; }
+.ranking-rules summary, .farm-address summary { cursor: pointer; }
+.community-updated { color: var(--muted); font-size: 11px; margin-top: 24px; }
+.community-loading { display: flex; align-items: center; justify-content: center; gap: 16px; padding: 100px 0; color: var(--muted); }
+.farm-banner { display: flex; align-items: center; justify-content: space-between; gap: 24px; background: radial-gradient(ellipse at 28% 100%, #435c49, transparent 65%), linear-gradient(130deg, #29364e, #202637); border: 1px solid #50604f; border-radius: 24px; padding: 28px 36px; min-height: 240px; overflow: hidden; }
+.farm-banner-pack { display: flex; align-items: flex-end; min-width: 0; }
+.farm-banner-pack > img { width: clamp(95px, 12vw, 160px); height: 180px; object-fit: contain; margin: 0 -16px 0 0; filter: drop-shadow(0 12px 8px #0004); }
+.farm-banner-stats { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.farm-banner-stats strong { font: 800 36px Manrope, sans-serif; }
+.farm-banner-stats p { font-size: 12px; color: #c8d1c9; margin: 0; }
+.farm-address { margin: 16px 0 32px; color: var(--muted); font-size: 12px; }
+.farm-address code { display: block; margin-top: 12px; overflow-wrap: anywhere; }
+.farm-filters { display: flex; flex-wrap: wrap; gap: 8px; }
+.farm-filters button { border: 1px solid var(--line); background: #202a3b; color: var(--muted); border-radius: 9px; padding: 10px 13px; font-size: 12px; }
+.farm-filters button.active { background: var(--orange); border-color: var(--orange); color: #19202e; font-weight: 700; }
+.farm-collection { align-items: start; }
+.farm-nft { padding: 0; overflow: hidden; }
+.farm-art { position: relative; background: radial-gradient(ellipse at 50% 80%, #4b586536, transparent), #222e40; padding: 26px 20px 10px; }
+.farm-art > img { display: block; width: 100%; height: 220px; object-fit: contain; margin: 0; }
+.farm-status { position: absolute; top: 14px; left: 14px; font-size: 10px; background: #152031; }
+.farm-status.status-staked { color: #b8dfb3; }
+.farm-status.status-breeding, .farm-status.status-rebirth { color: #dec2ff; }
+.farm-nft-info { padding: 22px; }
+.farm-nft-info .eyebrow { font-size: 9px; }
+.farm-nft-info h3 { margin: 9px 0 12px; }
+.farm-nft-info p.farm-genes { font-family: monospace; font-size: 12px; overflow-wrap: anywhere; }
+.farm-nft dl, .farm-nft dd { overflow-wrap: anywhere; }
+.farm-gene-row { display: contents; }
+.community-pagination { justify-content: center; margin-top: 28px; font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) {
+  .community-heading { flex-direction: column; gap: 8px; }
+  .community-heading h1 { font-size: 40px; }
+  .community-actions { padding: 0; }
+  .community-stats > div { padding: 20px 16px; }
+  .community-stats strong { font-size: 26px; }
+  .community-stats span { font-size: 11px; }
+  .ranking-row { grid-template-columns: 34px 60px minmax(0, 1fr) 42px; gap: 12px; padding: 16px 12px; }
+  .ranking-pack > img { width: 58px; height: 65px; }
+  .ranking-pack > img + img, .ranking-visit { display: none; }
+  .ranking-name h3 { font-size: 13px; overflow-wrap: anywhere; }
+  .ranking-name p { font-size: 10px; line-height: 1.6; }
+  .ranking-place { font-size: 17px; }
+  .ranking-total strong { font-size: 22px; }
+  .farm-banner { flex-direction: column; padding: 22px; gap: 10px; align-items: center; }
+  .farm-banner-pack > img { width: 85px; height: 130px; margin-right: -12px; }
+  .farm-banner-stats { align-items: center; text-align: center; }
+  .community-search { width: 100%; }
+  .community-search input { flex: 1; width: 100%; }
+}

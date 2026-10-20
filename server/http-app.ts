@@ -2,12 +2,14 @@ import express from "express";
 import { resolve } from "node:path";
 import { z } from "zod";
 import type { ExternalService } from "./external-service.ts";
+import type { CommunityService } from "./community.ts";
 interface Options {
   origin: string;
   basePath: string;
   hosted: boolean;
   version: string;
   health(): Promise<boolean>;
+  community?: Pick<CommunityService, "ranking" | "farm">;
   external: Pick<
     ExternalService,
     "config" | "prepare" | "register" | "resume" | "state"
@@ -80,6 +82,16 @@ export function createApp(options: Options) {
       version: options.version,
     }),
   );
+  if (options.community) {
+    app.get("/api/community/ranking", async (_req, res) =>
+      res.json(await options.community!.ranking()));
+    app.get("/api/community/farms/:account", async (req, res) => {
+      const account = z.string().regex(/^component_[a-f0-9]{64}$/).parse(req.params.account);
+      const farm = await options.community!.farm(account);
+      if (!farm) return res.status(404).json({ error: "This farm is not in the game directory yet." });
+      res.json(farm);
+    });
+  }
   // Retired player-signing routes fail closed even for valid historical cookies.
   // Do not clear those cookies: their identities remain useful for asset recovery.
   app.use("/api", (req, res, next) => {

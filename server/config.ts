@@ -36,17 +36,22 @@ export function deployment(): Deployment {
   return d;
 }
 
-export function legacyResource(): string | undefined {
+export function legacyDeployment(): Deployment | undefined {
   const path = join(DATA_DIR, "deployment.json");
   if (!existsSync(path)) return undefined;
   const d = JSON.parse(readFileSync(path, "utf8"));
   if (
     d.network !== "esmeralda" ||
     typeof d.resource !== "string" ||
-    !/^resource_[a-f0-9]{64}$/.test(d.resource)
+    !/^resource_[a-f0-9]{64}$/.test(d.resource) ||
+    !/^component_[a-f0-9]{64}$/.test(d.component) ||
+    !/^(?:template_)?[a-f0-9]{64}$/.test(d.template)
   )
     throw new Error("Invalid legacy deployment configuration");
-  return d.resource;
+  return d;
+}
+export function legacyResource(): string | undefined {
+  return legacyDeployment()?.resource;
 }
 
 export function rebirthDeployment():

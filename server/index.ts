@@ -2,6 +2,7 @@ import { startEconomyKeeper } from "./economy-keeper.ts";
 import { wallet } from "./wallet.ts";
 import { createApp } from "./http-app.ts";
 import { ExternalService } from "./external-service.ts";
+import { CommunityService } from "./community.ts";
 const hosted = process.env.KENNEL_HOSTED === "true";
 const port = Number(process.env.PORT || 8787);
 const app = createApp({
@@ -10,6 +11,7 @@ const app = createApp({
   basePath: process.env.KENNEL_BASE_PATH || "/",
   version: process.env.KENNEL_VERSION || "development",
   external: new ExternalService(),
+  community: new CommunityService(),
   health: async () => {
     try {
       const client = await wallet();
