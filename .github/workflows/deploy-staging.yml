@@ -32,9 +32,11 @@ jobs:
         run: |
           cargo build --locked --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release
           cargo test --locked --manifest-path contract/Cargo.toml
+          cargo build --locked --manifest-path staking-contract/Cargo.toml --target wasm32-unknown-unknown --release
           cargo build --locked --manifest-path rebirth-contract/Cargo.toml --target wasm32-unknown-unknown --release
           cargo test --locked --manifest-path rebirth-contract/Cargo.toml
           mkdir -p deploy/artifacts
+          cp contract/target/wasm32-unknown-unknown/release/arkimals_staking.wasm deploy/artifacts/arkimals_staking.wasm
           cp contract/target/wasm32-unknown-unknown/release/arkimals_rebirth.wasm deploy/artifacts/arkimals_rebirth.wasm
           cp contract/target/wasm32-unknown-unknown/release/midnight_kennel.wasm deploy/artifacts/midnight_kennel.wasm
       - name: Build immutable image on CI

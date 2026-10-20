@@ -153,7 +153,7 @@ function App() {
         <nav aria-label="Main navigation">
           {[
             ["incubator", "The incubator"],
-            ["rebirth", "Halloween rebirth"],
+            ["rebirth", "Rebirth & staking"],
             ["collection", "My pack"],
             ["secrets", "Spooky Secrets"],
           ].map(([key, label]) => (
@@ -464,8 +464,8 @@ function App() {
                 <div className="eyebrow">ONE CANINE. A WHOLE NEW CHAPTER.</div>
                 <h2>Let your pack be reborn.</h2>
                 <p>
-                  Haunted Cat, Shadowfang or Crest Mummy. Exchange one revealed
-                  canine for a Halloween NFT with original Arkimals artwork.
+                  Six original Arkimals artworks, one random new life. Rebirth a
+                  canine or stake your pack to share in completed ritual fees.
                 </p>
                 <button className="primary" onClick={() => setTab("rebirth")}>
                   Explore Halloween rebirth <ArrowRight size={17} />

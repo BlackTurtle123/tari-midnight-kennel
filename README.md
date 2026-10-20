@@ -12,7 +12,7 @@ A small canine incubation game for Tari Ootle’s October 2026 **Spooky Secrets*
 - The player wallet decrypts the memo for a private preview.
 - The owner chooses to reveal the opening. The contract verifies it, mints one canine NFT and deposits it atomically into the originally selected recipient.
 - Collection UI reads actual wallet NFT inventory. It never fabricates a collectible.
-- Optional Halloween rebirth: permanently retire one held Tari canine and mint a chosen Haunted Cat, Shadowfang or Crest Mummy NFT atomically. Original Arkimals art, new testnet editions, no main-game prize claim. See [rebirth behavior and recovery](docs/REBIRTH.md).
+- Halloween rebirth: offer one canine + 8 test tTARI, wait for a fixed future draw and mint one of six original-art Halloween NFTs. A separate NFT staking contract distributes 75% of completed ritual fees; 25% goes to the treasury. See [rebirth, staking and recovery](docs/REBIRTH.md).
 - Supply of 100 per deployed event (contract supports 1–250), 12 reservations per signer, one unfinished incubation at a time in this UI. No artificial incubation timer.
 
 Breeding, treasury yield, payments for gameplay and the broader economy are deferred. See [the full-game port checklist](docs/PORT-CHECKLIST.md), [privacy boundaries](docs/PRIVACY.md), [contest requirements](docs/CONTEST.md) and [verification status](docs/VALIDATION.md).
@@ -40,8 +40,9 @@ rustup target add wasm32-unknown-unknown
 npm run contract:build
 npm run setup:wallet
 npm run deploy:contract
+npm run staking:build
 npm run rebirth:build
-npm run deploy:rebirth
+npm run deploy:economy
 npm run dev
 ```
 

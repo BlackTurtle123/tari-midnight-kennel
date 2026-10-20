@@ -15,7 +15,7 @@ export function parseHalloween(
     if (!data.value || typeof data.value !== "object") return null;
     data = data.value as Record<string, unknown>;
   }
-  if (typeof data.reward !== "string" || !/^[0-2]$/.test(data.reward))
+  if (typeof data.reward !== "string" || !/^[0-5]$/.test(data.reward))
     return null;
   const reward = Number(data.reward),
     spec = HALLOWEEN_REWARDS[reward];

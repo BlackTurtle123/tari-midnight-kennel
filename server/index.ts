@@ -1,3 +1,4 @@
+import { startEconomyKeeper } from "./economy-keeper.ts";
 import { readFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { GameService, resumeRecoverableStarts } from "./game-service.ts";
@@ -70,6 +71,8 @@ const app = createApp({
       account === "local" ? PLAYER_NAME : account;
     return {
       list: (account) => service.list(name(account)),
+      act: (account, action, nonce) =>
+        service.act(name(account), action, nonce),
       confirm: (account, input) => service.confirm(name(account), input),
       check: (account, key) => service.check(name(account), key),
     };
@@ -134,3 +137,5 @@ if (hosted)
       "Legacy incubation recovery is waiting for wallet/indexer readiness; Check progress can retry safely.",
     ),
   );
+
+startEconomyKeeper();

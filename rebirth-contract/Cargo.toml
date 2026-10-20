@@ -5,12 +5,12 @@ edition = "2024"
 license = "MIT"
 
 [dependencies]
-tari_template_lib = "0.34"
+tari_template_lib = "0.35"
 minicbor = { version = "2.3", features = ["derive", "std"] }
 sha2 = { version = "0.10", default-features = false }
 
 [dev-dependencies]
-tari_template_test_tooling = "0.46"
+tari_template_test_tooling = "0.47"
 
 [lib]
 crate-type = ["cdylib"]

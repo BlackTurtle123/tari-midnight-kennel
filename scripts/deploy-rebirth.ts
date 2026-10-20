@@ -9,7 +9,11 @@ import {
   closeSync,
 } from "node:fs";
 import { join } from "node:path";
-import { resourceAddressLiteral } from "@tari-project/ootle";
+import {
+  resourceAddressLiteral,
+  componentAddressLiteral,
+  intLiteral,
+} from "@tari-project/ootle";
 import {
   wallet,
   submit,
@@ -27,6 +31,17 @@ import {
 const deploymentPath = join(DATA_DIR, "rebirth-v1.json");
 const current = deployment().resource;
 const legacy = legacyResource() ?? current;
+const stake = JSON.parse(
+  readFileSync(join(DATA_DIR, "staking-v1.json"), "utf8"),
+);
+if (
+  stake.network !== "esmeralda" ||
+  stake.current !== current ||
+  stake.legacy !== legacy ||
+  !/^component_[a-f0-9]{64}$/.test(stake.component)
+)
+  throw new Error("Invalid staking deployment");
+const fee = 8_000_000;
 if (existsSync(deploymentPath)) {
   console.log(`Already deployed; preserving ${deploymentPath}.`);
   process.exit(0);
@@ -127,6 +142,9 @@ if (!log.creationTx) {
     constructorInstructions(template, [
       resourceAddressLiteral(current as `resource_${string}`),
       resourceAddressLiteral(legacy as `resource_${string}`),
+      componentAddressLiteral(stake.component),
+      componentAddressLiteral(operator.account.component_address),
+      intLiteral(BigInt(fee)),
     ]),
   );
   remember("creationTx", sent.transaction_id);
@@ -155,6 +173,8 @@ writeFileSync(
       template,
       component,
       resource,
+      staking: stake.component,
+      fee,
       operator: operator.account.component_address,
       publicationTx: log.publicationTx,
       creationTx: log.creationTx,

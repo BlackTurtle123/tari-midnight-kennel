@@ -82,9 +82,13 @@ export function checkAccount(raw: unknown, expectedOwner: string) {
     }),
   }).parse(raw);
 }
-export function liveSubstate(r: import("@tari-project/ootle-ts-bindings").IndexerGetSubstateResponse) {
+export function liveSubstate(
+  r: import("@tari-project/ootle-ts-bindings").IndexerGetSubstateResponse,
+) {
   if (!r.verified || !("up" in r.state))
-    throw new Error("A verified live substate is not available yet. Try again after the network confirms it.");
+    throw new Error(
+      "A verified live substate is not available yet. Try again after the network confirms it.",
+    );
   return { substate: r.state.up.substate };
 }
 let provider: Promise<IndexerProvider> | undefined;
@@ -162,9 +166,9 @@ export async function publicInventory(
       )
         continue;
       const resource = c.NonFungible.address;
-      const nft = liveSubstate(await p.getSubstate(
-        `nft_${resource.slice(9)}_str_${token.String}`,
-      ));
+      const nft = liveSubstate(
+        await p.getSubstate(`nft_${resource.slice(9)}_str_${token.String}`),
+      );
       if (!("NonFungible" in nft.substate) || !nft.substate.NonFungible)
         continue;
       if (resource === rebirth?.resource) {
@@ -183,5 +187,80 @@ export async function publicInventory(
     canines,
     halloween,
     balance: (Number(balance) / 1_000_000).toFixed(3),
+  };
+}
+
+function cborInteger(v: unknown): bigint {
+  if (typeof v === "number" && Number.isSafeInteger(v)) return BigInt(v);
+  if (typeof v === "string" && /^\d+$/.test(v)) return BigInt(v);
+  const x = v as any;
+  if (x?.["@cbor"] === "tag" && x.tag === 2 && x.value?.["@cbor"] === "bytes")
+    return BigInt("0x" + x.value.hex);
+  throw new Error("Unsupported on-chain integer");
+}
+export async function economySnapshot(
+  account?: string,
+): Promise<import("../shared/rebirth.ts").EconomyState | undefined> {
+  const config = rebirthDeployment();
+  if (!config) return undefined;
+  const p = await indexer();
+  const [r, s, epoch] = await Promise.all([
+    p.getSubstate(config.component),
+    p.getSubstate(config.staking),
+    p.getCurrentEpoch(),
+  ]);
+  const rb = liveSubstate(r).substate,
+    st = liveSubstate(s).substate;
+  if (!("Component" in rb) || !("Component" in st))
+    throw new Error("Economy components unavailable");
+  const a = (rb.Component.body as any).state,
+    b = (st.Component.body as any).state;
+  if (
+    !Array.isArray(a) ||
+    a.length !== 9 ||
+    !Array.isArray(b) ||
+    b.length !== 8 ||
+    "resource_" + a[0]?.value?.hex !== config.resource ||
+    "component_" + a[2]?.value?.hex !== config.staking ||
+    Number(a[4]) !== config.fee
+  )
+    throw new Error("Unexpected economy deployment state");
+  const recipient = (v: any) => "component_" + v?.value?.hex;
+  const idText = (v: any) => {
+    if (!Array.isArray(v) || v[0] !== 1 || typeof v[1]?.[0] !== "string")
+      throw new Error("Unexpected NFT id");
+    return v[1][0];
+  };
+  const requests = Object.entries(a[6])
+    .filter(([, v]: any) => !account || recipient(v[1]) === account)
+    .map(([id, v]: any) => ({
+      id,
+      resource: "resource_" + v[2].value.hex,
+      token: idText(v[3]),
+      targetEpoch: Number(v[4]),
+      status: Number(v[5]),
+      reward: Number(v[6]),
+      captured: Object.prototype.hasOwnProperty.call(a[7], String(v[4])),
+    }));
+  const index = cborInteger(b[4]);
+  const stakes = Object.entries(b[3])
+    .filter(([, v]: any) => !account || recipient(v[1]) === account)
+    .map(([id, v]: any) => ({
+      id,
+      resource: "resource_" + v[2].value.hex,
+      token: idText(v[3]),
+      claimable: (
+        (index - cborInteger(v[4]) + cborInteger(v[5])) /
+        1_000_000_000_000n
+      ).toString(),
+    }));
+  return {
+    epoch,
+    requests,
+    stakes,
+    totalStaked: Object.keys(b[3]).length,
+    distributed: String(b[5]),
+    claimed: String(b[6]),
+    emptyPoolFees: String(b[7]),
   };
 }

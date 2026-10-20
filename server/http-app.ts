@@ -23,7 +23,7 @@ interface Options {
   health(): Promise<boolean>;
   fund(account: string): Promise<unknown>;
   transfers?: Pick<Transfers, "list" | "prepare" | "confirm" | "check">;
-  rebirths?: Pick<Rebirths, "list" | "confirm" | "check">;
+  rebirths?: Pick<Rebirths, "list" | "confirm" | "check" | "act">;
   external?: Pick<
     ExternalService,
     "config" | "prepare" | "register" | "resume" | "state"
@@ -193,12 +193,43 @@ export function createApp(options: Options) {
     app.get("/api/rebirths", (_req, res) =>
       res.json(rebirths.list(res.locals.account)),
     );
+    app.post("/api/economy/actions", async (req, res) => {
+      const input = z
+        .object({
+          nonce: z.string().regex(/^[a-f0-9]{32}$/),
+          action: z.discriminatedUnion("kind", [
+            ...(["begin", "stake"] as const).map((kind) =>
+              z
+                .object({
+                  kind: z.literal(kind),
+                  resource: z.string().regex(/^resource_[a-f0-9]{64}$/),
+                  id: z.string().regex(/^[a-f0-9]{32}$/),
+                })
+                .strict(),
+            ),
+            ...(["finish", "refund", "claim", "unstake"] as const).map((kind) =>
+              z
+                .object({ kind: z.literal(kind), id: z.string().max(180) })
+                .strict(),
+            ),
+          ] as any),
+        })
+        .strict()
+        .parse(req.body);
+      res.json(
+        await rebirths.act(
+          res.locals.account,
+          input.action as any,
+          input.nonce,
+        ),
+      );
+    });
     app.post("/api/rebirths", async (req, res) => {
       const input = z
         .object({
           resource: z.string().regex(/^resource_[a-f0-9]{64}$/),
           id: z.string().regex(/^[a-f0-9]{32}$/),
-          reward: z.number().int().min(0).max(2),
+          reward: z.number().int().min(0).max(5).optional(),
         })
         .strict()
         .parse(req.body);

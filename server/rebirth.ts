@@ -12,6 +12,8 @@ import { join } from "node:path";
 import { DATA_DIR, rebirthDeployment } from "./config.ts";
 import {
   rebirthInstructions,
+  economyInstructions,
+  type EconomyAction,
   validateRebirth,
   type RebirthInput,
   type RebirthReceipt,
@@ -88,48 +90,73 @@ export class Rebirths {
     return this.store.list(account).map(view);
   }
   confirm(accountName: string, input: RebirthInput) {
+    return this.act(
+      accountName,
+      { kind: "begin", resource: input.resource, id: input.id },
+      hash([input.resource, input.id]).slice(0, 32),
+    );
+  }
+  act(accountName: string, action: EconomyAction, nonce: string) {
     return this.serial(async () => {
-      validateRebirth(input);
+      if (!/^[a-f0-9]{32}$/.test(nonce))
+        throw new Error("Invalid request nonce");
       const config = this.config();
       if (!config)
-        throw new Error("The Halloween rebirth contract is not deployed yet");
-      const key = hash([
-        config.component,
-        accountName,
-        input.resource,
-        input.id,
-      ]);
-      let r = this.store.get(key);
-      if (r && r.status !== "rejected") return this.checkInside(r);
+        throw new Error("The economy contracts are not deployed yet");
+      const key = hash([config.component, accountName, action, nonce]);
+      const existing = this.store.get(key);
+      if (existing) return this.checkInside(existing);
       if (
         this.store
           .list(accountName)
           .some((r) => ["submitting", "submitted"].includes(r.status))
       )
         throw new Error(
-          "Check the previous rebirth before offering another canine",
+          "Check the previous wallet action before submitting another",
         );
       const state = await this.state(accountName);
-      if (
-        state.setupError ||
-        !state.canines.some(
-          (c) => c.id === input.id && c.resource === input.resource,
+      if (state.setupError)
+        throw new Error("Wallet holdings are not verified yet");
+      if (action.kind === "begin" || action.kind === "stake") {
+        if (
+          !state.canines.some(
+            (c) => c.id === action.id && c.resource === action.resource,
+          )
+        )
+          throw new Error("This canine is no longer verified in your wallet");
+        if (
+          action.kind === "begin" &&
+          state.economy?.requests.some(
+            (r) => r.token === action.id && r.resource === action.resource,
+          )
+        )
+          throw new Error(
+            "This canine already has a rebirth record in this event",
+          );
+      } else if (action.kind === "claim" || action.kind === "unstake") {
+        if (!state.economy?.stakes.some((p) => p.id === action.id))
+          throw new Error("Stake not found for this wallet");
+      } else if (
+        !state.economy?.requests.some(
+          (r) => r.id === action.id && r.status === 0,
         )
       )
-        throw new Error("This canine is no longer verified in your wallet");
+        throw new Error("Pending rebirth not found for this wallet");
       const account = (await this.chain.getAccount(accountName)).account
         .component_address;
-      const instructions = rebirthInstructions(config, account, input);
-      r = {
-        ...input,
+      const instructions = economyInstructions(config, account, action);
+      const r: Saved = {
         key,
         accountName,
         account,
         component: config.component,
+        operation: action,
+        id: action.id,
+        resource: "resource" in action ? action.resource : "",
         status: "submitting",
         createdAt: new Date().toISOString(),
       };
-      this.store.save(r); // Persist before calling the wallet; unknown acknowledgements never resend.
+      this.store.save(r);
       const sent = await this.chain.submit(accountName, instructions);
       r.transactionId = sent.transaction_id;
       r.status = "submitted";

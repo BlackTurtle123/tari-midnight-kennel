@@ -33,7 +33,7 @@ Legend: **Implemented/local** means source exists and relevant local checks pass
 A read-only inventory of the current Waves contract tree identifies these additional parity decisions. These are requirements to assess, not source copied into the new contest entry. Presence in the repository does not establish that a feature is active in production.
 
 - [ ] **Canine incubation:** fees and fee aggregation, discounts/coupons/referrals, finish-height timing, rarity adjustment, free issuance and jackpot issuance. The PoC intentionally covers only request → secret → one NFT.
-- [x] **Minimal Halloween rebirth primitive:** actual NFT withdrawal, irreversible retirement, selected reward mint and atomic deposit in a separate Tari component. Both existing canine collections supported. Engine-tested; live player approval acceptance is separate. The main-game probabilistic loot/economy is not ported.
+- [x] **Minimal Halloween rebirth and staking primitives:** paid canine sacrifice, fixed future-epoch draw, six original-art reward NFTs, 75/25 fee routing, equal-share NFT stake/claim/unstake and missed-draw refunds. Both original collections supported. Engine-tested; live player acceptance is separate. Full main-game loot, farming power, perches and native node yield remain outside the MVP.
 - [ ] **Canine progression:** breeding, farming/staking, boosted stake/claim flows, rebirth, and the node/treasury contract. Replace each Waves-dependent economic assumption explicitly.
 - [ ] **Other species:** ducks, eagles, felines, bulls, turtles and mutants; decide which incubation, breeding, rebirth and staking variants belong in the Tari release.
 - [ ] **Duck-specific progression:** baby ducks, baby breeding, farming generations and vEGG farming.
@@ -57,4 +57,4 @@ This inventory makes the full-game checklist broader than the contest mini-game.
 - [ ] Exercise confirmation timeout and retry against live receipts without minting twice.
 - [ ] Complete entrant eligibility, payment address, social announcement and forum submission.
 
-The core incubation flow is validated on public Esmeralda. Interrupted-network testing and contest submission remain separate open gates. Breeding and treasury remain independent projects.
+The core incubation flow is validated on public Esmeralda. Interrupted-network testing and contest submission remain separate open gates. Breeding and full main-game treasury/node economics remain independent projects.

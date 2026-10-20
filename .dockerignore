@@ -8,3 +8,5 @@ rebirth-contract/target
 coverage
 test-results
 playwright-report
+
+staking-contract/target

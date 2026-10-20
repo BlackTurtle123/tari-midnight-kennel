@@ -108,6 +108,7 @@ export interface IncubationView {
 }
 export interface GameState {
   halloween?: import("./rebirth.ts").HalloweenNFT[];
+  economy?: import("./rebirth.ts").EconomyState;
   rebirth?: import("./rebirth.ts").RebirthConfig;
   connected: boolean;
   network: string;

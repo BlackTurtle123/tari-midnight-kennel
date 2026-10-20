@@ -1,5 +1,10 @@
 import type { GameState, Opening, IncubationView } from "../shared/game";
-import { rebirthInstructions, type RebirthInput } from "../shared/rebirth";
+import {
+  rebirthInstructions,
+  economyInstructions,
+  type EconomyAction,
+  type RebirthInput,
+} from "../shared/rebirth";
 import {
   intentId,
   playerInstructions,
@@ -32,6 +37,8 @@ interface Approval {
 }
 interface Saved {
   rebirth?: RebirthInput;
+  economyAction?: EconomyAction;
+  economySubmitted?: boolean;
   rebirthComplete?: boolean;
   revision?: number;
   id: string;
@@ -429,74 +436,61 @@ export class ExternalWallet {
         );
     });
   }
-  async rebirth(input: RebirthInput) {
+  async act(action: EconomyAction, nonce: string) {
     return this.locked(async () => {
       await this.check();
       const state = await this.chainState(),
         config = state.rebirth;
-      if (!config)
-        throw new Error("The Halloween rebirth contract is not deployed yet");
+      if (!config) throw new Error("Economy contracts are being prepared");
+      if (!/^[a-f0-9]{32}$/.test(nonce))
+        throw new Error("Invalid wallet request");
       const id = (
-        await sha256(`arkimals:rebirth:v1|${input.resource}|${input.id}`)
+        await sha256(JSON.stringify(["economy-v1", action, nonce]))
       ).slice(0, 32);
       let r = readSaved(localStorage, this.account, config.component).find(
         (r) => r.id === id,
       );
-      if (r?.rebirthComplete) return;
-      if (
-        state.halloween?.some(
-          (n) => n.sourceId === input.id && n.sourceResource === input.resource,
-        )
-      ) {
-        if (r) {
-          r.rebirthComplete = true;
-          save(r);
-        }
-        return;
-      }
+      if (r?.economySubmitted) return;
       if (!r) {
-        if (
-          !state.canines.some(
-            (c) => c.id === input.id && c.resource === input.resource,
-          )
-        )
-          throw new Error("This canine is no longer held by your wallet");
+        if (this.pendingEconomy(config).length)
+          throw new Error(
+            "Resume the saved wallet action before starting another",
+          );
         r = {
           id,
-          rebirth: input,
+          economyAction: action,
           intent: {
             account: this.account,
             component: config.component,
             paymentAddress: this.paymentAddress,
             door: 0,
-            nonce: "",
+            nonce,
           },
           createdAt: new Date().toISOString(),
         };
         save(r);
       }
-      if (!r.rebirth || r.rebirth.reward !== input.reward)
-        throw new Error(
-          "Resume the original reward choice; this canine already has a saved rebirth request",
-        );
       await this.approve(
         r,
         "hatch",
-        rebirthInstructions(config, this.account, r.rebirth),
+        economyInstructions(config, this.account, action),
       );
-      const latest = await this.chainState();
-      if (
-        !latest.halloween?.some(
-          (n) => n.sourceId === input.id && n.sourceResource === input.resource,
-        )
-      )
-        throw new Error(
-          "Rebirth submitted; waiting for confirmation. Check the same rebirth again to resume its saved wallet request.",
-        );
-      r.rebirthComplete = true;
+      r.economySubmitted = true;
       save(r);
     });
   }
+  pendingEconomy(config: { component: string }) {
+    return readSaved(localStorage, this.account, config.component)
+      .filter((r) => r.economyAction && !r.economySubmitted)
+      .map((r) => ({ action: r.economyAction!, nonce: r.intent.nonce }));
+  }
+  async rebirth(input: RebirthInput) {
+    return this.act(
+      { kind: "begin", resource: input.resource, id: input.id },
+      (await sha256(input.resource + input.id)).slice(0, 32),
+    );
+  }
+
   pendingRebirths(config: { component: string }) {
     return readSaved(localStorage, this.account, config.component)
       .filter((r) => r.rebirth && !r.rebirthComplete)

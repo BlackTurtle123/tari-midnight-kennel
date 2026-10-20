@@ -217,18 +217,7 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
                 commitment: "",
               },
             ];
-          } else if (op.method === "rebirth") {
-            chain.halloween = [
-              {
-                id: "99".repeat(32),
-                resource: chain.rebirth!.resource,
-                reward: 0,
-                name: "Haunted Cat",
-                original: "ART-H26CAT",
-                sourceId: chain.canines[0].id,
-                sourceResource: chain.canines[0].resource,
-              },
-            ];
+          } else if (op.method === "begin_rebirth") {
             chain.canines = [];
           } else chain.incubations[0].stage = "hatched";
           if (failure === "submit") throw new Error("Lost submission response");
@@ -375,6 +364,8 @@ test("Sapient rebirth retains its approval after a lost submission response and 
     resource: "resource_" + "56".repeat(32),
     current: resource,
     legacy: resource,
+    staking: "component_" + "ab".repeat(32),
+    fee: 8_000_000,
   };
   f.chain.canines = [
     {
@@ -389,13 +380,13 @@ test("Sapient rebirth retains its approval after a lost submission response and 
   const input = { id: f.chain.canines[0].id, resource, reward: 0 };
   const w = await ExternalWallet.connect(f.api, () => {});
   await assert.rejects(w.rebirth(input), /Lost submission response/);
-  assert.equal(w.pendingRebirths(f.chain.rebirth).length, 1);
+  assert.equal(w.pendingEconomy(f.chain.rebirth!).length, 1);
   const restored = await ExternalWallet.connect(f.api, () => {});
   await restored.rebirth(input);
   await restored.rebirth(input);
   assert.equal(f.creates, 1);
   assert.equal(f.submits, 1);
-  assert.equal(restored.pendingRebirths(f.chain.rebirth).length, 0);
+  assert.equal(restored.pendingEconomy(f.chain.rebirth!).length, 0);
   assert.equal((await restored.state()).incubations.length, 0);
 });
 
@@ -407,6 +398,8 @@ test("Sapient rebirth blocks a second approval after an unknown create acknowled
     resource: "resource_" + "56".repeat(32),
     current: resource,
     legacy: resource,
+    staking: "component_" + "ab".repeat(32),
+    fee: 8_000_000,
   };
   f.chain.canines = [
     {
@@ -424,7 +417,7 @@ test("Sapient rebirth blocks a second approval after an unknown create acknowled
   await assert.rejects(w.rebirth(input), /acknowledgement was lost/);
   await assert.rejects(
     w.rebirth({ ...input, reward: 1 }),
-    /original reward choice/,
+    /acknowledgement was lost/,
   );
   assert.equal(f.creates, 1);
   assert.equal(f.submits, 0);

@@ -50,12 +50,22 @@ export function legacyResource(): string | undefined {
 }
 
 export function rebirthDeployment():
-  (Deployment & { current: string; legacy: string }) | undefined {
+  | (Deployment & {
+      current: string;
+      legacy: string;
+      staking: string;
+      fee: number;
+    })
+  | undefined {
   const path = join(DATA_DIR, "rebirth-v1.json");
   if (!existsSync(path)) return undefined;
   const d = JSON.parse(readFileSync(path, "utf8"));
   if (
     d.network !== "esmeralda" ||
+    !/^component_[a-f0-9]{64}$/.test(d.staking) ||
+    !Number.isSafeInteger(d.fee) ||
+    d.fee <= 0 ||
+    d.fee > 100_000_000 ||
     !/^component_[a-f0-9]{64}$/.test(d.component) ||
     ![d.resource, d.current, d.legacy].every(
       (v: unknown) =>

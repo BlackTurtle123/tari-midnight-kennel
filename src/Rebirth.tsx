@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Flame, Sparkles } from "lucide-react";
+import { ArrowRight, Flame, Sparkles, Coins } from "lucide-react";
 import {
   HALLOWEEN_REWARDS,
-  type RebirthInput,
+  type EconomyAction,
   type RebirthReceipt,
 } from "../shared/rebirth";
 import type { GameState } from "../shared/game";
 import { CanineArt } from "./CanineArt";
 import type { ExternalWallet } from "./external-wallet";
-
 export function RewardArt({
   reward,
   className = "",
@@ -16,16 +15,20 @@ export function RewardArt({
   reward: number;
   className?: string;
 }) {
-  const spec = HALLOWEEN_REWARDS[reward];
-  return (
+  const r = HALLOWEEN_REWARDS[reward];
+  return r ? (
     <img
       className={"reward-art " + className}
-      src={import.meta.env.BASE_URL + `arkimals/${spec.image}.svg`}
-      alt={spec.name}
+      src={import.meta.env.BASE_URL + `arkimals/${r.image}.svg`}
+      alt={r.name}
     />
-  );
+  ) : null;
 }
 type Api = <T>(path: string, body?: unknown) => Promise<T>;
+const tari = (micro: string | number) =>
+  (Number(micro) / 1_000_000).toLocaleString(undefined, {
+    maximumFractionDigits: 6,
+  });
 export function Rebirth({
   state,
   external,
@@ -41,364 +44,425 @@ export function Rebirth({
   connect: () => void;
   incubate: () => void;
 }) {
-  const [selection, setSelection] = useState(""),
-    [reward, setReward] = useState(0);
-  const [review, setReview] = useState<RebirthInput | null>(null),
-    [ack, setAck] = useState(false);
-  const [busy, setBusy] = useState(false),
+  const [review, setReview] = useState<{
+      action: EconomyAction;
+      nonce: string;
+    } | null>(null),
+    [ack, setAck] = useState(false),
+    [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
-    [success, setSuccess] = useState("");
-  const [receipts, setReceipts] = useState<RebirthReceipt[]>([]);
-  const canine = state.canines.find(
-    (c) => `${c.resource}/${c.id}` === selection,
-  );
+    [message, setMessage] = useState(""),
+    [receipts, setReceipts] = useState<RebirthReceipt[]>([]);
   const load = async () => {
     if (state.connected && !external) setReceipts(await api("/rebirths"));
   };
   useEffect(() => {
     void load().catch((e) => setError(e.message));
   }, [state.account]);
-  const pending = receipts.find((r) =>
+  useEffect(() => {
+    if (review)
+      document
+        .getElementById("economy-review")
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [review]);
+  const pending = receipts.filter((r) =>
     ["submitting", "submitted"].includes(r.status),
   );
   const externalPending =
-    external && state.rebirth
-      ? external.pendingRebirths(state.rebirth)[0]
-      : undefined;
+    external && state.rebirth ? external.pendingEconomy(state.rebirth) : [];
+  const beginReview = (action: EconomyAction) => {
+    setAck(false);
+    setReview({ action, nonce: crypto.randomUUID().replaceAll("-", "") });
+  };
   async function run(fn: () => Promise<void>) {
     setBusy(true);
     setError("");
-    setSuccess("");
+    setMessage("");
     try {
       await fn();
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Rebirth could not finish");
+      setError(
+        e instanceof Error ? e.message : "Wallet action could not finish",
+      );
     } finally {
       setBusy(false);
       await load().catch(() => {});
     }
   }
+  async function send(request: { action: EconomyAction; nonce: string }) {
+    if (external) {
+      await external.act(request.action, request.nonce);
+      setMessage("Submitted in Sapient. Refresh to see the confirmed result.");
+    } else {
+      const result = await api<RebirthReceipt>("/economy/actions", request);
+      if (result.status !== "accepted")
+        throw new Error(
+          "Transaction was rejected. Your assets were not exchanged.",
+        );
+      setMessage("Transaction confirmed. Your pack is updating.");
+    }
+    setReview(null);
+  }
+  const fee = state.rebirth?.fee ?? 8_000_000;
+  const economy = state.economy;
   return (
     <section className="page-section rebirth-page">
       <div className="eyebrow">
-        <Flame size={16} /> THE HALLOWEEN REBIRTH
+        <Flame size={16} /> HALLOWEEN REBIRTH & STAKING
       </div>
       <h1>
-        A new life.
+        A final bow.
         <br />
-        <em>A familiar face.</em>
+        <em>A secret new life.</em>
       </h1>
       <p className="section-intro">
-        Give one canine a final bow. Welcome a Halloween collectible from the
-        world of Arkimals.
+        Follow the Arkimals ritual: offer one canine, wait for the draw, then
+        reveal a randomly minted Halloween NFT. Every completed rebirth funds
+        the staking pool.
       </p>
       <div className="ritual-steps">
-        <span>01 · Choose a canine</span>
+        <span>01 · Offer a canine + {tari(fee)} tTARI</span>
         <ArrowRight size={16} />
-        <span>02 · Choose its next life</span>
+        <span>02 · Wait two network epochs</span>
         <ArrowRight size={16} />
-        <span>03 · Confirm & mint</span>
+        <span>03 · Reveal & mint</span>
       </div>
       <div className="reward-grid">
         {HALLOWEEN_REWARDS.map((r, i) => (
-          <button
-            type="button"
-            className={"reward-option " + (reward === i ? "selected" : "")}
-            key={r.original}
-            aria-pressed={reward === i}
-            disabled={busy || !!review}
-            onClick={() => setReward(i)}
-          >
+          <div className="reward-option" key={r.original}>
             <span className="pill">{r.kind}</span>
             <RewardArt reward={i} />
             <h3>{r.name}</h3>
             <p>{r.description}</p>
             <span className="reward-choice">
-              {reward === i ? "Selected for rebirth" : "Choose this reward"}{" "}
-              <Sparkles size={15} />
+              {r.odds}% draw weight <Sparkles size={15} />
             </span>
-          </button>
+          </div>
         ))}
       </div>
       <p className="fine-print">
-        Original Arkimals artwork · New Tari testnet NFTs · Choose your reward;
-        no random draw · No main-game prize claim
+        Original Arkimals artwork · New Esmeralda testnet NFTs · One random
+        reward per completed rebirth · No main-game redemption or item powers
       </p>
       {error && (
         <div className="notice error" role="alert">
           {error}
         </div>
       )}
-      {success && (
+      {message && (
         <div className="notice" role="status">
-          {success}
+          {message}
         </div>
       )}
       {!state.connected ? (
         <div className="rebirth-panel">
           <h2>Your pack’s next chapter.</h2>
-          <p>Connect the wallet holding your Tari canines to begin.</p>
           <button className="primary" onClick={connect}>
             Connect wallet <ArrowRight size={17} />
           </button>
         </div>
       ) : !state.rebirth ? (
         <div className="notice">
-          The Halloween rebirth contract is being prepared. Your existing
-          canines remain available.
+          The rebirth and staking contracts are being prepared. You can still
+          incubate and manage your existing canines.
         </div>
       ) : (
         <>
-          {externalPending && (
-            <div className="notice">
-              <div>
-                <strong>
-                  Saved Sapient rebirth:{" "}
-                  {HALLOWEEN_REWARDS[externalPending.reward].name}
-                </strong>
-                <p>
-                  Resume its original approval request, including after a page
-                  reload.
-                </p>
-              </div>
+          {pending.map((r) => (
+            <div className="notice" key={r.key}>
+              A saved wallet action needs checking.{" "}
               <button
-                className="secondary"
-                disabled={busy}
-                onClick={() => {
-                  setReview(externalPending);
-                  setReward(externalPending.reward);
-                  setAck(false);
-                }}
-              >
-                Resume rebirth
-              </button>
-            </div>
-          )}
-          {pending && (
-            <div className="notice">
-              <div>
-                <strong>A rebirth is waiting for confirmation.</strong>
-                <p>
-                  Your saved request is retained. Check it before offering
-                  another canine.
-                </p>
-              </div>
-              <button
-                className="secondary"
                 disabled={busy}
                 onClick={() =>
                   void run(async () => {
-                    const r = await api<RebirthReceipt>(
-                      `/rebirths/${pending.key}/check`,
+                    const result = await api<RebirthReceipt>(
+                      `/rebirths/${r.key}/check`,
                       {},
                     );
-                    if (r.status === "accepted")
-                      setSuccess(
-                        `${HALLOWEEN_REWARDS[r.reward].name} has joined your collection.`,
-                      );
-                    else if (r.status === "rejected")
-                      throw new Error(
-                        "The transaction was rejected. The canine was not exchanged.",
-                      );
+                    setMessage(
+                      result.status === "accepted"
+                        ? "Transaction confirmed."
+                        : "Transaction rejected; assets were not exchanged.",
+                    );
                   })
                 }
               >
-                Check rebirth
+                Check saved action
               </button>
             </div>
-          )}
-          {review ? (
-            <div className="rebirth-panel rebirth-review">
-              <div>
-                <div className="eyebrow">REVIEW YOUR REBIRTH</div>
-                <h2>One farewell. One welcome.</h2>
-                <p>
-                  Exchange canine <code>{review.id}</code> for{" "}
-                  <strong>{HALLOWEEN_REWARDS[review.reward].name}</strong>.
-                </p>
-                <p>
-                  The canine is permanently locked in the rebirth contract and
-                  leaves your wallet. There is no undo or withdrawal. Your
-                  chosen Halloween NFT is minted to this same wallet in the same
-                  transaction.
-                </p>
-                <details>
-                  <summary>Collection and recipient</summary>
-                  <p>
-                    Canine collection: <code>{review.resource}</code>
-                  </p>
-                  <p>
-                    Your wallet: <code>{state.account}</code>
-                  </p>
-                  <p>
-                    Rebirth contract: <code>{state.rebirth.component}</code>
-                  </p>
-                </details>
-                <p>
-                  Maximum network fee: 1 tTARI. A rejected transaction does not
-                  exchange your canine; network fees may still apply.
-                </p>
-                <label className="rebirth-ack">
-                  <input
-                    type="checkbox"
-                    checked={ack}
-                    disabled={busy}
-                    onChange={(e) => setAck(e.target.checked)}
-                  />{" "}
-                  I understand this permanently exchanges my canine for the
-                  selected Halloween NFT.
-                </label>
-                <div className="rebirth-actions">
-                  <button
-                    className="primary"
-                    disabled={busy || !ack}
-                    onClick={() =>
-                      void run(async () => {
-                        if (external) await external.rebirth(review);
-                        else {
-                          const r = await api<RebirthReceipt>(
-                            "/rebirths",
-                            review,
-                          );
-                          if (r.status !== "accepted")
-                            throw new Error(
-                              "Rebirth was rejected or is still pending. Check its saved receipt.",
-                            );
-                        }
-                        setSuccess(
-                          `${HALLOWEEN_REWARDS[review.reward].name} has joined your collection.`,
-                        );
-                        setReview(null);
-                        setSelection("");
-                        setAck(false);
-                      })
-                    }
-                  >
-                    {busy
-                      ? "Waiting for your wallet…"
-                      : "Confirm rebirth & mint"}{" "}
-                    <Flame size={17} />
-                  </button>
-                  <button
-                    className="secondary"
-                    disabled={busy}
-                    onClick={() => {
-                      setReview(null);
-                      setAck(false);
-                    }}
-                  >
-                    Back
-                  </button>
-                </div>
-              </div>
-              <RewardArt reward={review.reward} />
+          ))}
+          {externalPending.map((r) => (
+            <div className="notice" key={r.nonce}>
+              Saved Sapient {r.action.kind} request.{" "}
+              <button disabled={busy} onClick={() => void run(() => send(r))}>
+                Resume wallet approval
+              </button>
             </div>
-          ) : state.canines.length ? (
-            <div className="rebirth-panel rebirth-picker">
-              <div>
-                <div className="eyebrow">OFFER ONE CANINE</div>
-                <h2>Choose who begins again.</h2>
-                <p>
-                  Both original and current Tari canines can enter. The exchange
-                  is permanent; review it before you confirm.
-                </p>
-                <label>
-                  Your canine
-                  <select
-                    value={selection}
-                    disabled={busy || !!pending || !!externalPending}
-                    onChange={(e) => setSelection(e.target.value)}
-                  >
-                    <option value="">Select a canine from your wallet</option>
-                    {state.canines.map((c) => (
-                      <option
-                        key={`${c.resource}/${c.id}`}
-                        value={`${c.resource}/${c.id}`}
-                      >
-                        {c.name} · {c.id.slice(0, 8)}
-                        {c.legacy ? " · original" : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  className="primary"
-                  disabled={
-                    !canine ||
-                    busy ||
-                    !!pending ||
-                    !!externalPending ||
-                    !!state.setupError
-                  }
-                  onClick={() => {
-                    if (canine) {
-                      setReview({
-                        resource: canine.resource,
-                        id: canine.id,
-                        reward,
-                      });
-                      setAck(false);
-                    }
-                  }}
-                >
-                  Review rebirth <ArrowRight size={17} />
-                </button>
-              </div>
-              <div className="rebirth-offering">
-                {canine ? (
-                  <CanineArt
-                    genes={canine.genes}
-                    variant={canine.variant}
-                    name={canine.name}
-                  />
-                ) : (
-                  <Flame size={80} />
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="rebirth-panel">
-              <h2>Every new life starts with a canine.</h2>
+          ))}
+          <div className="rebirth-panel">
+            <h2>Choose a canine’s next chapter</h2>
+            <p>
+              Rebirth permanently retires the canine when its reward is minted.
+              Staking keeps it in the pool until you withdraw it. Each staked
+              canine has one equal reward share in this MVP.
+            </p>
+            {!state.canines.length ? (
               <p>
-                Incubate and mint a canine first, or receive one from another
-                Tari player.
+                No available canines.{" "}
+                <button onClick={incubate}>Visit the incubator</button>
               </p>
-              <button className="primary" onClick={incubate}>
-                Visit the incubator <ArrowRight size={17} />
-              </button>
+            ) : (
+              <div className="economy-canines">
+                {state.canines.map((c) => (
+                  <article className="economy-canine" key={c.resource + c.id}>
+                    <CanineArt genes={c.genes} name={c.name} />
+                    <h3>{c.name}</h3>
+                    <small>{c.genotype ?? c.genes}</small>
+                    <div className="economy-actions">
+                      <button
+                        disabled={
+                          busy ||
+                          !!review ||
+                          pending.length > 0 ||
+                          externalPending.length > 0
+                        }
+                        onClick={() =>
+                          beginReview({
+                            kind: "stake",
+                            resource: c.resource,
+                            id: c.id,
+                          })
+                        }
+                      >
+                        Stake canine
+                      </button>
+                      <button
+                        className="primary"
+                        disabled={
+                          !!economy?.requests.some(
+                            (r) =>
+                              r.token === c.id && r.resource === c.resource,
+                          ) ||
+                          busy ||
+                          !!review ||
+                          pending.length > 0 ||
+                          externalPending.length > 0
+                        }
+                        onClick={() =>
+                          beginReview({
+                            kind: "begin",
+                            resource: c.resource,
+                            id: c.id,
+                          })
+                        }
+                      >
+                        {economy?.requests.some(
+                          (r) => r.token === c.id && r.resource === c.resource,
+                        )
+                          ? "Rebirth already used"
+                          : `Rebirth · ${tari(fee)} tTARI`}
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+          {!!economy?.requests.length && (
+            <div className="rebirth-panel">
+              <h2>Your rebirths</h2>
+              {economy.requests.map((r) => (
+                <article className="economy-position" key={r.id}>
+                  <div>
+                    <strong>
+                      {r.status === 1
+                        ? HALLOWEEN_REWARDS[r.reward]?.name
+                        : r.status === 2
+                          ? "Canine and ritual fee returned"
+                          : r.captured || economy.epoch === r.targetEpoch
+                            ? "Your new life is ready to reveal"
+                            : "The ritual is waiting"}
+                    </strong>
+                    <p>
+                      {r.status === 0
+                        ? `Draw epoch ${r.targetEpoch} · current epoch ${economy.epoch}`
+                        : `Original canine ${r.token.slice(0, 10)}…`}
+                    </p>
+                  </div>
+                  {r.status === 0 &&
+                    (r.captured || economy.epoch === r.targetEpoch ? (
+                      <button
+                        className="primary"
+                        disabled={busy}
+                        onClick={() =>
+                          beginReview({ kind: "finish", id: r.id })
+                        }
+                      >
+                        Reveal & mint
+                      </button>
+                    ) : economy.epoch > r.targetEpoch ? (
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          beginReview({ kind: "refund", id: r.id })
+                        }
+                      >
+                        Recover canine & fee
+                      </button>
+                    ) : (
+                      <span className="pill">
+                        {r.targetEpoch - economy.epoch} epoch(s) to go
+                      </span>
+                    ))}
+                </article>
+              ))}
             </div>
           )}
+          <div className="rebirth-panel staking-panel" id="staking">
+            <div className="eyebrow">
+              <Coins size={16} /> THE CANINE STAKING POOL
+            </div>
+            <h2>Let your pack share in the rituals.</h2>
+            <p>
+              75% of completed rebirth fees goes to the canines staked at that
+              moment; 25% goes to the treasury. If the pool is empty, that fee
+              also goes to the treasury. Rewards come only from collected fees.
+            </p>
+            <div className="staking-totals">
+              <span>
+                <b>{economy?.totalStaked ?? 0}</b> canines staked
+              </span>
+              <span>
+                <b>{tari(economy?.distributed ?? 0)}</b> tTARI funded rewards
+              </span>
+              <span>
+                <b>{tari(economy?.claimed ?? 0)}</b> tTARI claimed
+              </span>
+            </div>
+            {!economy?.stakes.length ? (
+              <p>
+                Stake an available canine above to join the pool. There is no
+                fixed APR or guaranteed income.
+              </p>
+            ) : (
+              economy.stakes.map((p) => (
+                <article className="economy-position" key={p.id}>
+                  <div>
+                    <strong>Staked canine · {p.token.slice(0, 10)}…</strong>
+                    <p>{tari(p.claimable)} tTARI available to claim</p>
+                  </div>
+                  <div className="economy-actions">
+                    <button
+                      disabled={busy || p.claimable === "0"}
+                      onClick={() => beginReview({ kind: "claim", id: p.id })}
+                    >
+                      Claim rewards
+                    </button>
+                    <button
+                      disabled={busy}
+                      onClick={() => beginReview({ kind: "unstake", id: p.id })}
+                    >
+                      Unstake & claim
+                    </button>
+                  </div>
+                </article>
+              ))
+            )}
+          </div>
+          <button
+            disabled={busy}
+            onClick={() =>
+              void run(async () => {
+                setMessage("Balances and rituals refreshed.");
+              })
+            }
+          >
+            Refresh pack & rewards
+          </button>
         </>
       )}
-      {(state.halloween?.length ?? 0) > 0 && (
-        <section className="rebirth-owned">
-          <h2>Your Halloween familiars</h2>
-          <div className="collection-grid">
-            {state.halloween!.map((n) => (
-              <article className="canine-card" key={n.id}>
+      {review && (
+        <div
+          id="economy-review"
+          className="rebirth-panel review-panel"
+          role="region"
+          aria-label="Review wallet action"
+        >
+          <h2>
+            {
+              {
+                begin: "Review rebirth",
+                stake: "Review staking",
+                finish: "Reveal your Halloween NFT",
+                refund: "Recover the missed ritual",
+                claim: "Claim staking income",
+                unstake: "Return your staked canine",
+              }[review.action.kind]
+            }
+          </h2>
+          <p>
+            {review.action.kind === "begin"
+              ? `One canine and ${tari(fee)} tTARI will be held for the fixed future draw. Completion permanently retires the canine and mints one random reward. The wait is two network epochs (usually around 20–40 minutes).`
+              : review.action.kind === "stake"
+                ? "Your canine moves into the staking contract and earns an equal share of future rebirth fees. Unstaking returns it and claims any whole-unit rewards."
+                : review.action.kind === "refund"
+                  ? "The scheduled epoch was not captured. The contract returns your canine and full ritual fee; network fees are not refunded."
+                  : review.action.kind === "finish"
+                    ? "The fixed draw mints your Halloween reward and permanently retires the original canine. The ritual fee is split between staking and the treasury."
+                    : review.action.kind === "unstake"
+                      ? "Your canine and claimable rewards return to the same wallet. It stops earning new fees."
+                      : "Only earned, funded rewards are transferred to the same wallet."}
+          </p>
+          <p>
+            Network fee approval: up to 1 tTARI per transaction, separate from
+            the ritual fee.
+          </p>
+          <label className="confirm-check">
+            <input
+              type="checkbox"
+              checked={ack}
+              onChange={(e) => setAck(e.target.checked)}
+            />{" "}
+            {review.action.kind === "begin"
+              ? "I understand my canine is permanently retired if this rebirth completes, and the reward is random."
+              : "I have reviewed this wallet action."}
+          </label>
+          <div className="economy-actions">
+            <button disabled={busy} onClick={() => setReview(null)}>
+              Cancel
+            </button>
+            <button
+              className="primary"
+              disabled={busy || !ack}
+              onClick={() => void run(() => send(review))}
+            >
+              {busy ? "Waiting for wallet…" : "Confirm in wallet"}
+            </button>
+          </div>
+        </div>
+      )}
+      {!!state.halloween?.length && (
+        <div className="rebirth-panel">
+          <h2>Your Halloween collection</h2>
+          <div className="reward-grid">
+            {state.halloween.map((n) => (
+              <article className="reward-option" key={n.resource + n.id}>
                 <RewardArt reward={n.reward} />
-                <span className="pill">Reborn · Tari edition</span>
                 <h3>{n.name}</h3>
-                <p>{n.original}</p>
-                <details>
-                  <summary>NFT & lineage</summary>
-                  <dl>
-                    <dt>NFT ID</dt>
-                    <dd>{n.id}</dd>
-                    <dt>Collection</dt>
-                    <dd>{n.resource}</dd>
-                    <dt>Original canine</dt>
-                    <dd>{n.sourceId}</dd>
-                    <dt>Original collection</dt>
-                    <dd>{n.sourceResource}</dd>
-                  </dl>
-                </details>
+                <p>Reborn from canine {n.sourceId.slice(0, 10)}…</p>
+                <small>{n.original}</small>
               </article>
             ))}
           </div>
-        </section>
+        </div>
       )}
+      <p className="fine-print">
+        The draw uses a fixed future network epoch, not a player-selected
+        reward. If its epoch is missed, recover the canine and ritual fee.
+        Incubation still has the private encrypted preview; rebirth results
+        become publicly reproducible when their epoch arrives.
+      </p>
     </section>
   );
 }

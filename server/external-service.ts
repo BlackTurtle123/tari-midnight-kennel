@@ -1,3 +1,4 @@
+import { economySnapshot } from "./external-chain.ts";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { stringLiteral } from "@tari-project/ootle";
@@ -155,6 +156,7 @@ export class ExternalService {
     };
     try {
       Object.assign(state, await publicInventory(account));
+      if (state.rebirth) state.economy = await economySnapshot(account);
     } catch {
       state.setupError =
         "Unable to read this wallet's public holdings. Fund and activate the account in Sapient, or retry when the indexer is available.";

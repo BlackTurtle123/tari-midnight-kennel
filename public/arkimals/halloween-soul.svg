@@ -1,0 +1,423 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="60 14 416 568" role="img" aria-labelledby="ART-H26SOUL-title"><style>.ART-H26SOUL-outline {
+    stroke: #0b0b18;
+    stroke-width: 5px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ART-H26SOUL-aura-stop-1 {
+    stop-color: #2535b8;
+}
+
+.ART-H26SOUL-aura-stop-2 {
+    stop-color: #1ccfe9;
+}
+
+.ART-H26SOUL-aura-stop-3 {
+    stop-color: #8064ef;
+}
+
+.ART-H26SOUL-crystal-stop-1 {
+    stop-color: #46548e;
+}
+
+.ART-H26SOUL-crystal-stop-2 {
+    stop-color: #12172f;
+}
+
+.ART-H26SOUL-crystal-stop-3 {
+    stop-color: #070914;
+}
+
+.ART-H26SOUL-spirit-stop-1 {
+    stop-color: #e9ffff;
+}
+
+.ART-H26SOUL-spirit-stop-2 {
+    stop-color: #42ecf5;
+}
+
+.ART-H26SOUL-spirit-stop-3 {
+    stop-color: #237ee8;
+}
+
+.ART-H26SOUL-core-stop-1 {
+    stop-color: #f5ffff;
+}
+
+.ART-H26SOUL-core-stop-2 {
+    stop-color: #8cf9ff;
+}
+
+.ART-H26SOUL-core-stop-3 {
+    stop-color: #25a8ee;
+}
+
+.ART-H26SOUL-ground-glow {
+    fill: #156ed8;
+    opacity: 0.32;
+    filter: url(#ART-H26SOUL-soft-glow);
+}
+
+.ART-H26SOUL-ground-core {
+    fill: #27dcf3;
+    opacity: 0.42;
+    filter: url(#ART-H26SOUL-line-glow);
+}
+
+.ART-H26SOUL-aura-glow {
+    fill: #2bcfe9;
+    opacity: 0.45;
+    filter: url(#ART-H26SOUL-soft-glow);
+}
+
+.ART-H26SOUL-aura-body {
+    fill: url(#ART-H26SOUL-aura-gradient);
+}
+
+.ART-H26SOUL-aura-light {
+    fill: #42ecf5;
+    opacity: 0.76;
+}
+
+.ART-H26SOUL-aura-violet {
+    fill: #7856e9;
+    opacity: 0.76;
+}
+
+.ART-H26SOUL-curl,
+.ART-H26SOUL-curl-small {
+    fill: none;
+    stroke: #4ceaf5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ART-H26SOUL-curl {
+    stroke-width: 9px;
+}
+
+.ART-H26SOUL-curl-small {
+    stroke-width: 6px;
+}
+
+.ART-H26SOUL-orb-glow {
+    fill: #2ddbed;
+    opacity: 0.7;
+    filter: url(#ART-H26SOUL-line-glow);
+}
+
+.ART-H26SOUL-orb {
+    fill: #d8feff;
+    stroke: #12bfe4;
+    stroke-width: 2px;
+}
+
+.ART-H26SOUL-star {
+    fill: #a8fbff;
+}
+
+.ART-H26SOUL-shard,
+.ART-H26SOUL-shard-small {
+    fill: #11152d;
+}
+
+.ART-H26SOUL-shard-mid {
+    fill: #3b4781;
+}
+
+.ART-H26SOUL-rune {
+    fill: none;
+    stroke: #30edf7;
+    stroke-width: 6px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    filter: url(#ART-H26SOUL-line-glow);
+}
+
+.ART-H26SOUL-crystal-glow {
+    fill: none;
+    stroke: #1eddec;
+    stroke-width: 13px;
+    stroke-linejoin: round;
+    opacity: 0.58;
+    filter: url(#ART-H26SOUL-soft-glow);
+}
+
+.ART-H26SOUL-crystal-base {
+    fill: url(#ART-H26SOUL-crystal-gradient);
+}
+
+.ART-H26SOUL-facet-top-left {
+    fill: #6573ae;
+}
+
+.ART-H26SOUL-facet-top-center {
+    fill: #22294d;
+}
+
+.ART-H26SOUL-facet-top-right {
+    fill: #0a0d1e;
+}
+
+.ART-H26SOUL-facet-left {
+    fill: #313a6b;
+}
+
+.ART-H26SOUL-facet-left-mid {
+    fill: #1a2043;
+}
+
+.ART-H26SOUL-facet-right {
+    fill: #11162f;
+}
+
+.ART-H26SOUL-facet-right-mid {
+    fill: #080b1a;
+}
+
+.ART-H26SOUL-facet-center {
+    fill: #18234c;
+}
+
+.ART-H26SOUL-facet-lower-left {
+    fill: #222c59;
+}
+
+.ART-H26SOUL-facet-lower-right {
+    fill: #0b1028;
+}
+
+.ART-H26SOUL-facet-bottom {
+    fill: #111936;
+}
+
+.ART-H26SOUL-facet-highlight {
+    fill: #c6d8ff;
+    opacity: 0.72;
+}
+
+.ART-H26SOUL-facet-highlight-small {
+    fill: #7b8fc6;
+    opacity: 0.65;
+}
+
+.ART-H26SOUL-facet-edge {
+    fill: none;
+    stroke: #070914;
+    stroke-width: 3px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ART-H26SOUL-cracks-glow {
+    fill: none;
+    stroke: #28eefa;
+    stroke-width: 13px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.78;
+    filter: url(#ART-H26SOUL-line-glow);
+}
+
+.ART-H26SOUL-crystal-texture {
+    fill: none;
+    stroke: #aebde9;
+    stroke-width: 2px;
+    stroke-linecap: round;
+    opacity: 0.5;
+}
+
+.ART-H26SOUL-crystal-texture circle {
+    fill: #aebde9;
+    stroke: none;
+}
+
+.ART-H26SOUL-cracks {
+    fill: none;
+    stroke: #9cfcff;
+    stroke-width: 3px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ART-H26SOUL-spirit-glow {
+    fill: #2adcec;
+    opacity: 0.66;
+    filter: url(#ART-H26SOUL-soft-glow);
+}
+
+.ART-H26SOUL-spirit-outline {
+    stroke: #123b91;
+    stroke-width: 4px;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.ART-H26SOUL-spirit-outer {
+    fill: url(#ART-H26SOUL-spirit-gradient);
+}
+
+.ART-H26SOUL-flame-left {
+    fill: #31ccec;
+}
+
+.ART-H26SOUL-flame-right {
+    fill: #72f6fa;
+}
+
+.ART-H26SOUL-spirit-core {
+    fill: url(#ART-H26SOUL-core-gradient);
+}
+
+.ART-H26SOUL-spirit-highlight {
+    fill: none;
+    stroke: #efffff;
+    stroke-width: 4px;
+    stroke-linecap: round;
+    opacity: 0.62;
+}
+
+.ART-H26SOUL-eye {
+    fill: #0b1644;
+    stroke: #08102f;
+    stroke-width: 2px;
+}
+</style>
+  <title id="ART-H26SOUL-title">An ominous cyan soul sealed inside a jagged black crystal</title>
+  <defs>
+    <linearGradient id="ART-H26SOUL-aura-gradient" x1="0" y1="1" x2="0.72" y2="0.08">
+      <stop class="ART-H26SOUL-aura-stop-1" offset="0"/>
+      <stop class="ART-H26SOUL-aura-stop-2" offset="0.53"/>
+      <stop class="ART-H26SOUL-aura-stop-3" offset="1"/>
+    </linearGradient>
+    <linearGradient id="ART-H26SOUL-crystal-gradient" x1="0.12" y1="0.06" x2="0.88" y2="0.95">
+      <stop class="ART-H26SOUL-crystal-stop-1" offset="0"/>
+      <stop class="ART-H26SOUL-crystal-stop-2" offset="0.48"/>
+      <stop class="ART-H26SOUL-crystal-stop-3" offset="1"/>
+    </linearGradient>
+    <linearGradient id="ART-H26SOUL-spirit-gradient" x1="0.32" y1="0.05" x2="0.72" y2="0.98">
+      <stop class="ART-H26SOUL-spirit-stop-1" offset="0"/>
+      <stop class="ART-H26SOUL-spirit-stop-2" offset="0.52"/>
+      <stop class="ART-H26SOUL-spirit-stop-3" offset="1"/>
+    </linearGradient>
+    <radialGradient id="ART-H26SOUL-core-gradient" cx="0.45" cy="0.42" r="0.62">
+      <stop class="ART-H26SOUL-core-stop-1" offset="0"/>
+      <stop class="ART-H26SOUL-core-stop-2" offset="0.55"/>
+      <stop class="ART-H26SOUL-core-stop-3" offset="1"/>
+    </radialGradient>
+    <filter id="ART-H26SOUL-soft-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10"/>
+    </filter>
+    <filter id="ART-H26SOUL-line-glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+
+  <g id="ART-H26SOUL">
+    <ellipse class="ART-H26SOUL-ground-glow" cx="255" cy="522" rx="126" ry="25"/>
+    <ellipse class="ART-H26SOUL-ground-core" cx="255" cy="519" rx="82" ry="13"/>
+
+    <g class="ART-H26SOUL-aura">
+      <path class="ART-H26SOUL-aura-glow" d="M166 463c-38-26-54-70-36-105-29-27-27-68 5-89-25-39-5-85 40-91-8-42 16-78 61-91-4 24 4 40 23 49 9-43 36-70 72-76-13 25-12 47 4 64 35 37 53 73 41 119 42 19 58 61 37 96 31 35 19 84-23 110-60 38-166 42-224-6z"/>
+      <path class="ART-H26SOUL-aura-body ART-H26SOUL-outline" d="M178 465c-41-30-50-69-25-103-29-24-26-62 10-80-24-39-1-76 41-78-16-43 3-80 42-102-3 27 9 48 36 62 1-43 22-72 57-87-8 29-2 53 19 72 28 25 38 60 24 96 37 18 48 56 25 85 31 32 15 77-25 99-55 31-153 51-204 6z"/>
+      <path class="ART-H26SOUL-aura-light" d="M173 394c-18-23-12-47 18-65-20-29-8-55 26-65-10-34 5-61 37-78-1 24 11 42 35 54-19 18-27 40-21 66-31 16-40 43-27 72-29 13-51 18-68 16z"/>
+      <path class="ART-H26SOUL-aura-violet" d="M327 134c29 24 38 54 24 88 34 19 43 49 25 80 24 28 20 59-12 86 2-38-11-68-40-90 18-29 14-59-13-87 14-26 19-51 16-77z"/>
+
+      <path class="ART-H26SOUL-curl" d="M172 288c-37-10-59-41-49-70 6-19 25-30 41-23 15 6 20 23 11 35-7 10-22 9-25-2"/>
+      <path class="ART-H26SOUL-curl" d="M376 287c40-13 57-47 43-74-9-18-30-26-45-16-14 9-15 27-4 37 10 9 24 5 25-6"/>
+      <path class="ART-H26SOUL-curl-small" d="M153 386c-32 4-51 24-49 49 2 16 16 27 30 24 12-3 18-15 13-25-4-8-14-10-20-4"/>
+      <path class="ART-H26SOUL-curl-small" d="M391 376c30 6 45 27 40 48-4 15-18 23-31 18-11-4-14-16-8-24 5-7 15-7 20 0"/>
+    </g>
+
+    <g class="ART-H26SOUL-particles">
+      <circle class="ART-H26SOUL-orb-glow" cx="96" cy="282" r="14"/>
+      <circle class="ART-H26SOUL-orb" cx="96" cy="282" r="7"/>
+      <circle class="ART-H26SOUL-orb-glow" cx="423" cy="171" r="12"/>
+      <circle class="ART-H26SOUL-orb" cx="423" cy="171" r="6"/>
+      <circle class="ART-H26SOUL-orb-glow" cx="438" cy="355" r="10"/>
+      <circle class="ART-H26SOUL-orb" cx="438" cy="355" r="5"/>
+      <circle class="ART-H26SOUL-orb" cx="120" cy="177" r="4"/>
+      <circle class="ART-H26SOUL-orb" cx="402" cy="452" r="4"/>
+      <path class="ART-H26SOUL-star" d="M113 371l5 11 11 5-11 5-5 11-5-11-11-5 11-5z"/>
+      <path class="ART-H26SOUL-star" d="M397 267l4 9 9 4-9 4-4 9-4-9-9-4 9-4z"/>
+    </g>
+
+    <g class="ART-H26SOUL-floating-shards">
+      <path class="ART-H26SOUL-shard ART-H26SOUL-outline" d="M75 337l43-65 30 82-37 55z"/>
+      <path class="ART-H26SOUL-shard-mid" d="M92 337l24-39 13 47-20 34z"/>
+      <path class="ART-H26SOUL-rune" d="M108 327l13 12-11 17-10-13z"/>
+
+      <path class="ART-H26SOUL-shard ART-H26SOUL-outline" d="M394 287l35-54 31 72-31 48z"/>
+      <path class="ART-H26SOUL-shard-mid" d="M409 286l18-30 14 41-14 29z"/>
+      <path class="ART-H26SOUL-rune" d="M424 275l11 10-9 14-8-11z"/>
+
+      <path class="ART-H26SOUL-shard ART-H26SOUL-outline" d="M396 420l34-51 31 75-36 47z"/>
+      <path class="ART-H26SOUL-shard-mid" d="M411 420l18-29 14 43-18 31z"/>
+      <path class="ART-H26SOUL-rune" d="M426 410l11 11-10 15-8-12z"/>
+
+      <path class="ART-H26SOUL-shard-small ART-H26SOUL-outline" d="M137 474l28-19 11 35-29 17z"/>
+      <path class="ART-H26SOUL-shard-small ART-H26SOUL-outline" d="M358 116l22-30 16 39-24 25z"/>
+    </g>
+
+    <g class="ART-H26SOUL-crystal">
+      <path class="ART-H26SOUL-crystal-glow" d="M255 55l69 82 22 74 38 53-13 139-55 71-61 67-70-63-48-79-11-123 35-65 24-86z"/>
+      <path class="ART-H26SOUL-crystal-base ART-H26SOUL-outline" d="M255 55l69 82 22 74 38 53-13 139-55 71-61 67-70-63-48-79-11-123 35-65 24-86z"/>
+
+      <path class="ART-H26SOUL-facet-top-left" d="M255 70l-60 64-22 83 82-59z"/>
+      <path class="ART-H26SOUL-facet-top-center" d="M255 70l69 74-69 14z"/>
+      <path class="ART-H26SOUL-facet-top-right" d="M324 144l18 70 29 49-116-105z"/>
+      <path class="ART-H26SOUL-facet-left" d="M173 217l82-59-47 138-67-17z"/>
+      <path class="ART-H26SOUL-facet-left-mid" d="M141 279l67 17-30 98-38 2z"/>
+      <path class="ART-H26SOUL-facet-right" d="M255 158l116 105-66 31z"/>
+      <path class="ART-H26SOUL-facet-right-mid" d="M371 263l-66 31 35 103 28 2z"/>
+      <path class="ART-H26SOUL-facet-center" d="M208 296l47-138 50 136-50 144z"/>
+      <path class="ART-H26SOUL-facet-lower-left" d="M178 394l77 44-70 35-45-77z"/>
+      <path class="ART-H26SOUL-facet-lower-right" d="M340 397l-85 41 61 31 52-70z"/>
+      <path class="ART-H26SOUL-facet-bottom" d="M185 473l70-35 61 31-61 56z"/>
+
+      <path class="ART-H26SOUL-facet-highlight" d="M248 83l-42 61-19 61 39-32z"/>
+      <path class="ART-H26SOUL-facet-highlight-small" d="M159 285l34 15-13 42z"/>
+      <path class="ART-H26SOUL-facet-highlight-small" d="M346 271l19 8-5 50z"/>
+      <g class="ART-H26SOUL-crystal-texture">
+        <path d="M218 119l-13 29"/>
+        <path d="M187 238l-18 25"/>
+        <path d="M327 178l14 26"/>
+        <path d="M157 360l16 19"/>
+        <path d="M336 417l-17 27"/>
+        <circle cx="197" cy="274" r="3"/>
+        <circle cx="325" cy="248" r="2.5"/>
+        <circle cx="291" cy="464" r="3"/>
+      </g>
+
+      <path class="ART-H26SOUL-facet-edge" d="M255 70v88M173 217l35 79-30 98M371 263l-66 31 35 103M208 296l47 142 50-144M178 394l77 44 85-41M185 473l70-35 61 31"/>
+
+      <g class="ART-H26SOUL-cracks-glow">
+        <path d="M169 245l43 51-20 38 39 36"/>
+        <path d="M345 220l-40 74 22 38-38 42"/>
+        <path d="M255 158l-18 53 19 31-17 39"/>
+        <path d="M178 394l39 11 38 33"/>
+        <path d="M340 397l-39 10-46 31"/>
+      </g>
+      <g class="ART-H26SOUL-cracks">
+        <path d="M169 245l43 51-20 38 39 36"/>
+        <path d="M345 220l-40 74 22 38-38 42"/>
+        <path d="M255 158l-18 53 19 31-17 39"/>
+        <path d="M178 394l39 11 38 33"/>
+        <path d="M340 397l-39 10-46 31"/>
+      </g>
+    </g>
+
+    <g class="ART-H26SOUL-spirit">
+      <path class="ART-H26SOUL-spirit-glow" d="M258 188c-5 32-29 45-38 69-7 19-4 35 7 47-35 20-50 54-39 88 9 29 39 49 67 82 28-34 57-53 67-82 11-34-2-67-36-88 12-25 7-51-13-72-7-8-12-22-15-44z"/>
+      <path class="ART-H26SOUL-spirit-outer ART-H26SOUL-spirit-outline" d="M258 188c-5 32-29 45-38 69-7 19-4 35 7 47-35 20-50 54-39 88 9 29 39 49 67 82 28-34 57-53 67-82 11-34-2-67-36-88 12-25 7-51-13-72-7-8-12-22-15-44z"/>
+      <path class="ART-H26SOUL-flame-left" d="M232 266c-20 19-13 41 1 51-23 17-34 42-24 66 7 18 25 31 41 51-5-25 4-43 19-58-18-20-20-41-6-64-21-8-32-23-31-46z"/>
+      <path class="ART-H26SOUL-flame-right" d="M270 238c20 22 18 44 3 65 27 18 36 43 25 70-7 18-22 31-38 51 8-31 0-53-17-67 20-25 24-51 11-78 11-11 17-25 16-41z"/>
+      <path class="ART-H26SOUL-spirit-core" d="M256 300c-4 21-21 31-28 49-8 22 4 47 28 76 24-29 36-54 28-76-7-18-24-28-28-49z"/>
+      <path class="ART-H26SOUL-spirit-highlight" d="M245 246c-11 19-13 35-6 48"/>
+      <path class="ART-H26SOUL-spirit-highlight" d="M224 327c-10 20-10 39 1 57"/>
+      <path class="ART-H26SOUL-eye" d="M215 353c16 1 28 10 35 26-17-2-29-10-35-26z"/>
+      <path class="ART-H26SOUL-eye" d="M297 353c-16 1-28 10-35 26 17-2 29-10 35-26z"/>
+    </g>
+  </g>
+</svg>

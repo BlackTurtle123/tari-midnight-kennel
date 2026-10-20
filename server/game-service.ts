@@ -1,3 +1,4 @@
+import { economySnapshot } from "./external-chain.ts";
 import { ensureSpendableAccount } from "./account-readiness.ts";
 import {
   reconcileMissingAccount,
@@ -83,6 +84,7 @@ export class GameService {
       base.resource = d.resource;
       const rebirth = rebirthDeployment();
       base.rebirth = rebirth;
+      if (rebirth) base.economy = await economySnapshot(base.account);
       base.halloween = [];
       for (let offset = 0; ; offset += 100) {
         const page = await w.nftsList({

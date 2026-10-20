@@ -25,6 +25,8 @@ const config = {
   resource: `resource_${"ee".repeat(32)}`,
   current: resource,
   legacy: resource,
+  staking: `component_${"fa".repeat(32)}`,
+  fee: 8_000_000,
 };
 const input = { resource, id, reward: 0 };
 test("rebirth instructions match SDK workspace and address encoding, with Rust-verified NFT CBOR", () => {
@@ -37,16 +39,21 @@ test("rebirth instructions match SDK workspace and address encoding, with Rust-v
       ],
     )
     .saveVar("canine")
-    .callMethod({ componentAddress: component, methodName: "rebirth" }, [
+    .callMethod({ componentAddress: account, methodName: "withdraw" }, [
+      resourceAddressLiteral(
+        ("resource_" + "01".repeat(32)) as `resource_${string}`,
+      ),
+      intLiteral(8_000_000n),
+    ])
+    .saveVar("fee")
+    .callMethod({ componentAddress: component, methodName: "begin_rebirth" }, [
       { Workspace: "canine" },
+      { Workspace: "fee" },
       componentAddressLiteral(account),
-      intLiteral(0n),
     ])
     .buildUnsignedTransaction().instructions;
   assert.deepEqual(rebirthInstructions(config, account, input), expected);
-  assert.throws(() =>
-    rebirthInstructions(config, account, { ...input, reward: 3 }),
-  );
+
   assert.throws(() =>
     rebirthInstructions(config, account, {
       ...input,
@@ -133,7 +140,7 @@ test("lost acknowledgement survives restart and blocks another rebirth", async (
   await assert.rejects(f.service().confirm("alice", input), /acknowledgement/);
   await assert.rejects(
     f.service().confirm("alice", { ...input, id: "01".repeat(16) }),
-    /previous rebirth/,
+    /previous wallet action/,
   );
   assert.equal(f.sends(), 1);
 });
@@ -156,7 +163,7 @@ test("ownership is revalidated before signing, rejected receipts are explicit an
   assert.throws(() => new RebirthStore(reject.dir), /integrity failure/);
 });
 test("Halloween metadata retains original art identity and canine lineage without invented feline genetics", () => {
-  for (let reward = 0; reward < 3; reward++) {
+  for (let reward = 0; reward < HALLOWEEN_REWARDS.length; reward++) {
     const spec = HALLOWEEN_REWARDS[reward],
       data = {
         name: spec.name,
