@@ -26,6 +26,7 @@ COPY --from=build /app/deploy/entrypoint.mjs ./deploy/entrypoint.mjs
 COPY --from=build /app/deploy/artifacts/midnight_kennel.wasm ./contract/target/wasm32-unknown-unknown/release/midnight_kennel.wasm
 COPY --from=build /app/deploy/artifacts/arkimals_rebirth.wasm ./rebirth-contract/target/wasm32-unknown-unknown/release/arkimals_rebirth.wasm
 COPY --from=build /app/deploy/artifacts/arkimals_staking.wasm ./staking-contract/target/wasm32-unknown-unknown/release/arkimals_staking.wasm
+COPY --from=build /app/deploy/artifacts/arkimals_breeding.wasm ./breeding-contract/target/wasm32-unknown-unknown/release/arkimals_breeding.wasm
 COPY --from=wallet /tari_ootle_walletd /usr/local/bin/tari_ootle_walletd
 ARG VERSION=development
 ENV NODE_OPTIONS=--experimental-wasm-modules NODE_ENV=production KENNEL_DATA_DIR=/data KENNEL_VERSION=$VERSION KENNEL_BIND_HOST=0.0.0.0 HOME=/data

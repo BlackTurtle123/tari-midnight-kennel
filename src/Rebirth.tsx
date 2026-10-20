@@ -25,12 +25,14 @@ const tari = (micro: string | number) =>
     maximumFractionDigits: 6,
   });
 export function Rebirth({
+  mode,
   state,
   external,
   refresh,
   connect,
   incubate,
 }: {
+  mode: "rebirth" | "staking";
   state: GameState;
   external: ExternalWallet | null;
   refresh: () => Promise<unknown>;
@@ -82,43 +84,63 @@ export function Rebirth({
   const economy = state.economy;
   return (
     <section className="page-section rebirth-page">
-      <div className="eyebrow">
-        <Flame size={16} /> HALLOWEEN REBIRTH & STAKING
-      </div>
-      <h1>
-        A final bow.
-        <br />
-        <em>A secret new life.</em>
-      </h1>
-      <p className="section-intro">
-        Follow the Arkimals ritual: offer one canine, wait for the draw, then
-        reveal a randomly minted Halloween NFT. Every completed rebirth funds
-        the staking pool.
-      </p>
-      <div className="ritual-steps">
-        <span>01 · Offer a canine + {tari(fee)} tTARI</span>
-        <ArrowRight size={16} />
-        <span>02 · Wait two network epochs</span>
-        <ArrowRight size={16} />
-        <span>03 · Reveal & mint</span>
-      </div>
-      <div className="reward-grid">
-        {HALLOWEEN_REWARDS.map((r, i) => (
-          <div className="reward-option" key={r.original}>
-            <span className="pill">{r.kind}</span>
-            <RewardArt reward={i} />
-            <h3>{r.name}</h3>
-            <p>{r.description}</p>
-            <span className="reward-choice">
-              {r.odds}% draw weight <Sparkles size={15} />
-            </span>
+      {mode === "rebirth" ? (
+        <>
+          <div className="eyebrow">
+            <Flame size={16} /> HALLOWEEN REBIRTH
           </div>
-        ))}
-      </div>
-      <p className="fine-print">
-        Original Arkimals artwork · New Esmeralda testnet NFTs · One random
-        reward per completed rebirth · No main-game redemption or item powers
-      </p>
+          <h1>
+            A final bow.
+            <br />
+            <em>A secret new life.</em>
+          </h1>
+          <p className="section-intro">
+            Follow the Arkimals ritual: offer one canine, wait for the draw,
+            then reveal a randomly minted Halloween NFT. Every completed rebirth
+            funds the staking pool.
+          </p>
+          <div className="ritual-steps">
+            <span>01 · Offer a canine + {tari(fee)} tTARI</span>
+            <ArrowRight size={16} />
+            <span>02 · Wait two network epochs</span>
+            <ArrowRight size={16} />
+            <span>03 · Reveal & mint</span>
+          </div>
+          <div className="reward-grid">
+            {HALLOWEEN_REWARDS.map((r, i) => (
+              <div className="reward-option" key={r.original}>
+                <span className="pill">{r.kind}</span>
+                <RewardArt reward={i} />
+                <h3>{r.name}</h3>
+                <p>{r.description}</p>
+                <span className="reward-choice">
+                  {r.odds}% draw weight <Sparkles size={15} />
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="fine-print">
+            Original Arkimals artwork · New Esmeralda testnet NFTs · One random
+            reward per completed rebirth · No main-game redemption or item
+            powers
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="eyebrow">
+            <Coins size={16} /> CANINE FARMING
+          </div>
+          <h1>
+            Your pack.
+            <br />
+            <em>A share in every ritual.</em>
+          </h1>
+          <p className="section-intro">
+            Stake your canines, collect funded rewards, and withdraw your NFTs
+            whenever you choose.
+          </p>
+        </>
+      )}
       {error && (
         <div className="notice error" role="alert">
           {error}
@@ -152,11 +174,15 @@ export function Rebirth({
             </div>
           ))}
           <div className="rebirth-panel">
-            <h2>Choose a canine’s next chapter</h2>
+            <h2>
+              {mode === "staking"
+                ? "Choose a canine to stake"
+                : "Choose a canine for rebirth"}
+            </h2>
             <p>
-              Rebirth permanently retires the canine when its reward is minted.
-              Staking keeps it in the pool until you withdraw it. Each staked
-              canine has one equal reward share in this MVP.
+              {mode === "rebirth"
+                ? "Rebirth permanently retires the canine when its reward is minted."
+                : "Staking holds your canine in the pool until you withdraw it. Each canine in the current pool has one equal reward share."}
             </p>
             {!state.canines.length ? (
               <p>
@@ -171,52 +197,56 @@ export function Rebirth({
                     <h3>{c.name}</h3>
                     <small>{c.genotype ?? c.genes}</small>
                     <div className="economy-actions">
-                      <button
-                        disabled={
-                          busy || !!review || externalPending.length > 0
-                        }
-                        onClick={() =>
-                          beginReview({
-                            kind: "stake",
-                            resource: c.resource,
-                            id: c.id,
-                          })
-                        }
-                      >
-                        Stake canine
-                      </button>
-                      <button
-                        className="primary"
-                        disabled={
-                          !!economy?.requests.some(
+                      {mode === "staking" ? (
+                        <button
+                          disabled={
+                            busy || !!review || externalPending.length > 0
+                          }
+                          onClick={() =>
+                            beginReview({
+                              kind: "stake",
+                              resource: c.resource,
+                              id: c.id,
+                            })
+                          }
+                        >
+                          Stake canine
+                        </button>
+                      ) : (
+                        <button
+                          className="primary"
+                          disabled={
+                            !!economy?.requests.some(
+                              (r) =>
+                                r.token === c.id && r.resource === c.resource,
+                            ) ||
+                            busy ||
+                            !!review ||
+                            externalPending.length > 0
+                          }
+                          onClick={() =>
+                            beginReview({
+                              kind: "begin",
+                              resource: c.resource,
+                              id: c.id,
+                            })
+                          }
+                        >
+                          {economy?.requests.some(
                             (r) =>
                               r.token === c.id && r.resource === c.resource,
-                          ) ||
-                          busy ||
-                          !!review ||
-                          externalPending.length > 0
-                        }
-                        onClick={() =>
-                          beginReview({
-                            kind: "begin",
-                            resource: c.resource,
-                            id: c.id,
-                          })
-                        }
-                      >
-                        {economy?.requests.some(
-                          (r) => r.token === c.id && r.resource === c.resource,
-                        )
-                          ? "Rebirth already used"
-                          : `Rebirth · ${tari(fee)} tTARI`}
-                      </button>
+                          )
+                            ? "Rebirth already used"
+                            : `Rebirth · ${tari(fee)} tTARI`}
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
               </div>
             )}
           </div>
-          {!!economy?.requests.length && (
+          {mode === "rebirth" && !!economy?.requests.length && (
             <div className="rebirth-panel">
               <h2>Your rebirths</h2>
               {economy.requests.map((r) => (
@@ -272,59 +302,63 @@ export function Rebirth({
               ))}
             </div>
           )}
-          <div className="rebirth-panel staking-panel" id="staking">
-            <div className="eyebrow">
-              <Coins size={16} /> THE CANINE STAKING POOL
-            </div>
-            <h2>Let your pack share in the rituals.</h2>
-            <p>
-              75% of completed rebirth fees goes to the canines staked at that
-              moment; 25% goes to the treasury. If the pool is empty, that fee
-              also goes to the treasury. Starting a ritual does not pay rewards:
-              they become claimable after Reveal &amp; mint completes. Use Claim
-              rewards to collect them into your wallet.
-            </p>
-            <div className="staking-totals">
-              <span>
-                <b>{economy?.totalStaked ?? 0}</b> canines staked
-              </span>
-              <span>
-                <b>{tari(economy?.distributed ?? 0)}</b> tTARI funded rewards
-              </span>
-              <span>
-                <b>{tari(economy?.claimed ?? 0)}</b> tTARI claimed
-              </span>
-            </div>
-            {!economy?.stakes.length ? (
+          {mode === "staking" && (
+            <div className="rebirth-panel staking-panel" id="staking">
+              <div className="eyebrow">
+                <Coins size={16} /> THE CANINE STAKING POOL
+              </div>
+              <h2>Let your pack share in the rituals.</h2>
               <p>
-                Stake an available canine above to join the pool. There is no
-                fixed APR or guaranteed income.
+                75% of completed rebirth fees goes to the canines staked at that
+                moment; 25% goes to the treasury. If the pool is empty, that fee
+                also goes to the treasury. Starting a ritual does not pay
+                rewards: they become claimable after Reveal &amp; mint
+                completes. Use Claim rewards to collect them into your wallet.
               </p>
-            ) : (
-              economy.stakes.map((p) => (
-                <article className="economy-position" key={p.id}>
-                  <div>
-                    <strong>Staked canine · {p.token.slice(0, 10)}…</strong>
-                    <p>{tari(p.claimable)} tTARI available to claim</p>
-                  </div>
-                  <div className="economy-actions">
-                    <button
-                      disabled={busy || p.claimable === "0"}
-                      onClick={() => beginReview({ kind: "claim", id: p.id })}
-                    >
-                      Claim rewards
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => beginReview({ kind: "unstake", id: p.id })}
-                    >
-                      Unstake & claim
-                    </button>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
+              <div className="staking-totals">
+                <span>
+                  <b>{economy?.totalStaked ?? 0}</b> canines staked
+                </span>
+                <span>
+                  <b>{tari(economy?.distributed ?? 0)}</b> tTARI funded rewards
+                </span>
+                <span>
+                  <b>{tari(economy?.claimed ?? 0)}</b> tTARI claimed
+                </span>
+              </div>
+              {!economy?.stakes.length ? (
+                <p>
+                  Stake an available canine above to join the pool. There is no
+                  fixed APR or guaranteed income.
+                </p>
+              ) : (
+                economy.stakes.map((p) => (
+                  <article className="economy-position" key={p.id}>
+                    <div>
+                      <strong>Staked canine · {p.token.slice(0, 10)}…</strong>
+                      <p>{tari(p.claimable)} tTARI available to claim</p>
+                    </div>
+                    <div className="economy-actions">
+                      <button
+                        disabled={busy || p.claimable === "0"}
+                        onClick={() => beginReview({ kind: "claim", id: p.id })}
+                      >
+                        Claim rewards
+                      </button>
+                      <button
+                        disabled={busy}
+                        onClick={() =>
+                          beginReview({ kind: "unstake", id: p.id })
+                        }
+                      >
+                        Unstake & claim
+                      </button>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          )}
           <button
             disabled={busy}
             onClick={() =>
@@ -398,7 +432,7 @@ export function Rebirth({
           </div>
         </div>
       )}
-      {!!state.halloween?.length && (
+      {mode === "rebirth" && !!state.halloween?.length && (
         <div className="rebirth-panel">
           <h2>Your Halloween collection</h2>
           <div className="reward-grid">
@@ -413,12 +447,14 @@ export function Rebirth({
           </div>
         </div>
       )}
-      <p className="fine-print">
-        The draw uses a fixed future network epoch, not a player-selected
-        reward. If its epoch is missed, recover the canine and ritual fee.
-        Incubation still has the private encrypted preview; rebirth results
-        become publicly reproducible when their epoch arrives.
-      </p>
+      {mode === "rebirth" && (
+        <p className="fine-print">
+          The draw uses a fixed future network epoch, not a player-selected
+          reward. If its epoch is missed, recover the canine and ritual fee.
+          Incubation still has the private encrypted preview; rebirth results
+          become publicly reproducible when their epoch arrives.
+        </p>
+      )}
     </section>
   );
 }

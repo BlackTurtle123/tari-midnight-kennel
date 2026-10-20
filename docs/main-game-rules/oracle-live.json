@@ -1,0 +1,67 @@
+[
+  {
+    "key": "static_accBoosterAddress",
+    "type": "string",
+    "value": "3PNbBGH1omxP5yMewxvDcuLrb4RAKgKt1uD"
+  },
+  {
+    "key": "static_canineBreederAddress",
+    "type": "string",
+    "value": "3PQdwhdjWHZ1hacy2dLPnRafi86cTvuJPNX"
+  },
+  {
+    "key": "static_canineIncubationFee",
+    "type": "integer",
+    "value": 100000000
+  },
+  {
+    "key": "static_canineIncubatorAddress",
+    "type": "string",
+    "value": "3PD6L4yr52Lac9qeqXNoi4mAiiak5ZBnx5D"
+  },
+  {
+    "key": "static_caninePerchFee",
+    "type": "integer",
+    "value": 300000000
+  },
+  {
+    "key": "static_canineRebirthAddress",
+    "type": "string",
+    "value": "3P4Anrwd7rKDGyxXZRaocXVbKtg8TKEzf6D"
+  },
+  {
+    "key": "static_canineStakingAddress",
+    "type": "string",
+    "value": "3PCBQJP8XEK5sgziA9pu3AHKnegmBxxojaY"
+  },
+  {
+    "key": "static_canineWavesRebirthPrice",
+    "type": "integer",
+    "value": 800000000
+  },
+  {
+    "key": "static_couponsAddress",
+    "type": "string",
+    "value": "3P5W1D4UuSZrNfeZFJZcD5wT2avfbHbzTvS"
+  },
+  {
+    "key": "static_eggAssetId",
+    "type": "string",
+    "value": "59muEkmqg3qLUkrwSD7L7ZYhVuoDuqkeono4FvDFHv84"
+  },
+  {
+    "key": "static_extraFee",
+    "type": "integer",
+    "value": 1000000
+  },
+  {
+    "key": "static_itemsAddress",
+    "type": "string",
+    "value": "3P5E9xamcWoymiqLx8ZdmR7o4fJSRMGp1WR"
+  },
+  {
+    "key": "static_wearablesAddress",
+    "type": "string",
+    "value": "3PCxXZk5r9nL8ppcqRjDAqeYWzRQSDapxWw"
+  }
+]

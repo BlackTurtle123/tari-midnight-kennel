@@ -1,4 +1,4 @@
-import { economySnapshot } from "./external-chain.ts";
+import { economySnapshot, breedingSnapshot } from "./external-chain.ts";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { stringLiteral } from "@tari-project/ootle";
@@ -8,6 +8,7 @@ import {
   DATA_DIR,
   deployment,
   rebirthDeployment,
+  breedingDeployment,
   OPERATOR_NAME,
   TARI_RESOURCE,
 } from "./config.ts";
@@ -134,6 +135,7 @@ export class ExternalService {
       component: d.component,
       resource: d.resource,
       rebirth: rebirthDeployment(),
+      breedingConfig: breedingDeployment(),
       canines: [],
       incubations: chain.map((c) => {
         const saved = this.journal.get(c.id);
@@ -157,6 +159,8 @@ export class ExternalService {
     try {
       Object.assign(state, await publicInventory(account));
       if (state.rebirth) state.economy = await economySnapshot(account);
+      if (state.breedingConfig)
+        state.breeding = await breedingSnapshot(account);
     } catch {
       state.setupError =
         "Unable to read this wallet's public holdings. Fund and activate the account in Sapient, or retry when the indexer is available.";

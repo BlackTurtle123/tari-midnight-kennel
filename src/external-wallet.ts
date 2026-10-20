@@ -1,3 +1,4 @@
+import { breedingInstructions, type BreedingAction } from "../shared/breeding";
 import type { GameState, Opening, IncubationView } from "../shared/game";
 import {
   rebirthInstructions,
@@ -36,6 +37,8 @@ interface Approval {
   rejected?: boolean;
 }
 interface Saved {
+  breedingAction?: BreedingAction;
+  breedingSubmitted?: boolean;
   rebirth?: RebirthInput;
   economyAction?: EconomyAction;
   economySubmitted?: boolean;
@@ -483,6 +486,52 @@ export class ExternalWallet {
     return readSaved(localStorage, this.account, config.component)
       .filter((r) => r.economyAction && !r.economySubmitted)
       .map((r) => ({ action: r.economyAction!, nonce: r.intent.nonce }));
+  }
+  async breed(action: BreedingAction, nonce: string) {
+    return this.locked(async () => {
+      await this.check();
+      const config = (await this.chainState()).breedingConfig;
+      if (!config)
+        throw new Error("Breeding contracts have not been activated");
+      if (!/^[a-f0-9]{32}$/.test(nonce))
+        throw new Error("Invalid wallet request");
+      const id = (
+        await sha256(JSON.stringify(["breeding-v1", action, nonce]))
+      ).slice(0, 32);
+      let r = readSaved(localStorage, this.account, config.component).find(
+        (r) => r.id === id,
+      );
+      if (r?.breedingSubmitted) return;
+      if (!r) {
+        if (this.pendingBreeding(config).length)
+          throw new Error("Resume the saved breeding approval first");
+        r = {
+          id,
+          breedingAction: action,
+          intent: {
+            account: this.account,
+            component: config.component,
+            paymentAddress: this.paymentAddress,
+            door: 0,
+            nonce,
+          },
+          createdAt: new Date().toISOString(),
+        };
+        save(r);
+      }
+      await this.approve(
+        r,
+        "hatch",
+        breedingInstructions(config, this.account, action),
+      );
+      r.breedingSubmitted = true;
+      save(r);
+    });
+  }
+  pendingBreeding(config: { component: string }) {
+    return readSaved(localStorage, this.account, config.component)
+      .filter((r) => r.breedingAction && !r.breedingSubmitted)
+      .map((r) => ({ action: r.breedingAction!, nonce: r.intent.nonce }));
   }
   async rebirth(input: RebirthInput) {
     return this.act(

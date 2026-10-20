@@ -94,3 +94,11 @@ Rust integration tests execute the real Tari engine and inspect the recipient va
 ## Project ownership
 
 MIT licensed. New source and code-native SVG artwork created for this October entry; no other contest submission’s code is reused. Development assisted by AI. Built on the published Tari libraries and their official documentation. Jira: [TLK-1557](https://turtlelovers.atlassian.net/browse/TLK-1557).
+
+### Main-game rule port
+
+Rebirth and Staking now have separate pages (`#rebirth`, `#staking`). `#breeding` contains the parent selection and Sapient flow; `#rules` explains the main-game lifecycle and distinguishes deployed behavior from pending work. The [full rule checklist](docs/FULL-FLOW-RULES.md) is backed by captured public deployed Ride contracts and oracle values in `docs/main-game-rules`.
+
+The new breeding template passes local engine tests but is **not activated**. Its fee must be explicitly configured through `TARI_BREEDING_FEE` in microtari; there is no assumed EGG/TARI exchange rate. Before activation, finish offspring farming/rebirth support and resolve the production economy and dependent-item scope. The existing equal-share staking pool, pending Halloween rebirths and original NFT resources remain unchanged.
+
+Verification: `npm test`, `npm run build`, `cargo test --locked --manifest-path breeding-contract/Cargo.toml`. Production readiness also requires the remaining gates in the checklist; this release does not claim complete main-game parity.

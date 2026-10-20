@@ -8,24 +8,34 @@ import {
   closeSync,
 } from "node:fs";
 import { join } from "node:path";
-import { DATA_DIR, OPERATOR_NAME, rebirthDeployment } from "./config.ts";
-import { economySnapshot } from "./external-chain.ts";
+import {
+  DATA_DIR,
+  OPERATOR_NAME,
+  rebirthDeployment,
+  breedingDeployment,
+} from "./config.ts";
+import { economySnapshot, breedingSnapshot } from "./external-chain.ts";
 import { submit, waitAccepted } from "./wallet.ts";
 import { serializeWallet } from "./wallet-queue.ts";
 
 // Only public consensus hashes are captured. Durable markers prevent duplicate fee spending.
-export async function captureNeededEpoch() {
-  const config = rebirthDeployment();
+export async function captureNeededEpoch(
+  kind: "rebirth" | "breeding" = "rebirth",
+) {
+  const config =
+    kind === "rebirth" ? rebirthDeployment() : breedingDeployment();
   if (!config) return;
   return serializeWallet(async () => {
-    const state = await economySnapshot();
+    const state = await (kind === "rebirth"
+      ? economySnapshot()
+      : breedingSnapshot());
     if (
       !state?.requests.some(
         (r) => r.status === 0 && !r.captured && r.targetEpoch === state.epoch,
       )
     )
       return;
-    const path = join(DATA_DIR, "rebirth-epoch-captures-v1.jsonl");
+    const path = join(DATA_DIR, `${kind}-epoch-captures-v1.jsonl`);
     const records = existsSync(path)
       ? readFileSync(path, "utf8")
           .trim()
@@ -83,13 +93,25 @@ export async function captureNeededEpoch() {
   });
 }
 export function startEconomyKeeper() {
-  const tick = () =>
-    void captureNeededEpoch().catch(() =>
-      console.error(
-        "Rebirth epoch capture is pending; existing request retained.",
-      ),
-    );
-  tick();
-  const interval = setInterval(tick, 30_000);
+  let running = false;
+  const tick = async () => {
+    if (running) return;
+    running = true;
+    try {
+      for (const kind of ["rebirth", "breeding"] as const) {
+        try {
+          await captureNeededEpoch(kind);
+        } catch {
+          console.error(
+            `${kind} epoch capture is pending; existing request retained.`,
+          );
+        }
+      }
+    } finally {
+      running = false;
+    }
+  };
+  void tick();
+  const interval = setInterval(() => void tick(), 30_000);
   interval.unref();
 }

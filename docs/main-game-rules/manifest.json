@@ -1,0 +1,49 @@
+{
+  "node": "https://node.turtlenetwork.eu",
+  "contracts": [
+    {
+      "name": "incubator",
+      "address": "3PD6L4yr52Lac9qeqXNoi4mAiiak5ZBnx5D",
+      "oracle": "3PJgZ6AK1WVCpdCmEZpesHmaKvrQDdXG5og",
+      "scriptSha256": "8bf8c553d55327e6ebc693cb0691c9ba8e055f6008d230320c7ecab21c059f9f",
+      "size": 35363
+    },
+    {
+      "name": "breeder",
+      "address": "3PQdwhdjWHZ1hacy2dLPnRafi86cTvuJPNX",
+      "oracle": "3PJgZ6AK1WVCpdCmEZpesHmaKvrQDdXG5og",
+      "scriptSha256": "3d6cdff430b8bcefaa7d58ab2e91005bf97decaca54d6f74b6536c9373d523aa",
+      "size": 55128
+    },
+    {
+      "name": "farming",
+      "address": "3PCBQJP8XEK5sgziA9pu3AHKnegmBxxojaY",
+      "oracle": "3PJgZ6AK1WVCpdCmEZpesHmaKvrQDdXG5og",
+      "scriptSha256": "bc16cec0ba0227bccc5871c5ae87b314852d4e16361c30fcc0b8010e0f09b0e3",
+      "size": 44369
+    },
+    {
+      "name": "rebirth",
+      "address": "3P4Anrwd7rKDGyxXZRaocXVbKtg8TKEzf6D",
+      "oracle": "3PJgZ6AK1WVCpdCmEZpesHmaKvrQDdXG5og",
+      "scriptSha256": "80a53fe0487f7f54ca0acca26ae6fa980b5b80a88dcacec3abb9fbd0c9f96a32",
+      "size": 42712
+    }
+  ],
+  "oracle": "3PJgZ6AK1WVCpdCmEZpesHmaKvrQDdXG5og",
+  "capturedAt": "2026-10-20",
+  "note": "Read-only public deployed scripts and oracle configuration. Prices in WAVES/EGG, not Tari quotes.",
+  "files": {
+    "incubator-decompiled.ride": "a0d44a26a2ba3eeb55dd8f57f033f6ee3c920ef8fb831121639102c07f105a71",
+    "incubator-script.json": "641932f94c9f9906e025366b4ece38fa01f3422841bbdd2cc5ad4186f74cde8c",
+    "breeder-decompiled.ride": "5cb2f2f9a6e735ee198d4e209bfd37e00a23e02613a79a46d92dfaec65e5418e",
+    "breeder-script.json": "52e7339688cb54c96b23cf2c4d204405d3b19416b56b476d7ba335635eac0e36",
+    "farming-decompiled.ride": "4b1734c18200055ccef291b9f95e471eade0ba4f5e38cc842226a5276c869b81",
+    "farming-script.json": "072f0648b4a344c4ba76516b771c781f3de85351b0d898901e3c1fb5a00b3683",
+    "rebirth-decompiled.ride": "9dc6b1889f82c168858e328dd4377f9d700fd8ec6a66fe256ce404fd474fdbb9",
+    "rebirth-script.json": "7fa652cd12874eb28c9adb87dd4f1a77c82b82fc798ba81d40f8dc31c2d84902",
+    "oracle-live.json": "8b9cbabd795150705c2df948f42ef9f49e13230c1af43ec155ff6c329bb98e15",
+    "incubator-live.json": "4fda498b9313c0921fc3f1804ab16a9401b2617be3073799be434118f7eec254",
+    "rebirth-bonus-live.json": "bce11c416954917582195e92085c30cab2f46814e3c4e92ad75dbf505c07ee5d"
+  }
+}

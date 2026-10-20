@@ -217,7 +217,10 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
                 commitment: "",
               },
             ];
-          } else if (op.method === "begin_rebirth") {
+          } else if (
+            op.method === "begin_rebirth" ||
+            op.method === "begin_breeding"
+          ) {
             chain.canines = [];
           } else chain.incubations[0].stage = "hatched";
           if (failure === "submit") throw new Error("Lost submission response");
@@ -422,3 +425,42 @@ test("Sapient rebirth blocks a second approval after an unknown create acknowled
   assert.equal(f.creates, 1);
   assert.equal(f.submits, 0);
 });
+
+for (const failure of ["create", "submit"] as const)
+  test(`breeding preserves ${failure} ambiguity across wallet reconnect without duplicate approval`, async () => {
+    const f = fixture(failure);
+    const config = {
+      component: "component_" + "56".repeat(32),
+      resource: "resource_" + "78".repeat(32),
+      current: "resource_" + "9a".repeat(32),
+      legacy: "resource_" + "bc".repeat(32),
+      fee: 1_000_000,
+    };
+    f.chain.breedingConfig = config;
+    const action = {
+      kind: "breed" as const,
+      first: { resource: config.current, id: "01".repeat(16) },
+      second: { resource: config.current, id: "02".repeat(16) },
+    };
+    const nonce = "34".repeat(16);
+    const w = await ExternalWallet.connect(f.api, () => {});
+    await assert.rejects(w.breed(action, nonce), /Lost/);
+    assert.equal(w.pendingBreeding(config).length, 1);
+    w.stop();
+    const restored = await ExternalWallet.connect(f.api, () => {});
+    if (failure === "create") {
+      await assert.rejects(
+        restored.breed(action, nonce),
+        /acknowledgement was lost/,
+      );
+      await assert.rejects(restored.breed(action, "ff".repeat(16)), /Resume/);
+      assert.equal(f.submits, 0);
+    } else {
+      await restored.breed(action, nonce);
+      await restored.breed(action, nonce);
+      assert.equal(f.submits, 1);
+      assert.equal(restored.pendingBreeding(config).length, 0);
+    }
+    assert.equal(f.creates, 1);
+    assert.equal(f.calls.includes("tari_requestViewAccess"), false);
+  });

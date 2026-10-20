@@ -1,0 +1,639 @@
+{-# STDLIB_VERSION 7 #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+{-# CONTENT_TYPE DAPP #-}
+func tryGetStringExternal (address,key) = match getString(address, key) {
+    case a: String => 
+        a
+    case _ => 
+        ""
+}
+
+
+func tryGetInteger (key) = match getInteger(this, key) {
+    case b: Int => 
+        b
+    case _ => 
+        0
+}
+
+
+func tryGetString (key) = tryGetStringExternal(this, key)
+
+
+func getBool (key) = match getBoolean(this, key) {
+    case b: Boolean => 
+        b
+    case _ => 
+        false
+}
+
+
+func isTestEnv () = getBool("TESTENV")
+
+
+func staticKey_oracleAddress () = "static_oracleAddress"
+
+
+func staticKey_extraFee () = "static_extraFee"
+
+
+func staticKey_feeAggregator () = "static_feeAggregator"
+
+
+func staticKey_canineIncubatorAddress () = "static_canineIncubatorAddress"
+
+
+func staticKey_canineBreederAddress () = "static_canineBreederAddress"
+
+
+func staticKey_couponsAddress () = "static_couponsAddress"
+
+
+func staticKey_canineStakingAddress () = "static_canineStakingAddress"
+
+
+func staticKey_itemsAddress () = "static_itemsAddress"
+
+
+func staticKey_canineWavesRebirthPrice () = "static_canineWavesRebirthPrice"
+
+
+func staticKey_turtleIncubatorAddress () = "static_turtleIncubatorAddress"
+
+
+func staticKey_babyDuckAddress () = "static_babyDuckAddress"
+
+
+func getOracle () = Address(fromBase58String(tryGetString(staticKey_oracleAddress())))
+
+
+func getFeeAggregator () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_feeAggregator())))
+
+
+func getCanineBreederAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_canineBreederAddress())))
+
+
+func getCanineIncubatorAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_canineIncubatorAddress())))
+
+
+func getCouponsAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_couponsAddress())))
+
+
+func getCanineStakingAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_canineStakingAddress())))
+
+
+func getItemsAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_itemsAddress())))
+
+
+func getTurtleIncubatorAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_turtleIncubatorAddress())))
+
+
+func getBabyDuckAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_babyDuckAddress())))
+
+
+func tryGetIntegerExternal (address,key) = match getInteger(address, key) {
+    case b: Int => 
+        b
+    case _ => 
+        throw("TR: Value not found in sc!")
+}
+
+
+let wavesAmount = tryGetIntegerExternal(getOracle(), staticKey_canineWavesRebirthPrice())
+
+let delayForHatching = 2
+
+func checkReal (assetId) = if (if ((value(assetInfo(assetId)).issuer == getCanineBreederAddress()))
+    then true
+    else (value(assetInfo(assetId)).issuer == getCanineIncubatorAddress()))
+    then value(assetInfo(assetId)).issuer
+    else throw("not valid NFT")
+
+
+func checkAdditionalPayment (payment) = if (isDefined(payment.assetId))
+    then throw("RCAP: Please attach waves")
+    else {
+        let feeAmount = getIntegerValue(getOracle(), staticKey_extraFee())
+        if ((payment.amount != feeAmount))
+            then throw((("RCAP: Please attach exactly " + toString(feeAmount)) + " amount of wavelets"))
+            else [ScriptTransfer(getFeeAggregator(), feeAmount, unit)]
+        }
+
+
+func getRandomNumber (options,txId,hatchingFinishHeight,offset) = {
+    let randomSeedBlock = value(blockInfoByHeight((hatchingFinishHeight - 1)))
+    let randomHash = sha256((txId + value(randomSeedBlock.vrf)))
+    (toInt(randomHash, (offset * 8)) % options)
+    }
+
+
+func getRandomWin (tx,finishHeight,blacklistCode) = {
+    let jackpotRandom = getRandomNumber(200, tx, finishHeight, 1)
+    let n = getRandomNumber(1000, tx, finishHeight, 0)
+    let result = if (if ((100 > n))
+        then (blacklistCode != "docking_A")
+        else false)
+        then "docking_A"
+        else if (if ((200 > n))
+            then (blacklistCode != "docking_B")
+            else false)
+            then "docking_B"
+            else if (if ((300 > n))
+                then (blacklistCode != "docking_C")
+                else false)
+                then "docking_C"
+                else if (if ((400 > n))
+                    then (blacklistCode != "docking_D")
+                    else false)
+                    then "docking_D"
+                    else if (if ((450 > n))
+                        then (blacklistCode != "incubator")
+                        else false)
+                        then "incubator"
+                        else if (if ((490 > n))
+                            then (blacklistCode != "duckling_40")
+                            else false)
+                            then "duckling_40"
+                            else if (if ((540 > n))
+                                then (blacklistCode != "duckling_20")
+                                else false)
+                                then "duckling_20"
+                                else if (if ((640 > n))
+                                    then (blacklistCode != "item!ART-FEED5")
+                                    else false)
+                                    then "item!ART-FEED5"
+                                    else if (if ((710 > n))
+                                        then (blacklistCode != "item!ART-FEED10")
+                                        else false)
+                                        then "item!ART-FEED10"
+                                        else if (if ((740 > n))
+                                            then (blacklistCode != "item!ART-FEED15")
+                                            else false)
+                                            then "item!ART-FEED15"
+                                            else if (if ((770 > n))
+                                                then (blacklistCode != "item!ART-FEED20")
+                                                else false)
+                                                then "item!ART-FEED20"
+                                                else if (if ((790 > n))
+                                                    then (blacklistCode != "item!ART-FEED25")
+                                                    else false)
+                                                    then "item!ART-FEED25"
+                                                    else if (if ((810 > n))
+                                                        then (blacklistCode != "item!ART-FEED50")
+                                                        else false)
+                                                        then "item!ART-FEED50"
+                                                        else if (if ((830 > n))
+                                                            then (blacklistCode != "item!ART-FEED100")
+                                                            else false)
+                                                            then "item!ART-FEED100"
+                                                            else if (if ((860 > n))
+                                                                then (blacklistCode != "item!ART-MUTARIUM-G")
+                                                                else false)
+                                                                then "item!ART-MUTARIUM-G"
+                                                                else if (if ((890 > n))
+                                                                    then (blacklistCode != "item!ART-MUTARIUM-D")
+                                                                    else false)
+                                                                    then "item!ART-MUTARIUM-D"
+                                                                    else if (if ((910 > n))
+                                                                        then (blacklistCode != "item!ART-FREEGENE")
+                                                                        else false)
+                                                                        then "item!ART-FREEGENE"
+                                                                        else if (if ((930 > n))
+                                                                            then (blacklistCode != "item!ART-FIXGENE")
+                                                                            else false)
+                                                                            then "item!ART-FIXGENE"
+                                                                            else if (if ((980 > n))
+                                                                                then (blacklistCode != "trtl_incubator")
+                                                                                else false)
+                                                                                then "trtl_incubator"
+                                                                                else "item!ART-POTION"
+    $Tuple2(n, result)
+    }
+
+
+func getRandomReturn (tx,finishHeight) = {
+    let n = getRandomNumber(2, tx, finishHeight, 1)
+    if ((n == 1))
+        then true
+        else false
+    }
+
+
+func bonusItemOutput (action,owner,initialTx,finishHeight) = {
+    let key = ((("bonus_item_" + toString(this)) + "_") + action)
+    let encoded = tryGetStringExternal(getOracle(), key)
+    let chance = valueOrElse(getInteger(getOracle(), (key + "_chance")), 0)
+    if (if ((encoded == ""))
+        then true
+        else (chance == 0))
+        then nil
+        else {
+            let items = split(encoded, ",")
+            if (if (if ((0 > chance))
+                then true
+                else (chance > 100))
+                then true
+                else (size(items) > 2))
+                then throw("BONUS_CONFIG")
+                else if (if ((getIntegerValue(getOracle(), (key + "_start")) > lastBlock.timestamp))
+                    then true
+                    else (lastBlock.timestamp >= getIntegerValue(getOracle(), (key + "_end"))))
+                    then nil
+                    else {
+                        let seed = ((toBytes(("bonus|" + action)) + this.bytes) + fromBase58String(initialTx))
+                        let random = getRandomNumber(200, seed, finishHeight, 0)
+                        let resultKey = ((("address_" + owner) + "_initTx_") + initialTx)
+                        let result = [IntegerEntry((resultKey + "_bonusRandom"), (random % 100))]
+                        if (((random % 100) >= chance))
+                            then result
+                            else {
+                                let item = items[if ((size(items) == 2))
+                                    then (random / 100)
+                                    else 0]
+                                let bonus = {
+                                    let @ = invoke(getItemsAddress(), "issueArtefactIndex", [item, owner, 2], nil)
+                                    if ($isInstanceOf(@, "String"))
+                                        then @
+                                        else throw(($getType(@) + " couldn't be cast to String"))
+                                    }
+                                if ((bonus == bonus))
+                                    then (result ++ [StringEntry((resultKey + "_bonusItem"), bonus)])
+                                    else throw("Strict value is not equal to itself.")
+                                }
+                        }
+            }
+    }
+
+
+func finishRebirthInternal (initTx,address,additionalPayment,double,blacklistCode,rescue) = {
+    let finishBlock = tryGetInteger((((("address_" + address) + "_initTx_") + initTx) + "_finishBlock"))
+    let status = tryGetString((((("address_" + address) + "_initTx_") + initTx) + "_status"))
+    let validPayment = checkAdditionalPayment(additionalPayment)
+    if ((validPayment == validPayment))
+        then {
+            let recordAction = invoke(getCouponsAddress(), "recordAction", ["REBIRTHCANINE"], nil)
+            if ((recordAction == recordAction))
+                then if ((status != "open"))
+                    then throw("rebirth is finished or not open")
+                    else if ((finishBlock > height))
+                        then throw("you cannot finish rebirth, yet")
+                        else {
+                            let output = getRandomWin(fromBase58String(initTx), finishBlock, blacklistCode)
+                            let win = output._2
+                            let random = output._1
+                            let txId = initTx
+                            let result = if ((indexOf(win, "docking") != unit))
+                                then {
+                                    let color = takeRight(win, 1)
+                                    let call = if (!(double))
+                                        then {
+                                            let first = invoke(getCanineStakingAddress(), "addFreePerch", [address, color, 1], nil)
+                                            if ((first == first))
+                                                then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                    let @ = first
+                                                    if ($isInstanceOf(@, "String"))
+                                                        then @
+                                                        else throw(($getType(@) + " couldn't be cast to String"))
+                                                    })]
+                                                else throw("Strict value is not equal to itself.")
+                                            }
+                                        else {
+                                            let first = invoke(getCanineStakingAddress(), "addFreePerch", [address, color, 2], nil)
+                                            if ((first == first))
+                                                then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                    let @ = first
+                                                    if ($isInstanceOf(@, "String"))
+                                                        then @
+                                                        else throw(($getType(@) + " couldn't be cast to String"))
+                                                    }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result1"), {
+                                                    let @ = first
+                                                    if ($isInstanceOf(@, "String"))
+                                                        then @
+                                                        else throw(($getType(@) + " couldn't be cast to String"))
+                                                    }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_win1"), win)]
+                                                else throw("Strict value is not equal to itself.")
+                                            }
+                                    if ((call == call))
+                                        then call
+                                        else throw("Strict value is not equal to itself.")
+                                    }
+                                else if ((win == "incubator"))
+                                    then {
+                                        let call = if (!(double))
+                                            then {
+                                                let first = invoke(getCanineIncubatorAddress(), "issueFree", [address, txId], nil)
+                                                if ((first == first))
+                                                    then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                        let @ = first
+                                                        if ($isInstanceOf(@, "String"))
+                                                            then @
+                                                            else throw(($getType(@) + " couldn't be cast to String"))
+                                                        })]
+                                                    else throw("Strict value is not equal to itself.")
+                                                }
+                                            else {
+                                                let first = invoke(getCanineIncubatorAddress(), "issueFree", [address, txId], nil)
+                                                if ((first == first))
+                                                    then {
+                                                        let second = invoke(getTurtleIncubatorAddress(), "issueFreeTurtle", [address, txId], nil)
+                                                        if ((second == second))
+                                                            then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                                let @ = first
+                                                                if ($isInstanceOf(@, "String"))
+                                                                    then @
+                                                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                                                }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result1"), {
+                                                                let @ = second
+                                                                if ($isInstanceOf(@, "String"))
+                                                                    then @
+                                                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                                                }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_win1"), "incubator")]
+                                                            else throw("Strict value is not equal to itself.")
+                                                        }
+                                                    else throw("Strict value is not equal to itself.")
+                                                }
+                                        if ((call == call))
+                                            then call
+                                            else throw("Strict value is not equal to itself.")
+                                        }
+                                    else if ((indexOf(win, "duckling") != unit))
+                                        then {
+                                            let level = parseIntValue(split(win, "_")[1])
+                                            let levelFinal = if (double)
+                                                then (2 * level)
+                                                else level
+                                            let call = invoke(getBabyDuckAddress(), "issueFreeDuckling", [address, txId, levelFinal], nil)
+                                            if ((call == call))
+                                                then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                    let @ = call
+                                                    if ($isInstanceOf(@, "String"))
+                                                        then @
+                                                        else throw(($getType(@) + " couldn't be cast to String"))
+                                                    })]
+                                                else throw("Strict value is not equal to itself.")
+                                            }
+                                        else if ((win == "trtl_incubator"))
+                                            then {
+                                                let call = if (!(double))
+                                                    then {
+                                                        let first = invoke(getTurtleIncubatorAddress(), "issueFreeTurtle", [address, txId], nil)
+                                                        if ((first == first))
+                                                            then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                                let @ = first
+                                                                if ($isInstanceOf(@, "String"))
+                                                                    then @
+                                                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                                                })]
+                                                            else throw("Strict value is not equal to itself.")
+                                                        }
+                                                    else {
+                                                        let first = invoke(getTurtleIncubatorAddress(), "issueFreeTurtle", [address, txId], nil)
+                                                        if ((first == first))
+                                                            then {
+                                                                let second = invoke(getCanineIncubatorAddress(), "issueFree", [address, txId], nil)
+                                                                if ((second == second))
+                                                                    then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                                        let @ = first
+                                                                        if ($isInstanceOf(@, "String"))
+                                                                            then @
+                                                                            else throw(($getType(@) + " couldn't be cast to String"))
+                                                                        }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result1"), {
+                                                                        let @ = second
+                                                                        if ($isInstanceOf(@, "String"))
+                                                                            then @
+                                                                            else throw(($getType(@) + " couldn't be cast to String"))
+                                                                        }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_win1"), "trtl_incubator")]
+                                                                    else throw("Strict value is not equal to itself.")
+                                                                }
+                                                            else throw("Strict value is not equal to itself.")
+                                                        }
+                                                if ((call == call))
+                                                    then call
+                                                    else throw("Strict value is not equal to itself.")
+                                                }
+                                            else if ((win == "jackpot_canine"))
+                                                then {
+                                                    let call = invoke(getCanineIncubatorAddress(), "issueJackpot", [address, txId, "WWROBCNJ"], nil)
+                                                    if ((call == call))
+                                                        then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                            let @ = call
+                                                            if ($isInstanceOf(@, "String"))
+                                                                then @
+                                                                else throw(($getType(@) + " couldn't be cast to String"))
+                                                            })]
+                                                        else throw("Strict value is not equal to itself.")
+                                                    }
+                                                else if ((indexOf(win, "item") != unit))
+                                                    then {
+                                                        let itemName = split(win, "!")[1]
+                                                        let call = if (!(double))
+                                                            then {
+                                                                let first = invoke(getItemsAddress(), "issueArtefactIndex", [itemName, address, 0], nil)
+                                                                if ((first == first))
+                                                                    then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                                        let @ = first
+                                                                        if ($isInstanceOf(@, "String"))
+                                                                            then @
+                                                                            else throw(($getType(@) + " couldn't be cast to String"))
+                                                                        })]
+                                                                    else throw("Strict value is not equal to itself.")
+                                                                }
+                                                            else {
+                                                                let first = invoke(getItemsAddress(), "issueArtefactIndex", [itemName, address, 0], nil)
+                                                                if ((first == first))
+                                                                    then {
+                                                                        let second = invoke(getItemsAddress(), "issueArtefactIndex", [itemName, address, 1], nil)
+                                                                        if ((second == second))
+                                                                            then [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result"), {
+                                                                                let @ = first
+                                                                                if ($isInstanceOf(@, "String"))
+                                                                                    then @
+                                                                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                                                                }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_result1"), {
+                                                                                let @ = second
+                                                                                if ($isInstanceOf(@, "String"))
+                                                                                    then @
+                                                                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                                                                }), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_win1"), win)]
+                                                                            else throw("Strict value is not equal to itself.")
+                                                                        }
+                                                                    else throw("Strict value is not equal to itself.")
+                                                                }
+                                                        if ((call == call))
+                                                            then call
+                                                            else throw("Strict value is not equal to itself.")
+                                                        }
+                                                    else throw(("RFB: Some error occured, please contact the admins! " + win))
+                            if ((result == result))
+                                then {
+                                    let returnToSender = if (rescue)
+                                        then getRandomReturn(fromBase58String(initTx), finishBlock)
+                                        else false
+                                    let returnPayload = if (returnToSender)
+                                        then {
+                                            let assetId = fromBase58String(getStringValue((((("address_" + address) + "_initTx_") + initTx) + "_assetId")))
+                                            let issuer = checkReal(assetId)
+                                            let gen = {
+                                                let @ = invoke(getCanineBreederAddress(), "getGenFromName", [value(assetInfo(assetId)).name], nil)
+                                                if ($isInstanceOf(@, "String"))
+                                                    then @
+                                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                                }
+                                            if ((gen == gen))
+                                                then {
+                                                    let call = invoke(issuer, "increaseRarity", [toBase58String(assetId), gen], nil)
+                                                    if ((call == call))
+                                                        then [ScriptTransfer(addressFromStringValue(address), 1, assetId)]
+                                                        else throw("Strict value is not equal to itself.")
+                                                    }
+                                                else throw("Strict value is not equal to itself.")
+                                            }
+                                        else nil
+                                    ((((result ++ [StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_win"), win), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_status"), "finish"), IntegerEntry((((("address_" + address) + "_initTx_") + initTx) + "_random"), random)]) ++ validPayment) ++ returnPayload) ++ bonusItemOutput("rebirth", address, initTx, finishBlock))
+                                    }
+                                else throw("Strict value is not equal to itself.")
+                            }
+                else throw("Strict value is not equal to itself.")
+            }
+        else throw("Strict value is not equal to itself.")
+    }
+
+
+@Callable(i)
+func configureOracle (oracle) = if ((i.caller != this))
+    then throw("RCU: admin only")
+    else [StringEntry("static_oracleAddress", oracle)]
+
+
+
+@Callable(i)
+func initRebirth () = if ((size(i.payments) != 2))
+    then throw("Invalid rebirth payments")
+    else {
+        let pmtCanine = i.payments[0]
+        let pmtWaves = i.payments[1]
+        let assetId = value(pmtCanine.assetId)
+        let initTx = toBase58String(i.transactionId)
+        let address = toString(i.caller)
+        if ((pmtCanine.amount != 1))
+            then throw("NFT is not attached")
+            else if (if ((pmtWaves.amount != wavesAmount))
+                then true
+                else (pmtWaves.assetId != unit))
+                then throw("Wavespayment is not attached or wrong!")
+                else {
+                    let topup = (pmtWaves.amount / 4)
+                    let sendToAggreGator = (pmtWaves.amount - topup)
+                    let addMore = invoke(getCanineStakingAddress(), "addWavesAndStakeMore", nil, [AttachedPayment(unit, topup)])
+                    if ((addMore == addMore))
+                        then {
+                            let issuer = checkReal(assetId)
+                            let gen = {
+                                let @ = invoke(getCanineBreederAddress(), "getGenFromName", [value(assetInfo(assetId)).name], nil)
+                                if ($isInstanceOf(@, "String"))
+                                    then @
+                                    else throw(($getType(@) + " couldn't be cast to String"))
+                                }
+                            if ((gen == gen))
+                                then {
+                                    let call = invoke(issuer, "reduceRarity", [toBase58String(assetId), gen], nil)
+                                    if ((call == call))
+                                        then [IntegerEntry((((("address_" + address) + "_initTx_") + initTx) + "_finishBlock"), (height + delayForHatching)), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_status"), "open"), StringEntry((((("address_" + address) + "_initTx_") + initTx) + "_assetId"), toBase58String(assetId)), ScriptTransfer(getFeeAggregator(), sendToAggreGator, unit)]
+                                        else throw("Strict value is not equal to itself.")
+                                    }
+                                else throw("Strict value is not equal to itself.")
+                            }
+                        else throw("Strict value is not equal to itself.")
+                    }
+        }
+
+
+
+@Callable(i)
+func finishRebirth (initTx) = finishRebirthInternal(initTx, toString(i.caller), i.payments[0], false, "", false)
+
+
+
+@Callable(i)
+func finishRebirthDouble (initTx) = if (!(if ((size(i.payments) == 2))
+    then (i.payments[0].amount == 1)
+    else false))
+    then throw("Invalid payment")
+    else {
+        let assetId = value(i.payments[0].assetId)
+        let boosterType = {
+            let @ = invoke(getItemsAddress(), "checkArtefactDetails", [toBase58String(assetId)], nil)
+            if ($isInstanceOf(@, "String"))
+                then @
+                else throw(($getType(@) + " couldn't be cast to String"))
+            }
+        if ((boosterType == boosterType))
+            then if ((boosterType == "ART-GIFT_DOUBL"))
+                then ([Burn(assetId, 1)] ++ finishRebirthInternal(initTx, toString(i.caller), i.payments[1], true, "", false))
+                else throw("Error! Wrong item attached to double rewards!")
+            else throw("Strict value is not equal to itself.")
+        }
+
+
+
+@Callable(i)
+func finishRebirthItem (initTx,itemCode) = if (if ((size(i.payments) == 2))
+    then (i.payments[0].amount == 1)
+    else false)
+    then {
+        let assetId = value(i.payments[0].assetId)
+        let boosterType = {
+            let @ = invoke(getItemsAddress(), "checkArtefactDetails", [toBase58String(assetId)], nil)
+            if ($isInstanceOf(@, "String"))
+                then @
+                else throw(($getType(@) + " couldn't be cast to String"))
+            }
+        if ((boosterType == boosterType))
+            then if ((boosterType == "ART-HWERASE"))
+                then ([Burn(assetId, 1)] ++ finishRebirthInternal(initTx, toString(i.caller), i.payments[1], false, itemCode, false))
+                else if ((boosterType == "ART-HWRESCUE"))
+                    then ([Burn(assetId, 1)] ++ finishRebirthInternal(initTx, toString(i.caller), i.payments[1], false, "", true))
+                    else if ((boosterType == "ART-GIFT_DOUBL"))
+                        then ([Burn(assetId, 1)] ++ finishRebirthInternal(initTx, toString(i.caller), i.payments[1], true, "", false))
+                        else throw("Error! Wrong item attached ")
+            else throw("Strict value is not equal to itself.")
+        }
+    else if ((size(i.payments) == 1))
+        then finishRebirthInternal(initTx, toString(i.caller), i.payments[0], false, "", false)
+        else throw("Invalid payments")
+
+
+@Verifier(tx)
+func verify () = if (isTestEnv())
+    then sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+    else {
+        let firstUser = base58'6TdaXEfhnjYquvPf3yV7MFxt2CbgFmaqsvGwkKfXtKi4'
+        let secondUser = base58'7DsP2WaMLocbHuUxux7pbXRjTrrZ1TFQPsi5QumS3gr8'
+        let thirdUser = base58'BpFWP3p3JgYrrP45xfrKzeMcWMEXoinj4FVPPkUiA8D3'
+        let firstUserSigned = if (sigVerify(tx.bodyBytes, tx.proofs[0], firstUser))
+            then 1
+            else if (sigVerify(tx.bodyBytes, tx.proofs[1], firstUser))
+                then 1
+                else if (sigVerify(tx.bodyBytes, tx.proofs[2], firstUser))
+                    then 1
+                    else 0
+        let secondUserSigned = if (sigVerify(tx.bodyBytes, tx.proofs[0], secondUser))
+            then 1
+            else if (sigVerify(tx.bodyBytes, tx.proofs[1], secondUser))
+                then 1
+                else if (sigVerify(tx.bodyBytes, tx.proofs[2], secondUser))
+                    then 1
+                    else 0
+        let thirdUserSigned = if (sigVerify(tx.bodyBytes, tx.proofs[0], thirdUser))
+            then 1
+            else if (sigVerify(tx.bodyBytes, tx.proofs[1], thirdUser))
+                then 1
+                else if (sigVerify(tx.bodyBytes, tx.proofs[2], thirdUser))
+                    then 1
+                    else 0
+        let signaturesCount = ((firstUserSigned + secondUserSigned) + thirdUserSigned)
+        match tx {
+            case _ => 
+                (signaturesCount >= 1)
+        }
+        }

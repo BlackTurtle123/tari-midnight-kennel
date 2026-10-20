@@ -79,3 +79,26 @@ export function rebirthDeployment():
     );
   return d;
 }
+
+export function breedingDeployment():
+  (Deployment & import("../shared/breeding.ts").BreedingConfig) | undefined {
+  const path = join(DATA_DIR, "breeding-v1.json");
+  if (!existsSync(path)) return undefined;
+  const d = JSON.parse(readFileSync(path, "utf8"));
+  if (
+    d.network !== "esmeralda" ||
+    !/^component_[a-f0-9]{64}$/.test(d.component) ||
+    !/^template_[a-f0-9]{64}$/.test(d.template) ||
+    ![d.resource, d.current, d.legacy].every(
+      (v: unknown) =>
+        typeof v === "string" && /^resource_[a-f0-9]{64}$/.test(v),
+    ) ||
+    !Number.isSafeInteger(d.fee) ||
+    d.fee <= 0 ||
+    d.fee > 100_000_000 ||
+    d.current !== deployment().resource ||
+    d.legacy !== (legacyResource() ?? deployment().resource)
+  )
+    throw new Error("Invalid breeding deployment; previous assets preserved");
+  return d;
+}

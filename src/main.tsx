@@ -19,6 +19,8 @@ import {
 import { CanineArt, DoorArt } from "./CanineArt";
 import { SecretExperience } from "./SecretExperience";
 import { ExternalWallet } from "./external-wallet";
+import { Rules } from "./Rules";
+import { Breeding } from "./Breeding";
 import { Rebirth, RewardArt } from "./Rebirth";
 import { WalletTools } from "./WalletTools";
 import {
@@ -55,12 +57,37 @@ const short = (s?: string) => (s ? `${s.slice(0, 16)}…${s.slice(-8)}` : "");
 function App() {
   const external = useRef<ExternalWallet | null>(null);
   const generation = useRef(0);
-  const [tab, setTab] = useState("incubator"),
+  const pages = [
+    "incubator",
+    "breeding",
+    "rebirth",
+    "staking",
+    "collection",
+    "secrets",
+    "rules",
+  ];
+  const fromHash = () =>
+    pages.includes(location.hash.slice(1))
+      ? location.hash.slice(1)
+      : "incubator";
+  const [tab, setTabState] = useState(fromHash),
     [state, setState] = useState<GameState>(empty),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [opening, setOpening] = useState<Opening | null>(null),
     [connectDialog, setConnectDialog] = useState(false);
+  const setTab = (page: string) => {
+    if (location.hash.slice(1) === page) setTabState(page);
+    else location.hash = page;
+  };
+  useEffect(() => {
+    const change = () => {
+      setTabState(fromHash());
+      window.scrollTo({ top: 0 });
+    };
+    window.addEventListener("hashchange", change);
+    return () => window.removeEventListener("hashchange", change);
+  }, []);
   const refresh = async () => {
     const g = generation.current;
     const s = external.current ? await external.current.state() : empty;
@@ -130,7 +157,7 @@ function App() {
   return (
     <>
       <header className="header">
-        <a className="brand" href="#" onClick={() => setTab("incubator")}>
+        <a className="brand" href="#incubator">
           <span>
             <img
               className="arkimals-logo"
@@ -143,9 +170,12 @@ function App() {
         <nav aria-label="Main navigation">
           {[
             ["incubator", "The incubator"],
-            ["rebirth", "Rebirth & staking"],
+            ["breeding", "Breeding"],
+            ["rebirth", "Rebirth"],
+            ["staking", "Staking"],
             ["collection", "My pack"],
             ["secrets", "Spooky Secrets"],
+            ["rules", "Game rules"],
           ].map(([key, label]) => (
             <button
               key={key}
@@ -441,9 +471,20 @@ function App() {
             </section>
           </>
         )}
-        {tab === "rebirth" && (
+        {tab === "rules" && <Rules />}
+        {tab === "breeding" && (
+          <Breeding
+            key={state.account ?? "guest"}
+            state={state}
+            wallet={external.current}
+            refresh={refresh}
+            connect={() => setConnectDialog(true)}
+          />
+        )}
+        {(tab === "rebirth" || tab === "staking") && (
           <Rebirth
-            key={"rebirth:" + state.account}
+            key={tab + ":" + state.account}
+            mode={tab}
             state={state}
             external={external.current}
             refresh={refresh}

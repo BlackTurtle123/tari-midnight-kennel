@@ -130,3 +130,35 @@ export function parseLegacyCanine(
     legacy: true,
   };
 }
+
+export function parseBredCanine(raw: unknown, resource: string): Canine | null {
+  if (!raw || typeof raw !== "object") return null;
+  let d = raw as Record<string, unknown>;
+  if (d["@cbor"] === "tag") d = d.value as Record<string, unknown>;
+  if (
+    !d ||
+    typeof d.genes !== "string" ||
+    !/^[A-H]{8}$/.test(d.genes) ||
+    typeof d.generation !== "string" ||
+    !/^[1-7]$/.test(d.generation) ||
+    typeof d.color !== "string" ||
+    !/^[A-D]$/.test(d.color) ||
+    typeof d.breeding_id !== "string" ||
+    !/^[a-f0-9]{64}$/.test(d.breeding_id) ||
+    d.art_version !== "waves-canines-v1" ||
+    d.name !== "Arkimals Canine" ||
+    d.genotype !==
+      `CANI-${d.genes}-${"GHIKLMNO"[Number(d.generation)]}${d.color}`
+  )
+    return null;
+  return {
+    id: d.breeding_id,
+    resource,
+    variant: 0,
+    name: d.name,
+    genes: d.genes,
+    generation: Number(d.generation),
+    color: d.color as keyof typeof COLOR_NAMES,
+    genotype: d.genotype as string,
+  };
+}
