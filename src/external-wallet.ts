@@ -444,9 +444,11 @@ export class ExternalWallet {
       await this.check();
       const state = await this.chainState(),
         config = component
-          ? [state.rebirth, state.offspringRebirth].find(
-              (c) => c?.component === component,
-            )
+          ? [
+              state.rebirth,
+              state.offspringRebirth,
+              ...(state.recoveryEconomies ?? []).map((r) => r.config),
+            ].find((c) => c?.component === component)
           : state.rebirth;
       if (!config) throw new Error("Economy contracts are being prepared");
       if (!/^[a-f0-9]{32}$/.test(nonce))
@@ -459,6 +461,13 @@ export class ExternalWallet {
       );
       if (r?.economySubmitted) return;
       if (!r) {
+        if (
+          config.component !== state.rebirth?.component &&
+          (action.kind === "begin" || action.kind === "stake")
+        )
+          throw new Error(
+            "This contract is recovery-only. Use the shared canine farm.",
+          );
         if (this.pendingEconomy(config).length)
           throw new Error(
             "Resume the saved wallet action before starting another",

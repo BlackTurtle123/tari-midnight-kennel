@@ -9,6 +9,7 @@ import {
   rebirthDeployment,
   offspringRebirthDeployment,
   breedingDeployment,
+  unifiedRebirthDeployment,
   TARI_RESOURCE,
 } from "./config.ts";
 import {
@@ -151,7 +152,8 @@ export async function publicInventory(
   const canines: Canine[] = [];
   const halloween: HalloweenNFT[] = [],
     rebirth = rebirthDeployment(),
-    offspring = offspringRebirthDeployment();
+    offspring = offspringRebirthDeployment(),
+    unified = unifiedRebirthDeployment();
   let balance = 0n;
   for (const id of vaults) {
     const v = liveSubstate(await p.getSubstate(id));
@@ -166,6 +168,7 @@ export async function publicInventory(
         legacyResource(),
         rebirth?.resource,
         offspring?.resource,
+        unified?.resource,
         breedingDeployment()?.resource,
       ].includes(c.NonFungible.address)
     )
@@ -184,7 +187,11 @@ export async function publicInventory(
       );
       if (!("NonFungible" in nft.substate) || !nft.substate.NonFungible)
         continue;
-      if (resource === rebirth?.resource || resource === offspring?.resource) {
+      if (
+        [rebirth?.resource, offspring?.resource, unified?.resource].includes(
+          resource,
+        )
+      ) {
         const reward = parseHalloween(nft.substate.NonFungible.data, resource);
         if (reward && reward.id === token.String) halloween.push(reward);
         continue;

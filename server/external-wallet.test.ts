@@ -464,3 +464,44 @@ for (const failure of ["create", "submit"] as const)
     assert.equal(f.creates, 1);
     assert.equal(f.calls.includes("tari_requestViewAccess"), false);
   });
+
+test("shared farm transition resumes an old signed rebirth but rejects new deposits to recovery contracts", async () => {
+  const f = fixture("submit");
+  const old = {
+    component: "component_" + "34".repeat(32),
+    resource: "resource_" + "56".repeat(32),
+    current: "resource_" + "12".repeat(32),
+    legacy: "resource_" + "12".repeat(32),
+    staking: "component_" + "ab".repeat(32),
+    fee: 8_000_000,
+  };
+  f.chain.rebirth = old;
+  const action = {
+    kind: "begin" as const,
+    resource: old.current,
+    id: "78".repeat(16),
+  };
+  const nonce = "ef".repeat(16);
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(
+    w.act(action, nonce, old.component),
+    /Lost submission response/,
+  );
+  f.chain.rebirth = {
+    ...old,
+    component: "component_" + "90".repeat(32),
+    staking: "component_" + "91".repeat(32),
+  };
+  f.chain.recoveryEconomies = [{ config: old }];
+  const restored = await ExternalWallet.connect(f.api, () => {});
+  await restored.act(action, nonce, old.component);
+  assert.equal(restored.pendingEconomy(old).length, 0);
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 1);
+  for (const kind of ["begin", "stake"] as const)
+    await assert.rejects(
+      restored.act({ ...action, kind }, "11".repeat(16), old.component),
+      /recovery-only/,
+    );
+  assert.equal(f.creates, 1);
+});

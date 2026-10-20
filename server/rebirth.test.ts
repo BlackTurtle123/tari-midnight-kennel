@@ -256,3 +256,30 @@ test("offspring IDs work throughout economy instructions without admitting unsup
     child,
   );
 });
+
+test("incubated and bred canines route staking and rebirth to the same shared economy", () => {
+  const unified = { ...config, offspring: "resource_" + "ee".repeat(32) };
+  for (const source of [unified.current, unified.legacy, unified.offspring]) {
+    for (const kind of ["stake", "begin"] as const) {
+      const instructions = economyInstructions(unified, account, {
+        kind,
+        resource: source,
+        id,
+      });
+      const last = instructions.at(-1)!;
+      assert.ok(typeof last === "object" && "CallMethod" in last);
+      assert.deepEqual(last.CallMethod.call, {
+        Address: kind === "stake" ? unified.staking : unified.component,
+      });
+    }
+  }
+  assert.throws(
+    () =>
+      economyInstructions(unified, account, {
+        kind: "stake",
+        resource: "resource_" + "ff".repeat(32),
+        id,
+      }),
+    /Unsupported canine/,
+  );
+});

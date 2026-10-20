@@ -15,7 +15,15 @@ This is a production-target rule inventory, **not a production-readiness certifi
 - [x] Exact reference implementations of supply-based incubation price, rarity grouping and FP integer arithmetic, with regression tests.
 - [x] Main-game rules and current release differences visible in the app.
 - [x] Staging activation path authorized: 1 native test tTARI breeding fee, treasury funded; no EGG equivalence. Deployment is append-only with explicit descriptors and receipt reconciliation.
-- [x] Route bred offspring through an additive equal-share staking pool and the existing Halloween rebirth edition. Engine test covers offspring stake, retirement, reward mint, 75% funded claim, unauthorized withdrawal and return of the staked NFT. This is a complete supported lifecycle, not production FP/item parity.
+- [x] One shared staking component and one active rebirth component accept incubated, legacy and bred canine resources. Earlier components are recovery-only in the app: preserve withdrawals, claims, pending draws and saved approvals. Never create a collection-specific pool. This corrects pool topology; production FP/perch/item and leasing parity remain pending.
+
+## Shared-farm staging transition
+
+After deploying the tested application and template binaries, run `npm run deploy:unified-economy` once with the existing operator wallet. It creates `staking-unified-v2.json` and `rebirth-unified-v2.json` with independent durable publication journals; existing descriptors are never replaced. Re-running preserves completed deployments and refuses ambiguous submissions until receipts are reconciled.
+
+The application activates the shared farm only when the complete rebirth descriptor validates against all three canine collections. Previous pools remain available through “Move your existing stakes”: owners withdraw their canine and earned rewards, then approve a stake in the shared farm. Pending old rebirths retain their original draw, fee recipient and recovery actions. Their epoch keepers and saved wallet approvals continue to work. Previously minted Halloween NFTs stay in inventory. An old pool can still receive a fee from its already-started rebirth; it is not offered for new deposits in the app.
+
+This is a voluntary contract transition, not an automatic movement of player assets. The engine regression stakes an incubated parent and a bred child in the same component, completes a bred canine rebirth, and verifies both positions claim half of the funded 75% reward share.
 
 ## Incubation
 

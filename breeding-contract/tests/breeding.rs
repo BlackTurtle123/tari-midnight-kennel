@@ -301,18 +301,31 @@ fn breeding_escrows_returns_and_enforces_lifetime_usage_and_refund() {
             .balance(),
         Amount::from(4_000_000u64)
     );
-    // Offspring retain a complete lifecycle in additive v1 economy instances.
+    // Incubated and bred canines share one reward index and one rebirth destination.
     let stake: ComponentAddress = t.call_function(
         "ArkimalsStaking",
-        "new",
-        args![bred, bred, treasury],
+        "new_unified",
+        args![resource, resource, bred, treasury],
         vec![],
     );
     let rebirth: ComponentAddress = t.call_function(
         "ArkimalsRebirth",
-        "new",
-        args![bred, bred, stake, treasury, 8_000_000u64],
+        "new_unified",
+        args![resource, resource, bred, stake, treasury, 8_000_000u64],
         vec![],
+    );
+    let founding_stake_id = format!("{resource}|str_{}", ids[0]);
+    t.execute_expect_success(
+        t.transaction()
+            .call_method(
+                account,
+                "withdraw_non_fungible",
+                args![resource, NonFungibleId::from_string(ids[0].clone())],
+            )
+            .put_last_instruction_output_on_workspace("founder")
+            .call_method(stake, "stake", args![Workspace("founder"), account])
+            .build_and_seal(&key),
+        vec![proof.clone()],
     );
     let staked_id = format!("{bred}|str_{}", rid(0, 1));
     t.execute_expect_success(
@@ -352,7 +365,7 @@ fn breeding_escrows_returns_and_enforces_lifetime_usage_and_refund() {
     );
     t.call_method::<()>(rebirth, "finish_rebirth", args![rebirth_id.clone()], vec![]);
     let totals: (u32, u128, u64, u64, u64) = t.call_method(stake, "get_totals", args![], vec![]);
-    assert_eq!(totals.0, 1);
+    assert_eq!(totals.0, 2);
     assert_eq!(totals.2, 6_000_000);
     // Another signer cannot withdraw the stake or its funded rewards.
     t.execute_expect_failure(
@@ -364,6 +377,15 @@ fn breeding_escrows_returns_and_enforces_lifetime_usage_and_refund() {
     t.execute_expect_success(
         t.transaction()
             .call_method(stake, "unstake", args![staked_id])
+            .build_and_seal(&key),
+        vec![],
+    );
+    let totals: (u32, u128, u64, u64, u64) = t.call_method(stake, "get_totals", args![], vec![]);
+    assert_eq!(totals.0, 1);
+    assert_eq!(totals.3, 3_000_000);
+    t.execute_expect_success(
+        t.transaction()
+            .call_method(stake, "unstake", args![founding_stake_id])
             .build_and_seal(&key),
         vec![],
     );

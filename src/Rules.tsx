@@ -13,7 +13,7 @@ export function Rules() {
     [
       "Breeding",
       "Two parents; one completed breeding each; eight independent inherited genes; next generation; parents returned.",
-      "Breeding is activated when its on-chain deployment is available. Bred canines have their own staking and Halloween rebirth pool; original positions stay in the founding pool.",
+      "Incubated and bred canines belong to one shared farm. Earlier positions remain available to withdraw and claim during the contract transition.",
     ],
     [
       "Perches",

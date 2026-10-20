@@ -37,10 +37,26 @@ mod arkimals_staking {
             legacy: ResourceAddress,
             treasury: ComponentAddress,
         ) -> Component<Self> {
+            Self::create_pool(vec![current, legacy], treasury)
+        }
+        /// Collection provenance must not partition canine farming income.
+        pub fn new_unified(
+            current: ResourceAddress,
+            legacy: ResourceAddress,
+            offspring: ResourceAddress,
+            treasury: ComponentAddress,
+        ) -> Component<Self> {
+            Self::create_pool(vec![current, legacy, offspring], treasury)
+        }
+        fn create_pool(
+            resources: Vec<ResourceAddress>,
+            treasury: ComponentAddress,
+        ) -> Component<Self> {
             let mut vaults = BTreeMap::new();
-            vaults.insert(current, Vault::new_empty(current));
-            if current != legacy {
-                vaults.insert(legacy, Vault::new_empty(legacy));
+            for resource in resources {
+                if !vaults.contains_key(&resource) {
+                    vaults.insert(resource, Vault::new_empty(resource));
+                }
             }
             Component::new(Self {
                 vaults,
@@ -70,7 +86,7 @@ mod arkimals_staking {
             let vault = self
                 .vaults
                 .get(&resource)
-                .expect("Only original canine collections may stake");
+                .expect("Only registered canine collections may stake");
             let ids = canine.get_non_fungible_ids();
             assert_eq!(ids.len(), 1, "Stake exactly one canine");
             let token = ids[0].clone();

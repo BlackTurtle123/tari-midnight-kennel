@@ -7,9 +7,9 @@ import type { GameState } from "../shared/game.ts";
 import {
   DATA_DIR,
   deployment,
-  rebirthDeployment,
-  offspringRebirthDeployment,
   breedingDeployment,
+  activeRebirthDeployment,
+  recoveryRebirthDeployments,
   OPERATOR_NAME,
   TARI_RESOURCE,
 } from "./config.ts";
@@ -135,8 +135,10 @@ export class ExternalService {
       account,
       component: d.component,
       resource: d.resource,
-      rebirth: rebirthDeployment(),
-      offspringRebirth: offspringRebirthDeployment(),
+      rebirth: activeRebirthDeployment(),
+      recoveryEconomies: recoveryRebirthDeployments().map((config) => ({
+        config,
+      })),
       breedingConfig: breedingDeployment(),
       canines: [],
       incubations: chain.map((c) => {
@@ -160,12 +162,10 @@ export class ExternalService {
     };
     try {
       Object.assign(state, await publicInventory(account));
-      if (state.rebirth) state.economy = await economySnapshot(account);
-      if (state.offspringRebirth)
-        state.offspringEconomy = await economySnapshot(
-          account,
-          state.offspringRebirth,
-        );
+      if (state.rebirth)
+        state.economy = await economySnapshot(account, state.rebirth);
+      for (const recovery of state.recoveryEconomies ?? [])
+        recovery.state = await economySnapshot(account, recovery.config);
       if (state.breedingConfig)
         state.breeding = await breedingSnapshot(account);
     } catch {

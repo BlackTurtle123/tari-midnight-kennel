@@ -26,18 +26,28 @@ import {
   TARI_RESOURCE,
   deployment,
   legacyResource,
+  breedingDeployment,
 } from "../server/config.ts";
 
-const deploymentPath = join(DATA_DIR, "rebirth-v1.json");
+const unified = process.argv.includes("--unified");
+const name = unified ? "rebirth-unified-v2" : "rebirth-v1";
+const offspring = unified ? breedingDeployment()?.resource : undefined;
+if (unified && !offspring)
+  throw new Error("Activate breeding before the shared economy");
+const deploymentPath = join(DATA_DIR, `${name}.json`);
 const current = deployment().resource;
 const legacy = legacyResource() ?? current;
 const stake = JSON.parse(
-  readFileSync(join(DATA_DIR, "staking-v1.json"), "utf8"),
+  readFileSync(
+    join(DATA_DIR, unified ? "staking-unified-v2.json" : "staking-v1.json"),
+    "utf8",
+  ),
 );
 if (
   stake.network !== "esmeralda" ||
   stake.current !== current ||
   stake.legacy !== legacy ||
+  (unified && stake.offspring !== offspring) ||
   !/^component_[a-f0-9]{64}$/.test(stake.component)
 )
   throw new Error("Invalid staking deployment");
@@ -47,7 +57,7 @@ if (existsSync(deploymentPath)) {
   process.exit(0);
 }
 mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
-const logPath = join(DATA_DIR, "rebirth-v1-deployment-journal.jsonl");
+const logPath = join(DATA_DIR, `${name}-deployment-journal.jsonl`);
 const log: Record<string, string> = existsSync(logPath)
   ? Object.assign(
       {},
@@ -139,13 +149,20 @@ if (!log.creationTx) {
   remember("creationSubmittingAt", new Date().toISOString());
   const sent = await submit(
     OPERATOR_NAME,
-    constructorInstructions(template, [
-      resourceAddressLiteral(current as `resource_${string}`),
-      resourceAddressLiteral(legacy as `resource_${string}`),
-      componentAddressLiteral(stake.component),
-      componentAddressLiteral(operator.account.component_address),
-      intLiteral(BigInt(fee)),
-    ]),
+    constructorInstructions(
+      template,
+      [
+        resourceAddressLiteral(current as `resource_${string}`),
+        resourceAddressLiteral(legacy as `resource_${string}`),
+        ...(offspring
+          ? [resourceAddressLiteral(offspring as `resource_${string}`)]
+          : []),
+        componentAddressLiteral(stake.component),
+        componentAddressLiteral(operator.account.component_address),
+        intLiteral(BigInt(fee)),
+      ],
+      unified ? "new_unified" : "new",
+    ),
   );
   remember("creationTx", sent.transaction_id);
 }
@@ -170,6 +187,7 @@ writeFileSync(
       network: "esmeralda",
       current,
       legacy,
+      ...(offspring ? { offspring } : {}),
       template,
       component,
       resource,

@@ -107,6 +107,10 @@ export interface IncubationView {
   error?: string;
 }
 export interface GameState {
+  recoveryEconomies?: {
+    config: import("./rebirth.ts").RebirthConfig;
+    state?: import("./rebirth.ts").EconomyState;
+  }[];
   offspringRebirth?: import("./rebirth.ts").RebirthConfig;
   offspringEconomy?: import("./rebirth.ts").EconomyState;
   breedingConfig?: import("./breeding.ts").BreedingConfig;

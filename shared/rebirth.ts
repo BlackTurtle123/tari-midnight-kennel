@@ -69,6 +69,7 @@ export interface RebirthConfig {
   resource: string;
   current: string;
   legacy: string;
+  offspring?: string;
   staking: string;
   fee: number;
 }
@@ -144,7 +145,11 @@ export function economyInstructions(
   const workspace = (id: number) => ({ Workspace: { id, offset: null } });
   if (action.kind === "begin" || action.kind === "stake") {
     validateRebirth(action);
-    if (![config.current, config.legacy].includes(action.resource))
+    if (
+      ![config.current, config.legacy, config.offspring].includes(
+        action.resource,
+      )
+    )
       throw new Error("Unsupported canine collection");
     const result: Instruction[] = [
       call(account, "withdraw_non_fungible", [

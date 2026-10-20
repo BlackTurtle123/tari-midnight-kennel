@@ -103,7 +103,7 @@ export function breedingDeployment():
   return d;
 }
 
-// Additive collection: the original pool and all of its receipts remain authoritative.
+// Retained for withdrawals, pending rituals and receipts from the retired offspring pool.
 export function offspringRebirthDeployment(): ReturnType<
   typeof rebirthDeployment
 > {
@@ -131,4 +131,43 @@ export function offspringRebirthDeployment(): ReturnType<
       "Invalid offspring economy deployment; original pool preserved",
     );
   return d;
+}
+
+export function unifiedRebirthDeployment():
+  | (NonNullable<ReturnType<typeof rebirthDeployment>> & { offspring: string })
+  | undefined {
+  const path = join(DATA_DIR, "rebirth-unified-v2.json");
+  if (!existsSync(path)) return undefined;
+  const d = JSON.parse(readFileSync(path, "utf8"));
+  const bred = breedingDeployment();
+  if (
+    !bred ||
+    d.network !== "esmeralda" ||
+    ![d.component, d.staking].every(
+      (v) => typeof v === "string" && /^component_[a-f0-9]{64}$/.test(v),
+    ) ||
+    !/^template_[a-f0-9]{64}$/.test(d.template) ||
+    !/^resource_[a-f0-9]{64}$/.test(d.resource) ||
+    d.current !== deployment().resource ||
+    d.legacy !== (legacyResource() ?? deployment().resource) ||
+    d.offspring !== bred.resource ||
+    !Number.isSafeInteger(d.fee) ||
+    d.fee <= 0 ||
+    d.fee > 100_000_000
+  )
+    throw new Error(
+      "Invalid unified economy deployment; previous assets preserved",
+    );
+  return d;
+}
+
+export function activeRebirthDeployment() {
+  return unifiedRebirthDeployment() ?? rebirthDeployment();
+}
+
+export function recoveryRebirthDeployments() {
+  return [
+    ...(unifiedRebirthDeployment() ? [rebirthDeployment()] : []),
+    offspringRebirthDeployment(),
+  ].filter((c): c is NonNullable<typeof c> => !!c);
 }

@@ -39,21 +39,19 @@ export function Rebirth({
   connect: () => void;
   incubate: () => void;
 }) {
-  const [pool, setPool] = useState<"original" | "offspring">("original");
-  const allState = state;
-  const config = pool === "offspring" ? state.offspringRebirth : state.rebirth;
+  const config = state.rebirth;
   state = {
     ...state,
-    rebirth: config,
-    economy: pool === "offspring" ? state.offspringEconomy : state.economy,
     canines: state.canines.filter(
       (c) =>
-        config && [config.current, config.legacy].includes(c.resource ?? ""),
+        config &&
+        [config.current, config.legacy, config.offspring].includes(c.resource),
     ),
   };
   const [review, setReview] = useState<{
       action: EconomyAction;
       nonce: string;
+      component?: string;
     } | null>(null),
     [ack, setAck] = useState(false),
     [busy, setBusy] = useState(false),
@@ -65,11 +63,27 @@ export function Rebirth({
         .getElementById("economy-review")
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [review]);
-  const externalPending =
-    external && state.rebirth ? external.pendingEconomy(state.rebirth) : [];
-  const beginReview = (action: EconomyAction) => {
+  const configs = [
+    state.rebirth,
+    ...(state.recoveryEconomies ?? []).map((r) => r.config),
+  ].filter((c) => !!c);
+  const externalPending = external
+    ? configs.flatMap((config) =>
+        external
+          .pendingEconomy(config)
+          .map((r) => ({ ...r, component: config.component })),
+      )
+    : [];
+  const beginReview = (
+    action: EconomyAction,
+    component = state.rebirth?.component,
+  ) => {
     setAck(false);
-    setReview({ action, nonce: crypto.randomUUID().replaceAll("-", "") });
+    setReview({
+      action,
+      component,
+      nonce: crypto.randomUUID().replaceAll("-", ""),
+    });
   };
   async function run(fn: () => Promise<void>) {
     setBusy(true);
@@ -86,41 +100,39 @@ export function Rebirth({
       setBusy(false);
     }
   }
-  async function send(request: { action: EconomyAction; nonce: string }) {
+  async function send(request: {
+    action: EconomyAction;
+    nonce: string;
+    component?: string;
+  }) {
     if (!external) throw new Error("Connect Sapient to continue");
-    await external.act(request.action, request.nonce, state.rebirth?.component);
+    await external.act(
+      request.action,
+      request.nonce,
+      request.component ?? state.rebirth?.component,
+    );
     setMessage("Submitted in Sapient. Refresh to see the confirmed result.");
     setReview(null);
   }
   const fee = state.rebirth?.fee ?? 8_000_000;
   const economy = state.economy;
+  const histories = [
+    ...(config && economy ? [{ config, state: economy }] : []),
+    ...(state.recoveryEconomies ?? []),
+  ];
+  const requests = histories.flatMap(({ config, state }) =>
+    (state?.requests ?? []).map((r) => ({
+      ...r,
+      epoch: state!.epoch,
+      component: config.component,
+    })),
+  );
+  const previousStakes = (state.recoveryEconomies ?? []).flatMap(
+    ({ config, state }) =>
+      (state?.stakes ?? []).map((p) => ({ ...p, component: config.component })),
+  );
   return (
     <section className="page-section rebirth-page">
-      {allState.offspringRebirth && (
-        <div className="rebirth-panel">
-          <label>
-            Collection pool{" "}
-            <select
-              value={pool}
-              disabled={busy || !!review}
-              onChange={(e) => {
-                setPool(e.target.value as "original" | "offspring");
-                setError("");
-                setMessage("");
-              }}
-            >
-              <option value="original">Founding canines</option>
-              <option value="offspring">Bred canines</option>
-            </select>
-          </label>
-          <p>
-            Each collection has its own staking pool. A rebirth funds the pool
-            for that collection. Switch pools to view existing positions and
-            saved wallet actions.
-          </p>
-        </div>
-      )}
-
       {mode === "rebirth" ? (
         <>
           <div className="eyebrow">
@@ -283,24 +295,24 @@ export function Rebirth({
               </div>
             )}
           </div>
-          {mode === "rebirth" && !!economy?.requests.length && (
+          {mode === "rebirth" && !!requests.length && (
             <div className="rebirth-panel">
               <h2>Your rebirths</h2>
-              {economy.requests.map((r) => (
-                <article className="economy-position" key={r.id}>
+              {requests.map((r) => (
+                <article className="economy-position" key={r.component + r.id}>
                   <div>
                     <strong>
                       {r.status === 1
                         ? HALLOWEEN_REWARDS[r.reward]?.name
                         : r.status === 2
                           ? "Canine and ritual fee returned"
-                          : r.captured || economy.epoch === r.targetEpoch
+                          : r.captured || r.epoch === r.targetEpoch
                             ? "Your new life is ready to reveal"
                             : "The ritual is waiting"}
                     </strong>
                     <p>
                       {r.status === 0
-                        ? `Draw epoch ${r.targetEpoch} · current epoch ${economy.epoch}`
+                        ? `Draw epoch ${r.targetEpoch} · current epoch ${r.epoch}`
                         : `Original canine ${r.token.slice(0, 10)}…`}
                     </p>
                     {r.status === 0 && (
@@ -311,28 +323,28 @@ export function Rebirth({
                     )}
                   </div>
                   {r.status === 0 &&
-                    (r.captured || economy.epoch === r.targetEpoch ? (
+                    (r.captured || r.epoch === r.targetEpoch ? (
                       <button
                         className="primary"
                         disabled={busy}
                         onClick={() =>
-                          beginReview({ kind: "finish", id: r.id })
+                          beginReview({ kind: "finish", id: r.id }, r.component)
                         }
                       >
                         Reveal & mint
                       </button>
-                    ) : economy.epoch > r.targetEpoch ? (
+                    ) : r.epoch > r.targetEpoch ? (
                       <button
                         disabled={busy}
                         onClick={() =>
-                          beginReview({ kind: "refund", id: r.id })
+                          beginReview({ kind: "refund", id: r.id }, r.component)
                         }
                       >
                         Recover canine & fee
                       </button>
                     ) : (
                       <span className="pill">
-                        {r.targetEpoch - economy.epoch} epoch(s) to go
+                        {r.targetEpoch - r.epoch} epoch(s) to go
                       </span>
                     ))}
                 </article>
@@ -396,6 +408,28 @@ export function Rebirth({
               )}
             </div>
           )}
+          {mode === "staking" && previousStakes.length > 0 && (
+            <div className="rebirth-panel">
+              <h2>Move your existing stakes</h2>
+              <p>Withdraw and claim, then stake in the shared farm above.</p>
+              {previousStakes.map((p) => (
+                <article className="economy-position" key={p.component + p.id}>
+                  <div>
+                    <strong>Canine · {p.token.slice(0, 10)}…</strong>
+                    <p>{tari(p.claimable)} tTARI to claim</p>
+                  </div>
+                  <button
+                    disabled={busy}
+                    onClick={() =>
+                      beginReview({ kind: "unstake", id: p.id }, p.component)
+                    }
+                  >
+                    Withdraw &amp; claim
+                  </button>
+                </article>
+              ))}
+            </div>
+          )}
           <button
             disabled={busy}
             onClick={() =>
@@ -440,11 +474,7 @@ export function Rebirth({
                       ? "Your canine and claimable rewards return to the same wallet. It stops earning new fees."
                       : "Only earned, funded rewards are transferred to the same wallet."}
           </p>
-          <p>
-            The ritual fee requires public, spendable tTARI. Unshield in Sapient
-            if your funds are private. Network fee approval: up to 1 tTARI per
-            transaction, separate from the ritual fee.
-          </p>
+          <p>Network fee: up to 1 tTARI, separate from the ritual fee.</p>
           <label className="confirm-check">
             <input
               type="checkbox"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { GitMerge, ArrowRight, Clock } from "lucide-react";
 import type { GameState } from "../shared/game";
 import type { BreedingAction } from "../shared/breeding";
@@ -21,6 +21,7 @@ export function Breeding({
   refresh: () => Promise<unknown>;
   connect: () => void;
 }) {
+  const [picking, setPicking] = useState<0 | 1 | null>(null);
   const [first, setFirst] = useState(""),
     [second, setSecond] = useState("");
   const [review, setReview] = useState<{
@@ -32,6 +33,12 @@ export function Breeding({
     [message, setMessage] = useState("");
   const config = state.breedingConfig,
     chain = state.breeding;
+  useEffect(() => {
+    setFirst("");
+    setSecond("");
+    setPicking(null);
+    setReview(null);
+  }, [state.account, config?.component]);
   const used = chain?.parents ?? {};
   const pending = config && wallet ? wallet.pendingBreeding(config) : [];
   const a = state.canines.find((c) => parentKey(c) === first),
@@ -82,29 +89,32 @@ export function Breeding({
         Build your Arkimals bloodline. Eight inherited genes, a surprise colour,
         and a canine that is yours to keep.
       </p>
-      <div className="breeding-rules">
-        <article>
-          <b>One breeding per parent</b>
-          <p>
-            Both parents return after the hatch. Their breeding use follows the
-            NFT, including after a transfer.
-          </p>
-        </article>
-        <article>
-          <b>Eight independent choices</b>
-          <p>
-            Each gene has a 50/50 chance of coming from either parent. Colour is
-            drawn equally from red, purple, green and blue.
-          </p>
-        </article>
-        <article>
-          <b>G → H → I → K → L → M → N → O</b>
-          <p>
-            The child is one generation after the later parent. Generation O can
-            no longer breed.
-          </p>
-        </article>
-      </div>
+      <details className="breeding-rules-details">
+        <summary>Breeding rules</summary>
+        <div className="breeding-rules">
+          <article>
+            <b>One breeding per parent</b>
+            <p>
+              Both parents return after the hatch. Their breeding use follows
+              the NFT, including after a transfer.
+            </p>
+          </article>
+          <article>
+            <b>Eight independent choices</b>
+            <p>
+              Each gene has a 50/50 chance of coming from either parent. Colour
+              is drawn equally from red, purple, green and blue.
+            </p>
+          </article>
+          <article>
+            <b>G → H → I → K → L → M → N → O</b>
+            <p>
+              The child is one generation after the later parent. Generation O
+              can no longer breed.
+            </p>
+          </article>
+        </div>
+      </details>
       <div className="rebirth-panel">
         <h2>Choose the parents</h2>
         {!state.connected ? (
@@ -119,42 +129,78 @@ export function Breeding({
         ) : (
           <>
             <p>
-              Price: <strong>{config.fee / 1_000_000} test tTARI</strong> plus
-              wallet network fees. Both canines and the fee are held during the
-              draw. The fee goes to the treasury when the offspring is minted.
+              <strong>{config.fee / 1_000_000} tTARI</strong> + network fees ·
+              Both parents return after breeding.
             </p>
             <div className="parent-selection">
               {[
-                { label: "First parent", value: first, set: setFirst },
-                { label: "Second parent", value: second, set: setSecond },
+                { label: "First parent", canine: a },
+                { label: "Second parent", canine: b },
               ].map((slot, i) => (
-                <label key={slot.label}>
-                  {slot.label}
-                  <select
-                    value={slot.value}
-                    disabled={busy || !!review || pending.length > 0}
-                    onChange={(e) => slot.set(e.target.value)}
-                  >
-                    <option value="">Choose a canine</option>
-                    {state.canines.map((c) => (
-                      <option
-                        key={parentKey(c)}
-                        value={parentKey(c)}
-                        disabled={
-                          !!breedingBlock(c, used) ||
-                          parentKey(c) === (i === 0 ? second : first)
-                        }
-                      >
-                        {c.genotype ?? c.name} · {c.id.slice(0, 8)}
-                        {breedingBlock(c, used)
-                          ? ` · ${breedingBlock(c, used)}`
-                          : ""}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <button
+                  className="parent-slot"
+                  type="button"
+                  key={slot.label}
+                  aria-pressed={picking === i}
+                  aria-label={`${slot.label}: ${slot.canine?.genotype ?? "Choose a canine"}`}
+                  disabled={busy || !!review || pending.length > 0}
+                  onClick={() => setPicking(i as 0 | 1)}
+                >
+                  <strong>{slot.label}</strong>
+                  <span>{slot.canine?.genotype ?? "Choose a canine"}</span>
+                  {slot.canine && <small>{slot.canine.id.slice(0, 8)}…</small>}
+                </button>
               ))}
             </div>
+            {picking !== null && (
+              <div
+                className="parent-picker"
+                role="group"
+                aria-label={`Choose ${picking === 0 ? "first" : "second"} parent`}
+              >
+                <div className="economy-actions">
+                  <h3>Choose {picking === 0 ? "first" : "second"} parent</h3>
+                  <button type="button" onClick={() => setPicking(null)}>
+                    Close
+                  </button>
+                </div>
+                {!state.canines.length && (
+                  <p>
+                    No canines in your wallet. Unstake a canine or visit the
+                    incubator.
+                  </p>
+                )}
+                <div className="parent-choices">
+                  {state.canines.map((c) => {
+                    const key = parentKey(c);
+                    const reason =
+                      breedingBlock(c, used) ??
+                      (key === (picking === 0 ? second : first)
+                        ? "Selected as the other parent"
+                        : undefined);
+                    return (
+                      <button
+                        type="button"
+                        key={key}
+                        disabled={
+                          !!reason || busy || !!review || pending.length > 0
+                        }
+                        aria-label={`${c.genotype ?? c.name} ${c.id.slice(0, 8)}${reason ? `: ${reason}` : ""}`}
+                        onClick={() => {
+                          (picking === 0 ? setFirst : setSecond)(key);
+                          setPicking(null);
+                        }}
+                      >
+                        <CanineArt genes={c.genes} name={c.name} />
+                        <strong>{c.genotype ?? c.name}</strong>
+                        <small>{c.id.slice(0, 8)}…</small>
+                        {reason && <span>{reason}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             {(a || b) && (
               <div className="breeding-preview">
                 {a && (
@@ -230,8 +276,7 @@ export function Breeding({
           </p>
           <p>
             <Clock size={15} /> The wait is usually 20–40 minutes. Network fee
-            approval is up to 1 tTARI per transaction. Use public spendable
-            tTARI in Sapient.
+            approval is up to 1 tTARI per transaction.
           </p>
           <div className="economy-actions">
             <button disabled={busy} onClick={() => setReview(null)}>

@@ -14,6 +14,7 @@ import {
   rebirthDeployment,
   offspringRebirthDeployment,
   breedingDeployment,
+  unifiedRebirthDeployment,
 } from "./config.ts";
 import { economySnapshot, breedingSnapshot } from "./external-chain.ts";
 import { submit, waitAccepted } from "./wallet.ts";
@@ -21,22 +22,26 @@ import { serializeWallet } from "./wallet-queue.ts";
 
 // Only public consensus hashes are captured. Durable markers prevent duplicate fee spending.
 export async function captureNeededEpoch(
-  kind: "rebirth" | "breeding" | "offspring-rebirth" = "rebirth",
+  kind:
+    | "rebirth"
+    | "breeding"
+    | "offspring-rebirth"
+    | "unified-rebirth" = "rebirth",
 ) {
   const config =
     kind === "rebirth"
       ? rebirthDeployment()
-      : kind === "offspring-rebirth"
-        ? offspringRebirthDeployment()
-        : breedingDeployment();
+      : kind === "unified-rebirth"
+        ? unifiedRebirthDeployment()
+        : kind === "offspring-rebirth"
+          ? offspringRebirthDeployment()
+          : breedingDeployment();
   if (!config) return;
   return serializeWallet(async () => {
     const state = await (kind !== "breeding"
       ? economySnapshot(
           undefined,
-          kind === "rebirth"
-            ? rebirthDeployment()
-            : offspringRebirthDeployment(),
+          config as NonNullable<ReturnType<typeof rebirthDeployment>>,
         )
       : breedingSnapshot());
     if (
@@ -112,6 +117,7 @@ export function startEconomyKeeper() {
         "rebirth",
         "breeding",
         "offspring-rebirth",
+        "unified-rebirth",
       ] as const) {
         try {
           await captureNeededEpoch(kind);

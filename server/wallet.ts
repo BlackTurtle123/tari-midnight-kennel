@@ -107,12 +107,13 @@ export function callInstructions(
 export function constructorInstructions(
   template: string,
   args: InstructionArg[],
+  functionName = "new",
 ) {
   return TransactionBuilder.new(Network.Esmeralda, 0)
     .callFunction(
       {
         templateAddress: template as PublishedTemplateAddress,
-        functionName: "new",
+        functionName,
       },
       args,
     )

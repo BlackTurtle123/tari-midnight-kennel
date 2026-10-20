@@ -42,6 +42,24 @@ mod arkimals_rebirth {
             treasury: ComponentAddress,
             fee: u64,
         ) -> Component<Self> {
+            Self::create_event(vec![current, legacy], staking, treasury, fee)
+        }
+        pub fn new_unified(
+            current: ResourceAddress,
+            legacy: ResourceAddress,
+            offspring: ResourceAddress,
+            staking: ComponentAddress,
+            treasury: ComponentAddress,
+            fee: u64,
+        ) -> Component<Self> {
+            Self::create_event(vec![current, legacy, offspring], staking, treasury, fee)
+        }
+        fn create_event(
+            resources: Vec<ResourceAddress>,
+            staking: ComponentAddress,
+            treasury: ComponentAddress,
+            fee: u64,
+        ) -> Component<Self> {
             assert!(
                 fee > 0 && fee <= 100_000_000 && fee % 4 == 0,
                 "Invalid testnet fee"
@@ -60,9 +78,10 @@ mod arkimals_rebirth {
                 .update_non_fungible_data(rule!(deny_all), LOCKED)
                 .build();
             let mut retired = BTreeMap::new();
-            retired.insert(current, Vault::new_empty(current));
-            if legacy != current {
-                retired.insert(legacy, Vault::new_empty(legacy));
+            for resource in resources {
+                if !retired.contains_key(&resource) {
+                    retired.insert(resource, Vault::new_empty(resource));
+                }
             }
             Component::new(Self {
                 resource,
@@ -101,7 +120,7 @@ mod arkimals_rebirth {
             let vault = self
                 .retired
                 .get(&source)
-                .expect("Only original Tari canine collections qualify");
+                .expect("Only registered Tari canine collections qualify");
             let ids = canine.get_non_fungible_ids();
             assert_eq!(ids.len(), 1, "Offer exactly one canine");
             assert_eq!(payment.resource_address(), TARI_TOKEN, "Pay in public TARI");

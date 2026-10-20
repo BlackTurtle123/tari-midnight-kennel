@@ -1,27 +1,53 @@
-import { ArrowUpRight, Send } from "lucide-react";
+import { useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 
-export function WalletTools() {
+export function WalletTools({
+  balance,
+  address,
+  copy,
+}: {
+  balance?: string;
+  address?: string;
+  copy: (address: string) => Promise<unknown>;
+}) {
+  const [copied, setCopied] = useState("");
+  const [copyError, setCopyError] = useState(false);
   return (
-    <section className="wallet-tools" aria-label="Wallet transfers">
+    <section className="wallet-summary" aria-label="Wallet">
+      <span className="wallet-balance" title="Public spendable test Tari">
+        {balance ?? "—"} <small>tTARI</small>
+      </span>
       <details>
-        <summary>
-          <Send size={16} /> Transfer assets
-        </summary>
-        <div className="wallet-tool-body">
-          <p>
-            Open Sapient, select your connected Esmeralda account, and use its
-            Send controls. Confirm the recipient and asset inside your wallet.
-          </p>
-          <p>
-            Rebirth uses public spendable test Tari. If your funds are private,
-            use Sapient’s Unshield controls and retain enough public Tari for
-            network fees.
-          </p>
-          <a href="https://sapient.tari.mw/" target="_blank" rel="noreferrer">
-            Open Sapient’s website <ArrowUpRight size={14} />
-          </a>
+        <summary>Receive</summary>
+        <div className="receive-coins">
+          <small>Esmeralda testnet</small>
+          <code>{address ?? "Address unavailable"}</code>
+          <button
+            className="secondary"
+            disabled={!address}
+            onClick={async () => {
+              if (address) {
+                try {
+                  await copy(address);
+                  setCopied(address);
+                  setCopyError(false);
+                } catch {
+                  setCopied("");
+                  setCopyError(true);
+                }
+              }
+            }}
+          >
+            {address && copied === address ? "Copied" : "Copy address"}
+          </button>
+          {copyError && (
+            <small role="alert">Couldn’t copy. Select the address above.</small>
+          )}
         </div>
       </details>
+      <a href="https://sapient.tari.mw/" target="_blank" rel="noreferrer">
+        Send <ArrowUpRight size={14} />
+      </a>
     </section>
   );
 }

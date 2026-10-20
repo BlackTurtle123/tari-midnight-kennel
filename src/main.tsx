@@ -229,8 +229,7 @@ function App() {
         )}
         {busy && (
           <div className="notice" role="status">
-            Check Sapient for an approval request. Your wallet signs
-            transactions; Arkimals never receives its seed.
+            Confirm in Sapient.
           </div>
         )}
         {state.connected && state.setupError && (
@@ -243,46 +242,12 @@ function App() {
           </div>
         )}
         {state.connected && (
-          <section className="wallet-summary">
-            <div>
-              <strong>Your Sapient wallet</strong>
-              <span>
-                {state.balance ?? "—"} tTARI public balance · private balance
-                stays in Sapient
-              </span>
-            </div>
-            <details>
-              <summary>Receive test coins</summary>
-              <p>Send only Esmeralda test coins to this payment address.</p>
-              <code>{state.paymentAddress}</code>
-              <button
-                className="secondary"
-                onClick={() =>
-                  void action(async () => {
-                    await navigator.clipboard.writeText(
-                      state.paymentAddress || "",
-                    );
-                  })
-                }
-              >
-                Copy address
-              </button>
-              <p>
-                The public faucet needs at least 1,000 tTARI for a claim. If it
-                is empty, use a funded test wallet or Tari’s{" "}
-                <a
-                  href="https://ootle.tari.com/guides/burn-minotari/"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  testnet burn-and-claim guide
-                </a>
-                .
-              </p>
-            </details>
-          </section>
+          <WalletTools
+            balance={state.balance}
+            address={state.paymentAddress}
+            copy={(address) => navigator.clipboard.writeText(address)}
+          />
         )}
-        {state.connected && <WalletTools />}
         {tab === "incubator" && (
           <>
             <section className="hero">
