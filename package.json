@@ -20,6 +20,7 @@
     "staking:build": "cargo build --locked --manifest-path staking-contract/Cargo.toml --target wasm32-unknown-unknown --release",
     "breeding:build": "cargo build --locked --manifest-path breeding-contract/Cargo.toml --target wasm32-unknown-unknown --release",
     "breeding:test": "cargo test --locked --manifest-path breeding-contract/Cargo.toml",
+    "deploy:offspring-economy": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-offspring-economy.ts",
     "deploy:breeding": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-breeding.ts"
   },
   "dependencies": {

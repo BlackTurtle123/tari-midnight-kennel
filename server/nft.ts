@@ -29,7 +29,7 @@ export function parseHalloween(
     typeof data.source_resource !== "string" ||
     !/^resource_[a-f0-9]{64}$/.test(data.source_resource) ||
     typeof data.source_id !== "string" ||
-    !/^str_[a-f0-9]{32}$/.test(data.source_id)
+    !/^str_[a-f0-9]{32}(?:[a-f0-9]{32})?$/.test(data.source_id)
   )
     return null;
   return {

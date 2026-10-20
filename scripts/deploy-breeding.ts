@@ -101,7 +101,7 @@ if (!log.publicationTx) {
   });
   if (!estimate.dry_run_fee)
     throw new Error("Publication fee estimate unavailable");
-  const fee = Math.ceil(estimate.dry_run_fee * 1.5) + 10_000;
+  const fee = Math.ceil(estimate.dry_run_fee * 1.25) + 10_000;
   if (fee > publicationBudget)
     throw new Error(
       "Publication estimate exceeds the available operator balance or 100 tTARI cap",

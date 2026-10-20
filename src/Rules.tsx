@@ -13,7 +13,7 @@ export function Rules() {
     [
       "Breeding",
       "Two parents; one completed breeding each; eight independent inherited genes; next generation; parents returned.",
-      "Contract and wallet flow implemented. Activation and offspring farming/rebirth integration remain pending.",
+      "Breeding is activated when its on-chain deployment is available. Bred canines have their own staking and Halloween rebirth pool; original positions stay in the founding pool.",
     ],
     [
       "Perches",

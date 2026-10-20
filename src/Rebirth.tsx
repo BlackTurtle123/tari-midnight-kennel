@@ -39,6 +39,18 @@ export function Rebirth({
   connect: () => void;
   incubate: () => void;
 }) {
+  const [pool, setPool] = useState<"original" | "offspring">("original");
+  const allState = state;
+  const config = pool === "offspring" ? state.offspringRebirth : state.rebirth;
+  state = {
+    ...state,
+    rebirth: config,
+    economy: pool === "offspring" ? state.offspringEconomy : state.economy,
+    canines: state.canines.filter(
+      (c) =>
+        config && [config.current, config.legacy].includes(c.resource ?? ""),
+    ),
+  };
   const [review, setReview] = useState<{
       action: EconomyAction;
       nonce: string;
@@ -76,7 +88,7 @@ export function Rebirth({
   }
   async function send(request: { action: EconomyAction; nonce: string }) {
     if (!external) throw new Error("Connect Sapient to continue");
-    await external.act(request.action, request.nonce);
+    await external.act(request.action, request.nonce, state.rebirth?.component);
     setMessage("Submitted in Sapient. Refresh to see the confirmed result.");
     setReview(null);
   }
@@ -84,6 +96,31 @@ export function Rebirth({
   const economy = state.economy;
   return (
     <section className="page-section rebirth-page">
+      {allState.offspringRebirth && (
+        <div className="rebirth-panel">
+          <label>
+            Collection pool{" "}
+            <select
+              value={pool}
+              disabled={busy || !!review}
+              onChange={(e) => {
+                setPool(e.target.value as "original" | "offspring");
+                setError("");
+                setMessage("");
+              }}
+            >
+              <option value="original">Founding canines</option>
+              <option value="offspring">Bred canines</option>
+            </select>
+          </label>
+          <p>
+            Each collection has its own staking pool. A rebirth funds the pool
+            for that collection. Switch pools to view existing positions and
+            saved wallet actions.
+          </p>
+        </div>
+      )}
+
       {mode === "rebirth" ? (
         <>
           <div className="eyebrow">

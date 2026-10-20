@@ -17,7 +17,15 @@ fn epoch(t: &mut TemplateTest, n: u64) {
 }
 #[test]
 fn breeding_escrows_returns_and_enforces_lifetime_usage_and_refund() {
-    let mut t = TemplateTest::new(".", [".", "../contract"]);
+    let mut t = TemplateTest::new(
+        ".",
+        [
+            ".",
+            "../contract",
+            "../staking-contract",
+            "../rebirth-contract",
+        ],
+    );
     let (account, proof, key) = t.create_funded_account();
     let (treasury, _, _) = t.create_empty_account();
     let game: ComponentAddress =
@@ -292,5 +300,99 @@ fn breeding_escrows_returns_and_enforces_lifetime_usage_and_refund() {
             .unwrap()
             .balance(),
         Amount::from(4_000_000u64)
+    );
+    // Offspring retain a complete lifecycle in additive v1 economy instances.
+    let stake: ComponentAddress = t.call_function(
+        "ArkimalsStaking",
+        "new",
+        args![bred, bred, treasury],
+        vec![],
+    );
+    let rebirth: ComponentAddress = t.call_function(
+        "ArkimalsRebirth",
+        "new",
+        args![bred, bred, stake, treasury, 8_000_000u64],
+        vec![],
+    );
+    let staked_id = format!("{bred}|str_{}", rid(0, 1));
+    t.execute_expect_success(
+        t.transaction()
+            .call_method(
+                account,
+                "withdraw_non_fungible",
+                args![bred, NonFungibleId::from_string(rid(0, 1))],
+            )
+            .put_last_instruction_output_on_workspace("nft")
+            .call_method(stake, "stake", args![Workspace("nft"), account])
+            .build_and_seal(&key),
+        vec![proof.clone()],
+    );
+    t.execute_expect_success(
+        t.transaction()
+            .call_method(
+                account,
+                "withdraw_non_fungible",
+                args![bred, NonFungibleId::from_string(rid(2, 3))],
+            )
+            .put_last_instruction_output_on_workspace("nft")
+            .call_method(account, "withdraw", args![TARI_TOKEN, 8_000_000u64])
+            .put_last_instruction_output_on_workspace("fee")
+            .call_method(
+                rebirth,
+                "begin_rebirth",
+                args![Workspace("nft"), Workspace("fee"), account],
+            )
+            .build_and_seal(&key),
+        vec![proof.clone()],
+    );
+    epoch(&mut t, 18);
+    let rebirth_id = format!(
+        "{:x}",
+        Sha256::digest(format!("arkimals:rebirth:v1|{bred}|str_{}", rid(2, 3)))
+    );
+    t.call_method::<()>(rebirth, "finish_rebirth", args![rebirth_id.clone()], vec![]);
+    let totals: (u32, u128, u64, u64, u64) = t.call_method(stake, "get_totals", args![], vec![]);
+    assert_eq!(totals.0, 1);
+    assert_eq!(totals.2, 6_000_000);
+    // Another signer cannot withdraw the stake or its funded rewards.
+    t.execute_expect_failure(
+        t.transaction()
+            .call_method(stake, "unstake", args![staked_id.clone()])
+            .build_and_seal(&other_key),
+        vec![],
+    );
+    t.execute_expect_success(
+        t.transaction()
+            .call_method(stake, "unstake", args![staked_id])
+            .build_and_seal(&key),
+        vec![],
+    );
+    let totals: (u32, u128, u64, u64, u64) = t.call_method(stake, "get_totals", args![], vec![]);
+    assert_eq!(totals.0, 0);
+    assert_eq!(totals.3, 6_000_000);
+    let reward_resource: ResourceAddress = t.call_method(rebirth, "get_resource", args![], vec![]);
+    let owned = t.read_only_state_store().get_account(account).unwrap();
+    let rewards = t
+        .read_only_state_store()
+        .get_vault(&owned.vaults().get(&reward_resource).unwrap().vault_id())
+        .unwrap();
+    assert!(
+        rewards
+            .get_non_fungible_ids()
+            .contains(&NonFungibleId::from_string(rebirth_id))
+    );
+    let children = t
+        .read_only_state_store()
+        .get_vault(&owned.vaults().get(&bred).unwrap().vault_id())
+        .unwrap();
+    assert!(
+        children
+            .get_non_fungible_ids()
+            .contains(&NonFungibleId::from_string(rid(0, 1)))
+    );
+    assert!(
+        !children
+            .get_non_fungible_ids()
+            .contains(&NonFungibleId::from_string(rid(2, 3)))
     );
 }

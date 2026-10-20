@@ -14,8 +14,8 @@ This is a production-target rule inventory, **not a production-readiness certifi
 - [x] Bred offspring can breed again under the same template. Genome renderer supports all eight main-game genes and mixed inheritance.
 - [x] Exact reference implementations of supply-based incubation price, rarity grouping and FP integer arithmetic, with regression tests.
 - [x] Main-game rules and current release differences visible in the app.
-- [ ] Activate breeding on staging. Script supplied, but no new fee configuration/contract publication performed while the economy decision is pending. UI fails closed without its descriptor.
-- [ ] Route bred offspring through production farming and rebirth. Do not activate a disconnected NFT lifecycle.
+- [x] Staging activation path authorized: 1 native test tTARI breeding fee, treasury funded; no EGG equivalence. Deployment is append-only with explicit descriptors and receipt reconciliation.
+- [x] Route bred offspring through an additive equal-share staking pool and the existing Halloween rebirth edition. Engine test covers offspring stake, retirement, reward mint, 75% funded claim, unauthorized withdrawal and return of the staked NFT. This is a complete supported lifecycle, not production FP/item parity.
 
 ## Incubation
 
@@ -31,7 +31,7 @@ This is a production-target rule inventory, **not a production-readiness certifi
 ## Breeding dependencies
 
 - Main price: 1 EGG (100000000 units). Optional coupon balance reduces payment. Valid referral gets 5%; the remaining EGG is burned. Tari cannot burn EGG it has not issued.
-- [ ] Confirm native TARI treasury fee vs an EGG-like token with actual burn economics. Deployment script supports a bounded configurable staging fee; no automatic currency-equivalence claim.
+- [x] Native test TARI treasury fee chosen for staging activation; EGG-like burn economics are not claimed. Deployment script supports a bounded configurable staging fee; no automatic currency-equivalence claim.
 - [ ] Fixed-gene item: choose one parent/position, verify ownership, consume atomically at completion.
 - [ ] Free-gene item: inject a random A/B/C gene at a random position, consume atomically.
 - [ ] Mirror item: reject G/J/O, copy genes/generation and breeding-use state, consume item.
@@ -48,7 +48,7 @@ This is a production-target rule inventory, **not a production-readiness certifi
 - [ ] Choose the Tari time/epoch origin and progression for base power; WAVES height cannot be used as an Ootle consensus input without an oracle.
 - [ ] On-chain FP-weighted reward index, first-stake cache, settlement before weight changes, safe zero-FP handling, per-position fractional carry and funded solvency.
 - [ ] Claims settle at previous FP, then recalculate weights using current rarity/boosts, following the main game's lifecycle. Never retroactively award newly added FP for past income.
-- [ ] Old equal-share positions retain claim/unstake and incoming fees promised by already-started rebirths. Voluntary migration only; no fabricated stakes or automated custody transfer.
+- [x] Old equal-share positions retain claim/unstake and incoming fees promised by already-started rebirths. Voluntary migration only; no fabricated stakes or automated custody transfer.
 - [ ] Funded source decision: main game leases WAVES principal. Actual incoming income pays mutants5%, then team1/12 of remainder, then halves remaining income into compounding and farmer payout. Ootle validator PoS is not a plug-in replacement for WAVES leasing.
 
 ## Rebirth and event rewards
@@ -68,5 +68,5 @@ This is a production-target rule inventory, **not a production-readiness certifi
 - [ ] Test supply/price boundaries, exact payouts, total reward solvency, cap exhaustion, generation O, all item consumption/failure rollbacks, transfers and legacy migration.
 - [ ] Independent contract review and network-specific liveness/load tests; resilient epoch capture with alerting and sufficient operator fee reserves. Missed epoch refunds are a liveness fallback, not proof of bias-free selective-abort resistance.
 - [ ] End-to-end Sapient browser acceptance with funded operator test assets, including retry/reconnect, all custody transitions and final wallet inventory. Do not use player funds for smoke tests.
-- [ ] All lifecycle actions supported for each admitted resource before enabling it.
+- [x] Every admitted canine resource supports breeding, staking and the Halloween rebirth edition. Existing pool contracts remain accessible.
 - [ ] Explicit mainnet configuration and deployment. The current request's staging work does not authorize a production-host or mainnet release.

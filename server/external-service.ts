@@ -8,6 +8,7 @@ import {
   DATA_DIR,
   deployment,
   rebirthDeployment,
+  offspringRebirthDeployment,
   breedingDeployment,
   OPERATOR_NAME,
   TARI_RESOURCE,
@@ -135,6 +136,7 @@ export class ExternalService {
       component: d.component,
       resource: d.resource,
       rebirth: rebirthDeployment(),
+      offspringRebirth: offspringRebirthDeployment(),
       breedingConfig: breedingDeployment(),
       canines: [],
       incubations: chain.map((c) => {
@@ -159,6 +161,11 @@ export class ExternalService {
     try {
       Object.assign(state, await publicInventory(account));
       if (state.rebirth) state.economy = await economySnapshot(account);
+      if (state.offspringRebirth)
+        state.offspringEconomy = await economySnapshot(
+          account,
+          state.offspringRebirth,
+        );
       if (state.breedingConfig)
         state.breeding = await breedingSnapshot(account);
     } catch {

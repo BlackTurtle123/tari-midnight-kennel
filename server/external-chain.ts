@@ -6,6 +6,7 @@ import {
   deployment,
   legacyResource,
   rebirthDeployment,
+  offspringRebirthDeployment,
   breedingDeployment,
   TARI_RESOURCE,
 } from "./config.ts";
@@ -148,7 +149,8 @@ export async function publicInventory(
     throw new Error("This wallet has too many vaults for the PoC reader");
   const canines: Canine[] = [];
   const halloween: HalloweenNFT[] = [],
-    rebirth = rebirthDeployment();
+    rebirth = rebirthDeployment(),
+    offspring = offspringRebirthDeployment();
   let balance = 0n;
   for (const id of vaults) {
     const v = liveSubstate(await p.getSubstate(id));
@@ -162,6 +164,7 @@ export async function publicInventory(
         d.resource,
         legacyResource(),
         rebirth?.resource,
+        offspring?.resource,
         breedingDeployment()?.resource,
       ].includes(c.NonFungible.address)
     )
@@ -180,7 +183,7 @@ export async function publicInventory(
       );
       if (!("NonFungible" in nft.substate) || !nft.substate.NonFungible)
         continue;
-      if (resource === rebirth?.resource) {
+      if (resource === rebirth?.resource || resource === offspring?.resource) {
         const reward = parseHalloween(nft.substate.NonFungible.data, resource);
         if (reward && reward.id === token.String) halloween.push(reward);
         continue;
@@ -211,8 +214,10 @@ function cborInteger(v: unknown): bigint {
 }
 export async function economySnapshot(
   account?: string,
+  config:
+    | import("../shared/rebirth.ts").RebirthConfig
+    | undefined = rebirthDeployment(),
 ): Promise<import("../shared/rebirth.ts").EconomyState | undefined> {
-  const config = rebirthDeployment();
   if (!config) return undefined;
   const p = await indexer();
   const [r, s, epoch] = await Promise.all([

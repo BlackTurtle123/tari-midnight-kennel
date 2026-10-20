@@ -13,7 +13,11 @@ import {
 } from "@tari-project/ootle";
 import { Rebirths, RebirthStore } from "./rebirth.ts";
 import { RejectedTransaction } from "./wallet.ts";
-import { HALLOWEEN_REWARDS, rebirthInstructions } from "../shared/rebirth.ts";
+import {
+  HALLOWEEN_REWARDS,
+  rebirthInstructions,
+  economyInstructions,
+} from "../shared/rebirth.ts";
 import { parseHalloween } from "./nft.ts";
 import type { GameState } from "../shared/game.ts";
 
@@ -196,4 +200,59 @@ test("proven pre-submission checkpoint failures can retry the same request after
   assert.equal(f.sends(), 2);
   await f.service().confirm("alice", input);
   assert.equal(f.sends(), 2);
+});
+
+test("offspring IDs work throughout economy instructions without admitting unsupported collections", () => {
+  const child = "ab".repeat(32);
+  for (const kind of ["begin", "stake"] as const) {
+    assert.ok(
+      economyInstructions(config, account, { kind, resource, id: child })
+        .length,
+    );
+    assert.throws(() =>
+      economyInstructions(config, account, {
+        kind,
+        resource: config.resource,
+        id: child,
+      }),
+    );
+    assert.throws(() =>
+      economyInstructions(config, account, {
+        kind,
+        resource,
+        id: child + "aa",
+      }),
+    );
+  }
+  for (const kind of ["claim", "unstake"] as const) {
+    assert.ok(
+      economyInstructions(config, account, {
+        kind,
+        id: `${resource}|str_${child}`,
+      }).length,
+    );
+    assert.throws(() =>
+      economyInstructions(config, account, {
+        kind,
+        id: `${resource}|str_${child}aa`,
+      }),
+    );
+  }
+  const spec = HALLOWEEN_REWARDS[0];
+  assert.equal(
+    parseHalloween(
+      {
+        name: spec.name,
+        original: spec.original,
+        reward: "0",
+        edition: "tari-halloween-2026",
+        art_version: "arkimals-halloween-v1",
+        rebirth_id: "cd".repeat(32),
+        source_resource: resource,
+        source_id: "str_" + child,
+      },
+      config.resource,
+    )?.sourceId,
+    child,
+  );
 });

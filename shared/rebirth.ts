@@ -85,7 +85,7 @@ export interface RebirthReceipt extends RebirthInput {
 export function validateRebirth(input: RebirthInput) {
   if (
     !/^resource_[a-f0-9]{64}$/.test(input.resource) ||
-    !/^[a-f0-9]{32}$/.test(input.id)
+    !/^[a-f0-9]{32}(?:[a-f0-9]{32})?$/.test(input.id)
   )
     throw new Error("Invalid canine");
 }
@@ -186,7 +186,9 @@ export function economyInstructions(
   const stake = action.kind === "claim" || action.kind === "unstake";
   if (
     stake
-      ? !/^resource_[a-f0-9]{64}\|str_[a-f0-9]{32}$/.test(action.id)
+      ? !/^resource_[a-f0-9]{64}\|str_[a-f0-9]{32}(?:[a-f0-9]{32})?$/.test(
+          action.id,
+        )
       : !/^[a-f0-9]{64}$/.test(action.id)
   )
     throw new Error("Invalid position");

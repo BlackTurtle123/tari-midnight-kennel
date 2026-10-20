@@ -439,11 +439,15 @@ export class ExternalWallet {
         );
     });
   }
-  async act(action: EconomyAction, nonce: string) {
+  async act(action: EconomyAction, nonce: string, component?: string) {
     return this.locked(async () => {
       await this.check();
       const state = await this.chainState(),
-        config = state.rebirth;
+        config = component
+          ? [state.rebirth, state.offspringRebirth].find(
+              (c) => c?.component === component,
+            )
+          : state.rebirth;
       if (!config) throw new Error("Economy contracts are being prepared");
       if (!/^[a-f0-9]{32}$/.test(nonce))
         throw new Error("Invalid wallet request");

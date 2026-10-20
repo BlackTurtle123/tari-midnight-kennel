@@ -107,6 +107,8 @@ export interface IncubationView {
   error?: string;
 }
 export interface GameState {
+  offspringRebirth?: import("./rebirth.ts").RebirthConfig;
+  offspringEconomy?: import("./rebirth.ts").EconomyState;
   breedingConfig?: import("./breeding.ts").BreedingConfig;
   breeding?: import("./breeding.ts").BreedingState;
   halloween?: import("./rebirth.ts").HalloweenNFT[];
