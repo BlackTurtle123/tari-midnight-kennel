@@ -97,7 +97,12 @@ function App() {
     return s;
   };
   useEffect(() => {
-    if (localStorage.getItem("kennel-wallet-choice") === "sapient")
+    const page = fromHash();
+    if (
+      page !== "ranking" &&
+      !page.startsWith("farm/") &&
+      localStorage.getItem("kennel-wallet-choice") === "sapient"
+    )
       setConnectDialog(true);
     return () => {
       generation.current++;
