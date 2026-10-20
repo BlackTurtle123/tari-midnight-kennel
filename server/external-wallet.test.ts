@@ -188,7 +188,10 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
         case "tari_createTransactionRequest": {
           creates++;
           if (failure === "create") throw new Error("Lost acknowledgement");
-          requests.set(String(creates), params.instructions[0].CallMethod);
+          requests.set(
+            String(creates),
+            params.instructions[params.instructions.length - 1].CallMethod,
+          );
           requestStatus = "approved";
           value = { requestId: String(creates) };
           break;
@@ -200,8 +203,11 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
           submits++;
           requestStatus = "submitted";
           const op = requests.get(params.requestId)!;
-          const id = Buffer.from(op.args[0].Literal.slice(4), "hex").toString();
-          if (op.method === "begin_incubation")
+          if (op.method === "begin_incubation") {
+            const id = Buffer.from(
+              op.args[0].Literal.slice(4),
+              "hex",
+            ).toString();
             chain.incubations = [
               {
                 id,
@@ -211,7 +217,20 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
                 commitment: "",
               },
             ];
-          else chain.incubations[0].stage = "hatched";
+          } else if (op.method === "rebirth") {
+            chain.halloween = [
+              {
+                id: "99".repeat(32),
+                resource: chain.rebirth!.resource,
+                reward: 0,
+                name: "Haunted Cat",
+                original: "ART-H26CAT",
+                sourceId: chain.canines[0].id,
+                sourceResource: chain.canines[0].resource,
+              },
+            ];
+            chain.canines = [];
+          } else chain.incubations[0].stage = "hatched";
           if (failure === "submit") throw new Error("Lost submission response");
           value = { transactionId: "11".repeat(32) };
           break;
@@ -346,4 +365,67 @@ test("network switch invalidates the connection before any signature or private 
   assert.equal(invalidated, true);
   assert.equal(f.creates, 0);
   assert.equal(f.calls.includes("tari_requestViewAccess"), false);
+});
+
+test("Sapient rebirth retains its approval after a lost submission response and never duplicates the exchange", async () => {
+  const f = fixture("submit"),
+    resource = "resource_" + "12".repeat(32);
+  f.chain.rebirth = {
+    component: "component_" + "34".repeat(32),
+    resource: "resource_" + "56".repeat(32),
+    current: resource,
+    legacy: resource,
+  };
+  f.chain.canines = [
+    {
+      id: "78".repeat(16),
+      resource,
+      name: "Beaglebyte Prime",
+      genes: "EEEEEEEE",
+      variant: 0,
+      generation: 0,
+    },
+  ];
+  const input = { id: f.chain.canines[0].id, resource, reward: 0 };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(w.rebirth(input), /Lost submission response/);
+  assert.equal(w.pendingRebirths(f.chain.rebirth).length, 1);
+  const restored = await ExternalWallet.connect(f.api, () => {});
+  await restored.rebirth(input);
+  await restored.rebirth(input);
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 1);
+  assert.equal(restored.pendingRebirths(f.chain.rebirth).length, 0);
+  assert.equal((await restored.state()).incubations.length, 0);
+});
+
+test("Sapient rebirth blocks a second approval after an unknown create acknowledgement", async () => {
+  const f = fixture("create"),
+    resource = "resource_" + "12".repeat(32);
+  f.chain.rebirth = {
+    component: "component_" + "34".repeat(32),
+    resource: "resource_" + "56".repeat(32),
+    current: resource,
+    legacy: resource,
+  };
+  f.chain.canines = [
+    {
+      id: "78".repeat(16),
+      resource,
+      name: "Beaglebyte Prime",
+      genes: "EEEEEEEE",
+      variant: 0,
+      generation: 0,
+    },
+  ];
+  const input = { id: f.chain.canines[0].id, resource, reward: 0 };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await assert.rejects(w.rebirth(input), /Lost acknowledgement/);
+  await assert.rejects(w.rebirth(input), /acknowledgement was lost/);
+  await assert.rejects(
+    w.rebirth({ ...input, reward: 1 }),
+    /original reward choice/,
+  );
+  assert.equal(f.creates, 1);
+  assert.equal(f.submits, 0);
 });

@@ -1,4 +1,5 @@
 import type { GameState, Opening, IncubationView } from "../shared/game";
+import { rebirthInstructions, type RebirthInput } from "../shared/rebirth";
 import {
   intentId,
   playerInstructions,
@@ -30,6 +31,8 @@ interface Approval {
   rejected?: boolean;
 }
 interface Saved {
+  rebirth?: RebirthInput;
+  rebirthComplete?: boolean;
   revision?: number;
   id: string;
   intent: WalletIntent;
@@ -425,5 +428,78 @@ export class ExternalWallet {
           "Mint submitted; waiting for confirmation. Your wallet request is saved. Open the secret again to check the same mint.",
         );
     });
+  }
+  async rebirth(input: RebirthInput) {
+    return this.locked(async () => {
+      await this.check();
+      const state = await this.chainState(),
+        config = state.rebirth;
+      if (!config)
+        throw new Error("The Halloween rebirth contract is not deployed yet");
+      const id = (
+        await sha256(`arkimals:rebirth:v1|${input.resource}|${input.id}`)
+      ).slice(0, 32);
+      let r = readSaved(localStorage, this.account, config.component).find(
+        (r) => r.id === id,
+      );
+      if (r?.rebirthComplete) return;
+      if (
+        state.halloween?.some(
+          (n) => n.sourceId === input.id && n.sourceResource === input.resource,
+        )
+      ) {
+        if (r) {
+          r.rebirthComplete = true;
+          save(r);
+        }
+        return;
+      }
+      if (!r) {
+        if (
+          !state.canines.some(
+            (c) => c.id === input.id && c.resource === input.resource,
+          )
+        )
+          throw new Error("This canine is no longer held by your wallet");
+        r = {
+          id,
+          rebirth: input,
+          intent: {
+            account: this.account,
+            component: config.component,
+            paymentAddress: this.paymentAddress,
+            door: 0,
+            nonce: "",
+          },
+          createdAt: new Date().toISOString(),
+        };
+        save(r);
+      }
+      if (!r.rebirth || r.rebirth.reward !== input.reward)
+        throw new Error(
+          "Resume the original reward choice; this canine already has a saved rebirth request",
+        );
+      await this.approve(
+        r,
+        "hatch",
+        rebirthInstructions(config, this.account, r.rebirth),
+      );
+      const latest = await this.chainState();
+      if (
+        !latest.halloween?.some(
+          (n) => n.sourceId === input.id && n.sourceResource === input.resource,
+        )
+      )
+        throw new Error(
+          "Rebirth submitted; waiting for confirmation. Check the same rebirth again to resume its saved wallet request.",
+        );
+      r.rebirthComplete = true;
+      save(r);
+    });
+  }
+  pendingRebirths(config: { component: string }) {
+    return readSaved(localStorage, this.account, config.component)
+      .filter((r) => r.rebirth && !r.rebirthComplete)
+      .map((r) => r.rebirth!);
   }
 }

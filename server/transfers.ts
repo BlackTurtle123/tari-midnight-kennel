@@ -135,11 +135,11 @@ export class Transfers {
     } else {
       const asset = input.asset;
       if (
-        !state.canines.some(
+        ![...state.canines, ...(state.halloween ?? [])].some(
           (n) => n.id === asset.id && n.resource === asset.resource,
         )
       )
-        throw new Error("This canine is not held by your wallet");
+        throw new Error("This NFT is not held by your wallet");
       if (revealed < 1_000_000n)
         throw new Error(
           "NFT transfer needs a public fee reserve of 1 tTARI in the sending wallet",

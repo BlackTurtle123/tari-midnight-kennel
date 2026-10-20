@@ -19,6 +19,7 @@ import {
 import { CanineArt, DoorArt } from "./CanineArt";
 import { SecretExperience } from "./SecretExperience";
 import { ExternalWallet } from "./external-wallet";
+import { Rebirth, RewardArt } from "./Rebirth";
 import { WalletTools } from "./WalletTools";
 import {
   CONTEST_URL,
@@ -140,18 +141,20 @@ function App() {
     <>
       <header className="header">
         <a className="brand" href="#" onClick={() => setTab("incubator")}>
-          <span className="brand-icon">
-            <PawPrint size={22} />
-          </span>
           <span>
-            midnight<span className="brand-light"> kennel</span>
-            <small>A LITTLE MISCHIEF ON TARI</small>
+            <img
+              className="arkimals-logo"
+              src={import.meta.env.BASE_URL + "arkimals/logo.svg"}
+              alt="Arkimals"
+            />
+            <small>HALLOWEEN ON TARI</small>
           </span>
         </a>
         <nav aria-label="Main navigation">
           {[
             ["incubator", "The incubator"],
-            ["collection", "My canines"],
+            ["rebirth", "Halloween rebirth"],
+            ["collection", "My pack"],
             ["secrets", "Spooky Secrets"],
           ].map(([key, label]) => (
             <button
@@ -208,7 +211,7 @@ function App() {
         {busy && walletMode === "sapient" && (
           <div className="notice" role="status">
             Check Sapient for an approval request. Your wallet signs
-            transactions; Midnight Kennel never receives its seed.
+            transactions; Arkimals never receives its seed.
           </div>
         )}
         {state.connected && state.setupError && (
@@ -284,7 +287,7 @@ function App() {
         )}
         {state.connected && (
           <WalletTools
-            key={walletMode + state.account}
+            key={"wallet-tools:" + walletMode + state.account}
             state={state}
             external={walletMode === "sapient"}
             api={api}
@@ -296,12 +299,12 @@ function App() {
             <section className="hero">
               <div className="hero-copy">
                 <div className="eyebrow">
-                  <Ghost size={16} /> GOOD DOGS. SPOOKY SECRETS.
+                  <Ghost size={16} /> ARKIMALS AFTER DARK
                 </div>
                 <h1>
-                  A spooky secret.
+                  Your next familiar.
                   <br />
-                  <em>Yours to reveal.</em>
+                  <em>Our little secret.</em>
                 </h1>
                 <p>
                   Knock on a door. Receive an encrypted surprise.
@@ -330,6 +333,7 @@ function App() {
                 <span className="star star-two">✦</span>
                 <Moon className="art-moon" size={46} />
                 <CanineArt className="hero-dog" />
+                <RewardArt reward={0} className="hero-cat" />
                 <div className="art-note">
                   <span className="note-dot" />
                   <div>
@@ -338,7 +342,7 @@ function App() {
                   </div>
                 </div>
                 <span className="edition">
-                  THE MIDNIGHT COLLECTION
+                  ARKIMALS · HALLOWEEN
                   <br />
                   01 — 04
                 </span>
@@ -454,6 +458,21 @@ function App() {
                 One incubation at a time
               </p>
             </section>
+            <section className="rebirth-teaser">
+              <RewardArt reward={1} />
+              <div>
+                <div className="eyebrow">ONE CANINE. A WHOLE NEW CHAPTER.</div>
+                <h2>Let your pack be reborn.</h2>
+                <p>
+                  Haunted Cat, Shadowfang or Crest Mummy. Exchange one revealed
+                  canine for a Halloween NFT with original Arkimals artwork.
+                </p>
+                <button className="primary" onClick={() => setTab("rebirth")}>
+                  Explore Halloween rebirth <ArrowRight size={17} />
+                </button>
+              </div>
+              <RewardArt reward={2} />
+            </section>
             <section className="privacy-banner">
               <span className="privacy-icon">
                 <ShieldCheck size={30} />
@@ -472,15 +491,29 @@ function App() {
             </section>
           </>
         )}
+        {tab === "rebirth" && (
+          <Rebirth
+            key={"rebirth:" + walletMode + state.account}
+            state={state}
+            external={external.current}
+            api={api}
+            refresh={refresh}
+            connect={() => setConnectDialog(true)}
+            incubate={() => setTab("incubator")}
+          />
+        )}
         {tab === "collection" && (
           <section className="page-section">
             <div className="eyebrow">YOUR PACK, YOUR STORIES</div>
             <h1>
-              My <em>canines.</em>
+              My <em>pack.</em>
             </h1>
             <p className="section-intro">
               Your revealed canines. Their traits and ownership are now public
-              on Tari.
+              on Tari.{" "}
+              <button className="text-button" onClick={() => setTab("rebirth")}>
+                View your Halloween rewards ({state.halloween?.length ?? 0}) →
+              </button>
             </p>
             {state.canines.length ? (
               <div className="collection-grid">
@@ -664,7 +697,7 @@ function App() {
           href="#"
           onClick={() => setTab("incubator")}
         >
-          <PawPrint size={17} /> midnight kennel
+          <PawPrint size={17} /> Arkimals · Halloween
         </a>
         <span>Small paws. Big secrets.</span>
         <a href="https://ootle.tari.com/" target="_blank" rel="noreferrer">

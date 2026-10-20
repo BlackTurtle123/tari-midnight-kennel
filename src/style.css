@@ -1,14 +1,14 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap");
 :root {
   font-family: "DM Sans", sans-serif;
-  color: #302d38;
-  background: #faf8f2;
+  color: #f1f4fa;
+  background: #19202e;
   font-synthesis: none;
   font-weight: 400;
-  --ink: #302d38;
-  --muted: #77727d;
-  --orange: #ee9f61;
-  --line: #e6e1d9;
+  --ink: #f1f4fa;
+  --muted: #b0bacb;
+  --orange: #ffd346;
+  --line: #3b465b;
 }
 * {
   box-sizing: border-box;
@@ -77,7 +77,7 @@ button:not(:disabled):active {
   font-weight: 700;
 }
 .brand-icon {
-  background: #edaa78;
+  background: #ffd346;
   width: 43px;
   height: 45px;
   border-radius: 13px;
@@ -470,7 +470,7 @@ h3 {
   display: flex;
   align-items: center;
   gap: 23px;
-  background: #302d38;
+  background: #f1f4fa;
   color: #f9f4e9;
   border-radius: 12px;
   padding: 29px 32px;
@@ -762,7 +762,7 @@ dt {
   max-height: 92dvh;
   overflow: auto;
   padding: 40px;
-  background: #faf8f2;
+  background: #19202e;
   border-radius: 20px;
   position: relative;
   box-shadow: 0 25px 100px #14101d50;
@@ -860,7 +860,7 @@ dt {
   place-items: center;
   border-radius: 50%;
   color: #704628;
-  background: #edaa78;
+  background: #ffd346;
   box-shadow: 0 2px 0 #b4795050;
 }
 .envelope-caption {
@@ -1425,7 +1425,7 @@ dt {
 .wallet-tools > details {
   border: 1px solid var(--line);
   border-radius: 14px;
-  background: #faf8f2;
+  background: #19202e;
 }
 .wallet-tools summary {
   cursor: pointer;
@@ -1508,4 +1508,439 @@ dt {
   .wallet-tools {
     grid-template-columns: 1fr;
   }
+}
+/* Arkimals palette, with the main game's original wordmark and Halloween art. */
+.arkimals-logo {
+  width: 172px;
+  height: auto;
+  display: block;
+}
+.brand small {
+  color: #b0bacb;
+  letter-spacing: 2.5px;
+  text-align: center;
+}
+.header {
+  max-width: 1450px;
+}
+.header nav {
+  gap: 22px;
+}
+.header .nav.active {
+  color: #ffd346;
+}
+button.primary,
+.primary {
+  background: #ffd346;
+  color: #19202e;
+  border-color: #ffd346;
+  font-weight: 800;
+}
+.primary:hover {
+  background: #ffe27d;
+}
+.secondary,
+.wallet-button {
+  background: #242c3d;
+  color: #f1f4fa;
+  border-color: #526079;
+}
+main {
+  max-width: 1280px;
+}
+.hero h1 em,
+.page-section h1 em {
+  color: #90c1cc;
+}
+.hero-art {
+  background: radial-gradient(
+    ellipse at center,
+    #354b52 0%,
+    #242c3d 48%,
+    transparent 70%
+  );
+}
+.hero-cat {
+  position: absolute !important;
+  width: 43% !important;
+  height: auto !important;
+  right: -8%;
+  bottom: 3%;
+  filter: drop-shadow(0 8px 15px #101825);
+}
+.hero-foot,
+.hero-copy p,
+.section-intro,
+.step p,
+.fine-print,
+.topline,
+.canine-card p {
+  color: #b0bacb;
+}
+.steps,
+.canine-card,
+.pending-card,
+.wallet-summary,
+.wallet-tools,
+.rebirth-panel {
+  background: #242c3d;
+  border-color: #3b465b;
+}
+.step-icon {
+  background: #344337;
+  color: #c7e1ad;
+}
+.art-note {
+  background: #242c3d;
+  color: #f1f4fa;
+  border: 1px solid #526079;
+}
+.art-note small {
+  color: #b0bacb;
+}
+.door-card {
+  color: #19202e;
+}
+.door-card p {
+  color: #384454;
+}
+.door-card button {
+  color: #19202e;
+}
+.door-card h3 {
+  color: #19202e;
+}
+.privacy-banner {
+  background: #243b3a;
+  color: #edf6ed;
+}
+.privacy-banner p {
+  color: #b8ceca;
+}
+.pill {
+  background: #344337;
+  color: #d1e3a5;
+}
+.modal {
+  background: #242c3d;
+  color: #f1f4fa;
+}
+.modal p,
+.modal small {
+  color: #b0bacb;
+}
+.modal .secondary {
+  background: #344052;
+  color: #f1f4fa;
+}
+.notice {
+  background: #243b3a;
+  color: #e7f4ed;
+  border-color: #45615b;
+}
+.notice.error {
+  background: #4b2b31;
+  color: #ffe2de;
+  border-color: #79505b;
+}
+input,
+select,
+textarea {
+  background: #19202e;
+  color: #f1f4fa;
+  border: 1px solid #526079;
+  border-radius: 10px;
+  padding: 12px;
+  font: inherit;
+}
+.reward-art {
+  display: block;
+  width: 100%;
+  height: 240px;
+  object-fit: contain;
+}
+.reward-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+  margin-top: 30px;
+}
+.reward-option {
+  border: 2px solid #3b465b;
+  background: #242c3d;
+  color: #f1f4fa;
+  border-radius: 24px;
+  padding: 24px;
+  text-align: left;
+  transition:
+    border-color 0.18s,
+    transform 0.18s;
+}
+.reward-option.selected {
+  border-color: #ffd346;
+  background: radial-gradient(ellipse at 50% 35%, #38464b, #242c3d 70%);
+}
+.reward-option:hover {
+  border-color: #90c1cc;
+}
+.reward-option h3 {
+  font:
+    800 24px Manrope,
+    sans-serif;
+  margin: 12px 0;
+}
+.reward-option p {
+  color: #b0bacb;
+  line-height: 1.6;
+  min-height: 52px;
+}
+.reward-choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #ffd346;
+  font-weight: 700;
+  padding-top: 16px;
+  border-top: 1px solid #3b465b;
+}
+.ritual-steps {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #c7d8dc;
+  margin: 30px 0;
+}
+.rebirth-panel {
+  padding: 32px;
+  border: 1px solid #3b465b;
+  border-radius: 24px;
+  margin-top: 30px;
+}
+.rebirth-panel p {
+  color: #b0bacb;
+  line-height: 1.7;
+}
+.rebirth-panel code {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.rebirth-panel select {
+  display: block;
+  width: 100%;
+  margin: 10px 0 22px;
+}
+.rebirth-picker,
+.rebirth-review {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1fr);
+  gap: 45px;
+  align-items: center;
+}
+.rebirth-offering {
+  max-width: 280px;
+  justify-self: center;
+  color: #90c1cc;
+}
+.rebirth-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.6;
+  margin: 24px 0;
+}
+.rebirth-ack input {
+  margin-top: 6px;
+  accent-color: #ffd346;
+}
+.rebirth-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.rebirth-owned {
+  margin-top: 60px;
+}
+.rebirth-owned dd {
+  overflow-wrap: anywhere;
+}
+.rebirth-review > .reward-art {
+  height: 340px;
+}
+.rebirth-teaser {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 24px;
+  align-items: center;
+  padding: 28px;
+  background: radial-gradient(ellipse at center, #3b4041, #242c3d);
+  border: 1px solid #526079;
+  border-radius: 28px;
+  margin: 50px 0;
+  text-align: center;
+}
+.rebirth-teaser h2 {
+  font-size: 34px;
+  margin: 12px 0;
+}
+.rebirth-teaser p {
+  color: #c1cad8;
+  line-height: 1.7;
+}
+.rebirth-teaser .primary {
+  margin: auto;
+}
+.rebirth-teaser > .reward-art {
+  height: 260px;
+}
+.text-button {
+  color: #ffd346;
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+}
+@media (max-width: 800px) {
+  .header {
+    height: auto;
+    min-height: 110px;
+    flex-wrap: wrap;
+    padding: 20px 5%;
+    gap: 15px;
+  }
+  .header nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .arkimals-logo {
+    width: 145px;
+  }
+  .reward-grid {
+    grid-template-columns: 1fr;
+  }
+  .reward-option {
+    display: grid;
+    grid-template-columns: 140px minmax(0, 1fr);
+    column-gap: 18px;
+    padding: 20px;
+  }
+  .reward-option .reward-art {
+    grid-column: 1;
+    grid-row: 1/5;
+    height: 190px;
+  }
+  .reward-option .pill,
+  .reward-option h3,
+  .reward-option p,
+  .reward-option .reward-choice {
+    grid-column: 2;
+  }
+  .reward-option h3 {
+    font-size: 22px;
+  }
+  .reward-option p {
+    font-size: 13px;
+    margin: 4px 0;
+  }
+  .reward-option .pill {
+    font-size: 10px;
+    justify-self: start;
+  }
+  .rebirth-picker,
+  .rebirth-review {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .rebirth-review > .reward-art {
+    grid-row: 1;
+    height: 170px;
+  }
+  .rebirth-offering {
+    max-width: 200px;
+  }
+  .ritual-steps {
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 11px;
+  }
+  .rebirth-teaser {
+    grid-template-columns: 1fr;
+    padding: 25px;
+  }
+  .rebirth-teaser > .reward-art {
+    display: none;
+  }
+  .hero-cat {
+    right: 0 !important;
+  }
+  .rebirth-panel {
+    padding: 22px;
+  }
+  .rebirth-page h1 {
+    font-size: 46px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+.secret-experience {
+  background: #2b3047;
+  border-color: #626484;
+  color: #f1f4fa;
+}
+.secret-envelope {
+  background: #373c58;
+  border-color: #8889ad;
+  color: #d2c3ed;
+}
+.secret-description,
+.secret-choice,
+.secret-boundary,
+.secret-proof,
+.secret-actions > span {
+  color: #c3c8dc;
+}
+.hidden-traits > span {
+  background: #363b54;
+  color: #d7daeb;
+  border-color: #626484;
+}
+.secret-grid article,
+.secret-grid article:nth-child(2) {
+  background: #242c3d;
+}
+.secret-grid p,
+.honest-note p,
+.rules p {
+  color: #b0bacb;
+}
+.rules a {
+  color: #ffd346;
+}
+.wallet-summary code {
+  background: #19202e;
+  color: #d4dfef;
+}
+.reveal-warning {
+  background: #344337;
+  color: #e2edcf;
+}
+.wallet-tool-body input:not([type="checkbox"]),
+.wallet-tool-body select {
+  background: #19202e;
+  color: #f1f4fa;
+}
+.count {
+  background: #3b465b;
+  color: #f1f4fa;
 }

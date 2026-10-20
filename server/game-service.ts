@@ -4,7 +4,7 @@ import {
   recoverableMissingAccount,
 } from "./reconciliation.ts";
 import { NotSubmitted } from "./submission-errors.ts";
-import { parseCanine, parseLegacyCanine } from "./nft.ts";
+import { parseCanine, parseLegacyCanine, parseHalloween } from "./nft.ts";
 import {
   stringLiteral,
   componentAddressLiteral,
@@ -34,6 +34,7 @@ import {
 } from "./wallet.ts";
 import {
   deployment,
+  rebirthDeployment,
   legacyResource,
   OPERATOR_NAME,
   PLAYER_NAME,
@@ -80,6 +81,9 @@ export class GameService {
       const legacy = legacyResource();
       base.component = d.component;
       base.resource = d.resource;
+      const rebirth = rebirthDeployment();
+      base.rebirth = rebirth;
+      base.halloween = [];
       for (let offset = 0; ; offset += 100) {
         const page = await w.nftsList({
           account: { Name: this.playerName },
@@ -88,6 +92,11 @@ export class GameService {
         });
         for (const nft of page.nfts) {
           if (nft.is_burnt) continue;
+          if (nft.resource_address === rebirth?.resource) {
+            const reward = parseHalloween(nft.data, nft.resource_address);
+            if (reward) base.halloween.push(reward);
+            continue;
+          }
           const canine =
             nft.resource_address === d.resource
               ? parseCanine(nft.data, d.resource)

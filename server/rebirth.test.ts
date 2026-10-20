@@ -1,0 +1,180 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { mkdtempSync, readFileSync, appendFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  TransactionBuilder,
+  Network,
+  resourceAddressLiteral,
+  componentAddressLiteral,
+  intLiteral,
+} from "@tari-project/ootle";
+import { Rebirths, RebirthStore } from "./rebirth.ts";
+import { RejectedTransaction } from "./wallet.ts";
+import { HALLOWEEN_REWARDS, rebirthInstructions } from "../shared/rebirth.ts";
+import { parseHalloween } from "./nft.ts";
+import type { GameState } from "../shared/game.ts";
+
+const component = `component_${"aa".repeat(32)}` as const,
+  account = `component_${"bb".repeat(32)}` as const,
+  resource = `resource_${"cc".repeat(32)}` as const,
+  id = "dd".repeat(16);
+const config = {
+  component,
+  resource: `resource_${"ee".repeat(32)}`,
+  current: resource,
+  legacy: resource,
+};
+const input = { resource, id, reward: 0 };
+test("rebirth instructions match SDK workspace and address encoding, with Rust-verified NFT CBOR", () => {
+  const expected = TransactionBuilder.new(Network.Esmeralda, 0)
+    .callMethod(
+      { componentAddress: account, methodName: "withdraw_non_fungible" },
+      [
+        resourceAddressLiteral(resource),
+        { Literal: "8201817820" + Buffer.from(id).toString("hex") },
+      ],
+    )
+    .saveVar("canine")
+    .callMethod({ componentAddress: component, methodName: "rebirth" }, [
+      { Workspace: "canine" },
+      componentAddressLiteral(account),
+      intLiteral(0n),
+    ])
+    .buildUnsignedTransaction().instructions;
+  assert.deepEqual(rebirthInstructions(config, account, input), expected);
+  assert.throws(() =>
+    rebirthInstructions(config, account, { ...input, reward: 3 }),
+  );
+  assert.throws(() =>
+    rebirthInstructions(config, account, {
+      ...input,
+      resource: config.resource,
+    }),
+  );
+});
+function fixture(mode: "ok" | "lost" | "rejected" = "ok") {
+  const dir = mkdtempSync(join(tmpdir(), "rebirth-test-")),
+    store = new RebirthStore(dir);
+  let sends = 0,
+    owned = true;
+  const state = async (): Promise<GameState> => ({
+    connected: true,
+    network: "Esmeralda",
+    incubations: [],
+    canines: owned
+      ? [
+          {
+            id,
+            resource,
+            name: "PoodlOS Echelon",
+            genes: "HHHHHHHH",
+            variant: 3,
+            generation: 0,
+          },
+        ]
+      : [],
+  });
+  const chain = {
+    getAccount: async () =>
+      ({ account: { component_address: account } }) as Awaited<
+        ReturnType<typeof import("./wallet.ts").getAccount>
+      >,
+    submit: async (name: string, instructions: unknown) => {
+      sends++;
+      assert.equal(name, "alice");
+      assert.deepEqual(
+        instructions,
+        rebirthInstructions(config, account, input),
+      );
+      if (mode === "lost") throw new Error("Connection lost");
+      return { transaction_id: "ff".repeat(32) } as Awaited<
+        ReturnType<typeof import("./wallet.ts").submit>
+      >;
+    },
+    waitAccepted: async () => {
+      if (mode === "rejected") throw new RejectedTransaction("ff".repeat(32));
+      return {} as Awaited<
+        ReturnType<typeof import("./wallet.ts").waitAccepted>
+      >;
+    },
+  };
+  const service = () =>
+    new Rebirths(
+      state,
+      new RebirthStore(dir),
+      chain,
+      () => config,
+      async (f) => f(),
+    );
+  return {
+    service,
+    dir,
+    sends: () => sends,
+    unown: () => {
+      owned = false;
+    },
+  };
+}
+test("accepted rebirth survives restart, uses fixed owner, rejects cross-account checks and never resends", async () => {
+  const f = fixture(),
+    first = await f.service().confirm("alice", input);
+  assert.equal(first.status, "accepted");
+  f.unown();
+  assert.equal((await f.service().confirm("alice", input)).status, "accepted");
+  assert.equal(f.sends(), 1);
+  await assert.rejects(f.service().check("bob", first.key), /not found/);
+  assert.equal(f.service().list("bob").length, 0);
+});
+test("lost acknowledgement survives restart and blocks another rebirth", async () => {
+  const f = fixture("lost");
+  await assert.rejects(f.service().confirm("alice", input), /Connection lost/);
+  await assert.rejects(f.service().confirm("alice", input), /acknowledgement/);
+  await assert.rejects(
+    f.service().confirm("alice", { ...input, id: "01".repeat(16) }),
+    /previous rebirth/,
+  );
+  assert.equal(f.sends(), 1);
+});
+test("ownership is revalidated before signing, rejected receipts are explicit and journal tampering fails closed", async () => {
+  const f = fixture();
+  f.unown();
+  await assert.rejects(
+    f.service().confirm("alice", input),
+    /no longer verified/,
+  );
+  assert.equal(f.sends(), 0);
+  const reject = fixture("rejected");
+  assert.equal(
+    (await reject.service().confirm("alice", input)).status,
+    "rejected",
+  );
+  const path = join(reject.dir, "rebirth-requests-v1.jsonl"),
+    data = readFileSync(path, "utf8");
+  appendFileSync(path, data.split("\n")[0] + "\n");
+  assert.throws(() => new RebirthStore(reject.dir), /integrity failure/);
+});
+test("Halloween metadata retains original art identity and canine lineage without invented feline genetics", () => {
+  for (let reward = 0; reward < 3; reward++) {
+    const spec = HALLOWEEN_REWARDS[reward],
+      data = {
+        name: spec.name,
+        original: spec.original,
+        reward: String(reward),
+        edition: "tari-halloween-2026",
+        art_version: "arkimals-halloween-v1",
+        rebirth_id: "ee".repeat(32),
+        source_resource: resource,
+        source_id: "str_" + id,
+      };
+    const parsed = parseHalloween(data, config.resource)!;
+    assert.equal(parsed.name, spec.name);
+    assert.equal(parsed.sourceId, id);
+    assert.equal("genes" in parsed, false);
+    assert.equal(
+      parseHalloween({ ...data, original: "fake" }, config.resource),
+      null,
+    );
+  }
+});

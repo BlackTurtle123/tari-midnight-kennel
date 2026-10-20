@@ -37,9 +37,35 @@ export function deployment(): Deployment {
 }
 
 export function legacyResource(): string | undefined {
-  const path=join(DATA_DIR,"deployment.json");
+  const path = join(DATA_DIR, "deployment.json");
   if (!existsSync(path)) return undefined;
-  const d=JSON.parse(readFileSync(path,"utf8"));
-  if(d.network!=="esmeralda" || typeof d.resource!=="string" || !/^resource_[a-f0-9]{64}$/.test(d.resource)) throw new Error("Invalid legacy deployment configuration");
+  const d = JSON.parse(readFileSync(path, "utf8"));
+  if (
+    d.network !== "esmeralda" ||
+    typeof d.resource !== "string" ||
+    !/^resource_[a-f0-9]{64}$/.test(d.resource)
+  )
+    throw new Error("Invalid legacy deployment configuration");
   return d.resource;
+}
+
+export function rebirthDeployment():
+  (Deployment & { current: string; legacy: string }) | undefined {
+  const path = join(DATA_DIR, "rebirth-v1.json");
+  if (!existsSync(path)) return undefined;
+  const d = JSON.parse(readFileSync(path, "utf8"));
+  if (
+    d.network !== "esmeralda" ||
+    !/^component_[a-f0-9]{64}$/.test(d.component) ||
+    ![d.resource, d.current, d.legacy].every(
+      (v: unknown) =>
+        typeof v === "string" && /^resource_[a-f0-9]{64}$/.test(v),
+    ) ||
+    d.current !== deployment().resource ||
+    d.legacy !== (legacyResource() ?? deployment().resource)
+  )
+    throw new Error(
+      "Invalid rebirth deployment; existing collections preserved",
+    );
+  return d;
 }

@@ -2,8 +2,14 @@ import { IndexerProvider } from "@tari-project/ootle-indexer";
 import { Network, getVaultIdsForAccount } from "@tari-project/ootle";
 import { parseOotleAddress } from "@tari-project/ootle-wasm";
 import { z } from "zod";
-import { deployment, legacyResource, TARI_RESOURCE } from "./config.ts";
-import { parseCanine, parseLegacyCanine } from "./nft.ts";
+import {
+  deployment,
+  legacyResource,
+  rebirthDeployment,
+  TARI_RESOURCE,
+} from "./config.ts";
+import { parseCanine, parseLegacyCanine, parseHalloween } from "./nft.ts";
+import type { HalloweenNFT } from "../shared/rebirth.ts";
 import type { Canine } from "../shared/game.ts";
 
 const hex = z.string().regex(/^[a-f0-9]{64}$/);
@@ -113,7 +119,7 @@ export async function validateExternalAccount(
 }
 export async function publicInventory(
   account: string,
-): Promise<{ canines: Canine[]; balance: string }> {
+): Promise<{ canines: Canine[]; halloween: HalloweenNFT[]; balance: string }> {
   const p = await indexer(),
     d = deployment();
   const r = await p.getSubstate(account);
@@ -126,6 +132,8 @@ export async function publicInventory(
   if (vaults.length > 100)
     throw new Error("This wallet has too many vaults for the PoC reader");
   const canines: Canine[] = [];
+  const halloween: HalloweenNFT[] = [],
+    rebirth = rebirthDeployment();
   let balance = 0n;
   for (const id of vaults) {
     const v = await p.getSubstate(id);
@@ -135,13 +143,18 @@ export async function publicInventory(
       balance += BigInt(c.Stealth.revealed_amount);
     if (
       !("NonFungible" in c) ||
-      ![d.resource, legacyResource()].includes(c.NonFungible.address)
+      ![d.resource, legacyResource(), rebirth?.resource].includes(
+        c.NonFungible.address,
+      )
     )
       continue;
     if (c.NonFungible.token_ids.length > 100)
       throw new Error("Unexpected canine supply");
     for (const token of c.NonFungible.token_ids) {
-      if (!("String" in token) || !/^[a-f0-9]{32}$/.test(token.String))
+      if (
+        !("String" in token) ||
+        !/^[a-f0-9]{32}(?:[a-f0-9]{32})?$/.test(token.String)
+      )
         continue;
       const resource = c.NonFungible.address;
       const nft = await p.getSubstate(
@@ -149,6 +162,11 @@ export async function publicInventory(
       );
       if (!("NonFungible" in nft.substate) || !nft.substate.NonFungible)
         continue;
+      if (resource === rebirth?.resource) {
+        const reward = parseHalloween(nft.substate.NonFungible.data, resource);
+        if (reward && reward.id === token.String) halloween.push(reward);
+        continue;
+      }
       const canine =
         resource === d.resource
           ? parseCanine(nft.substate.NonFungible.data, resource)
@@ -156,5 +174,9 @@ export async function publicInventory(
       if (canine && canine.id === token.String) canines.push(canine);
     }
   }
-  return { canines, balance: (Number(balance) / 1_000_000).toFixed(3) };
+  return {
+    canines,
+    halloween,
+    balance: (Number(balance) / 1_000_000).toFixed(3),
+  };
 }

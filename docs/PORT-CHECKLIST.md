@@ -33,6 +33,7 @@ Legend: **Implemented/local** means source exists and relevant local checks pass
 A read-only inventory of the current Waves contract tree identifies these additional parity decisions. These are requirements to assess, not source copied into the new contest entry. Presence in the repository does not establish that a feature is active in production.
 
 - [ ] **Canine incubation:** fees and fee aggregation, discounts/coupons/referrals, finish-height timing, rarity adjustment, free issuance and jackpot issuance. The PoC intentionally covers only request → secret → one NFT.
+- [x] **Minimal Halloween rebirth primitive:** actual NFT withdrawal, irreversible retirement, selected reward mint and atomic deposit in a separate Tari component. Both existing canine collections supported. Engine-tested; live player approval acceptance is separate. The main-game probabilistic loot/economy is not ported.
 - [ ] **Canine progression:** breeding, farming/staking, boosted stake/claim flows, rebirth, and the node/treasury contract. Replace each Waves-dependent economic assumption explicitly.
 - [ ] **Other species:** ducks, eagles, felines, bulls, turtles and mutants; decide which incubation, breeding, rebirth and staking variants belong in the Tari release.
 - [ ] **Duck-specific progression:** baby ducks, baby breeding, farming generations and vEGG farming.

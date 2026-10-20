@@ -5,6 +5,7 @@ import type { GameState } from "../shared/game.ts";
 import { Sessions } from "./sessions.ts";
 import type { ExternalService } from "./external-service.ts";
 import type { Transfers } from "./transfers.ts";
+import type { Rebirths } from "./rebirth.ts";
 export interface Backend {
   state(): Promise<GameState>;
   start(door: number, id: string): Promise<unknown>;
@@ -22,6 +23,7 @@ interface Options {
   health(): Promise<boolean>;
   fund(account: string): Promise<unknown>;
   transfers?: Pick<Transfers, "list" | "prepare" | "confirm" | "check">;
+  rebirths?: Pick<Rebirths, "list" | "confirm" | "check">;
   external?: Pick<
     ExternalService,
     "config" | "prepare" | "register" | "resume" | "state"
@@ -186,6 +188,34 @@ export function createApp(options: Options) {
   app.post("/api/fund", async (_req, res) =>
     res.json(await options.fund(res.locals.account)),
   );
+  if (options.rebirths) {
+    const rebirths = options.rebirths;
+    app.get("/api/rebirths", (_req, res) =>
+      res.json(rebirths.list(res.locals.account)),
+    );
+    app.post("/api/rebirths", async (req, res) => {
+      const input = z
+        .object({
+          resource: z.string().regex(/^resource_[a-f0-9]{64}$/),
+          id: z.string().regex(/^[a-f0-9]{32}$/),
+          reward: z.number().int().min(0).max(2),
+        })
+        .strict()
+        .parse(req.body);
+      res.json(await rebirths.confirm(res.locals.account, input));
+    });
+    app.post("/api/rebirths/:key/check", async (req, res) =>
+      res.json(
+        await rebirths.check(
+          res.locals.account,
+          z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .parse(req.params.key),
+        ),
+      ),
+    );
+  }
   if (options.transfers) {
     const transfers = options.transfers;
     const id = z.string().regex(/^[a-f0-9]{32}$/);
@@ -210,7 +240,7 @@ export function createApp(options: Options) {
             z
               .object({
                 kind: z.literal("canine"),
-                id,
+                id: z.string().regex(/^[a-f0-9]{32}(?:[a-f0-9]{32})?$/),
                 resource: z.string().regex(/^resource_[a-f0-9]{64}$/),
               })
               .strict(),

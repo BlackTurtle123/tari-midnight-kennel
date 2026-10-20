@@ -15,6 +15,8 @@ jobs:
       - run: npm test
       - run: npm run build
   contract:
+    env:
+      CARGO_TARGET_DIR: ${{ github.workspace }}/contract/target
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -26,3 +28,6 @@ jobs:
           workspaces: contract
       - run: cargo build --locked --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release
       - run: cargo test --locked --manifest-path contract/Cargo.toml
+
+      - run: cargo build --locked --manifest-path rebirth-contract/Cargo.toml --target wasm32-unknown-unknown --release
+      - run: cargo test --locked --manifest-path rebirth-contract/Cargo.toml

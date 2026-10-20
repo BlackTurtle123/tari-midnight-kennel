@@ -6,6 +6,7 @@ import type { GameState } from "../shared/game.ts";
 import {
   DATA_DIR,
   deployment,
+  rebirthDeployment,
   OPERATOR_NAME,
   TARI_RESOURCE,
 } from "./config.ts";
@@ -131,6 +132,7 @@ export class ExternalService {
       account,
       component: d.component,
       resource: d.resource,
+      rebirth: rebirthDeployment(),
       canines: [],
       incubations: chain.map((c) => {
         const saved = this.journal.get(c.id);

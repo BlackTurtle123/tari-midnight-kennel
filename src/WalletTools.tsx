@@ -57,11 +57,11 @@ export function WalletTools({
       microTari(amount);
       asset = { kind: "tari", amount, visibility };
     } else {
-      const canine = state.canines.find(
+      const canine = [...state.canines, ...(state.halloween ?? [])].find(
         (c) => c.resource + "/" + c.id === selection,
       );
       if (!canine)
-        throw new Error("Select a canine currently held by this wallet");
+        throw new Error("Select an NFT currently held by this wallet");
       asset = { kind: "canine", id: canine.id, resource: canine.resource };
     }
     const r = await api<TransferReceipt>("/wallet/transfers/review", {
@@ -229,13 +229,15 @@ export function WalletTools({
                     onChange={(e) => setSelection(e.target.value)}
                   >
                     <option value="tari">Test Tari (tTARI)</option>
-                    {state.canines.map((c) => (
+                    {[...state.canines, ...(state.halloween ?? [])].map((c) => (
                       <option
                         key={c.resource + c.id}
                         value={c.resource + "/" + c.id}
                       >
                         {c.name} · {c.id.slice(0, 8)}…
-                        {c.legacy ? " · original collection" : ""}
+                        {"legacy" in c && c.legacy
+                          ? " · original collection"
+                          : ""}
                       </option>
                     ))}
                   </select>

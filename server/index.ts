@@ -7,6 +7,7 @@ import { createApp } from "./http-app.ts";
 import { ExternalService } from "./external-service.ts";
 import { Transfers, TransferStore } from "./transfers.ts";
 import { serializeWallet } from "./wallet-queue.ts";
+import { Rebirths } from "./rebirth.ts";
 const hosted = process.env.KENNEL_HOSTED === "true";
 const port = Number(process.env.PORT || 8787);
 const services = new Map<string, GameService>();
@@ -63,6 +64,16 @@ const app = createApp({
   version: process.env.KENNEL_VERSION || "development",
   backend,
   external: new ExternalService(),
+  rebirths: (() => {
+    const service = new Rebirths(async (name) => (await backend(name)).state());
+    const name = (account: string) =>
+      account === "local" ? PLAYER_NAME : account;
+    return {
+      list: (account) => service.list(name(account)),
+      confirm: (account, input) => service.confirm(name(account), input),
+      check: (account, key) => service.check(name(account), key),
+    };
+  })(),
   transfers: (() => {
     const transfer = new Transfers(
       wallet,

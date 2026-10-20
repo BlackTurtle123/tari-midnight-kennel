@@ -1,17 +1,53 @@
 // Genesis roster from the main game's shared/constants/canines.ts.
 export const VARIANTS = [
-  { name: "Beaglebyte Prime", genes: "EEEEEEEE", kind: "treat", description: "A Beaglebyte at the pumpkin porch. A treat worth keeping." },
-  { name: "Quantum Dalmatian", genes: "FFFFFFFF", kind: "treat", description: "A Quantum Dalmatian with a sweet midnight surprise." },
-  { name: "Malinox Protocol", genes: "GGGGGGGG", kind: "trick", description: "A Malinox with a mischievous Halloween secret." },
-  { name: "PoodlOS Echelon", genes: "HHHHHHHH", kind: "trick", description: "A PoodlOS playing a little trick after dark." },
+  {
+    name: "Beaglebyte Prime",
+    genes: "EEEEEEEE",
+    kind: "treat",
+    description: "A Beaglebyte at the pumpkin porch. A treat worth keeping.",
+  },
+  {
+    name: "Quantum Dalmatian",
+    genes: "FFFFFFFF",
+    kind: "treat",
+    description: "A Quantum Dalmatian with a sweet midnight surprise.",
+  },
+  {
+    name: "Malinox Protocol",
+    genes: "GGGGGGGG",
+    kind: "trick",
+    description: "A Malinox with a mischievous Halloween secret.",
+  },
+  {
+    name: "PoodlOS Echelon",
+    genes: "HHHHHHHH",
+    kind: "trick",
+    description: "A PoodlOS playing a little trick after dark.",
+  },
 ] as const;
-export const GENE_POSITIONS = ["Headwear", "Eyebrows", "Eyes", "Muzzle", "Body", "Left limb", "Right limb", "Tail"] as const;
-export const COLOR_NAMES = { A: "Red", B: "Dark Purple", C: "Green", D: "Blue" } as const;
+export const GENE_POSITIONS = [
+  "Headwear",
+  "Eyebrows",
+  "Eyes",
+  "Muzzle",
+  "Body",
+  "Left limb",
+  "Right limb",
+  "Tail",
+] as const;
+export const COLOR_NAMES = {
+  A: "Red",
+  B: "Dark Purple",
+  C: "Green",
+  D: "Blue",
+} as const;
 export function colorForSalt(salt: string): keyof typeof COLOR_NAMES {
   if (!/^[a-f0-9]{64}$/.test(salt)) throw new Error("Invalid opening salt");
   return "ABCD"[parseInt(salt.slice(0, 2), 16) % 4] as keyof typeof COLOR_NAMES;
 }
-export function genotypeFor(genes: string, color: string) { return `CANI-${genes}-G${color}`; }
+export function genotypeFor(genes: string, color: string) {
+  return `CANI-${genes}-G${color}`;
+}
 export const DOORS = [
   {
     name: "Pumpkin Porch",
@@ -71,6 +107,8 @@ export interface IncubationView {
   error?: string;
 }
 export interface GameState {
+  halloween?: import("./rebirth.ts").HalloweenNFT[];
+  rebirth?: import("./rebirth.ts").RebirthConfig;
   connected: boolean;
   network: string;
   account?: string;
