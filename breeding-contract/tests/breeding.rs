@@ -314,13 +314,14 @@ fn breeding_escrows_returns_and_enforces_lifetime_usage_and_refund() {
         args![resource, resource, bred, stake, treasury, 8_000_000u64],
         vec![],
     );
-    let founding_stake_id = format!("{resource}|str_{}", ids[0]);
+    // Parents 0 and 2 were transferred above; parent 1 remains in this account.
+    let founding_stake_id = format!("{resource}|str_{}", ids[1]);
     t.execute_expect_success(
         t.transaction()
             .call_method(
                 account,
                 "withdraw_non_fungible",
-                args![resource, NonFungibleId::from_string(ids[0].clone())],
+                args![resource, NonFungibleId::from_string(ids[1].clone())],
             )
             .put_last_instruction_output_on_workspace("founder")
             .call_method(stake, "stake", args![Workspace("founder"), account])
