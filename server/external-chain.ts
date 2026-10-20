@@ -2,6 +2,7 @@ import { IndexerProvider } from "@tari-project/ootle-indexer";
 import { Network, getVaultIdsForAccount } from "@tari-project/ootle";
 import { parseOotleAddress } from "@tari-project/ootle-wasm";
 import { z } from "zod";
+import { readEpochHashes } from "./epoch-hashes.ts";
 import {
   deployment,
   legacyResource,
@@ -247,6 +248,7 @@ export async function economySnapshot(
       throw new Error("Unexpected NFT id");
     return v[1][0];
   };
+  const epochs = readEpochHashes(a[7]);
   const requests = Object.entries(a[6])
     .filter(([, v]: any) => !account || recipient(v[1]) === account)
     .map(([id, v]: any) => ({
@@ -256,7 +258,7 @@ export async function economySnapshot(
       targetEpoch: Number(v[4]),
       status: Number(v[5]),
       reward: Number(v[6]),
-      captured: Object.prototype.hasOwnProperty.call(a[7], String(v[4])),
+      captured: Object.hasOwn(epochs, String(v[4])),
     }));
   const index = cborInteger(b[4]);
   const stakes = Object.entries(b[3])
@@ -330,7 +332,7 @@ export function readBreeding(
             ]),
           ),
           z.record(z.string().regex(/^[a-f0-9]{64}$/)),
-          z.record(z.string()),
+          z.unknown(),
           z.number().int().nonnegative(),
         ]),
       }),
@@ -339,6 +341,7 @@ export function readBreeding(
   const a = c.body.state;
   if ("resource_" + a[0].value.hex !== config.resource)
     throw new Error("Unexpected breeding resource");
+  const epochs = readEpochHashes(a[7]);
   return {
     epoch,
     parents: a[6],
@@ -354,7 +357,7 @@ export function readBreeding(
         },
         targetEpoch: v[4],
         status: v[5],
-        captured: Object.hasOwn(a[7], String(v[4])),
+        captured: Object.hasOwn(epochs, String(v[4])),
       })),
   };
 }

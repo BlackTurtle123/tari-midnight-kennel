@@ -189,7 +189,7 @@ test("breeding reader binds verified component schema to resource, fee, template
           ],
         },
         {},
-        { "12": "hash" },
+        { "@cbor": "map", entries: [[12, "ab".repeat(32)]] },
         0,
       ],
     },
