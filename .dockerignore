@@ -2,6 +2,7 @@
 node_modules
 dist
 contract/target
+rebirth-contract/target
 .env*
 .local
 coverage
