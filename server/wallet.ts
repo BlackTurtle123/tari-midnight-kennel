@@ -1,4 +1,8 @@
-import { missingSubstateError, NotSubmitted } from "./submission-errors.ts";
+import {
+  missingSubstateError,
+  checkpointNotReadyError,
+  NotSubmitted,
+} from "./submission-errors.ts";
 import { WalletDaemonClient } from "@tari-project/wallet_jrpc_client";
 import { TransactionBuilder, Network } from "@tari-project/ootle";
 import type {
@@ -133,6 +137,11 @@ export async function submit(
       max_epoch: null,
     });
   } catch (error) {
+    if (checkpointNotReadyError(error))
+      throw new NotSubmitted(
+        "Tari is synchronizing its epoch checkpoint. Nothing was submitted; try again shortly.",
+        { cause: error },
+      );
     if (missingSubstateError(error))
       throw new NotSubmitted(
         "A required on-chain account or game component is unavailable. No transaction was submitted; check progress to retry.",

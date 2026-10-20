@@ -415,8 +415,9 @@ export function Rebirth({
                       : "Only earned, funded rewards are transferred to the same wallet."}
           </p>
           <p>
-            Network fee approval: up to 1 tTARI per transaction, separate from
-            the ritual fee.
+            The ritual fee requires public, spendable tTARI. Unshield in Sapient
+            if your funds are private. Network fee approval: up to 1 tTARI per
+            transaction, separate from the ritual fee.
           </p>
           <label className="confirm-check">
             <input

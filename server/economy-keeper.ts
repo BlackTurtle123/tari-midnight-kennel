@@ -1,3 +1,4 @@
+import { NotSubmitted } from "./submission-errors.ts";
 import {
   existsSync,
   readFileSync,
@@ -37,7 +38,7 @@ export async function captureNeededEpoch() {
         (r) => r.component === config.component && r.epoch === state.epoch,
       )
       .at(-1);
-    if (prior) {
+    if (prior && !prior.notSubmitted) {
       if (prior.transactionId) await waitAccepted(prior.transactionId);
       return;
     }
@@ -46,6 +47,7 @@ export async function captureNeededEpoch() {
       epoch: state.epoch,
       createdAt: new Date().toISOString(),
       transactionId: undefined as string | undefined,
+      notSubmitted: false,
     };
     const save = () => {
       const fd = openSync(path, "a", 0o600);
@@ -57,15 +59,24 @@ export async function captureNeededEpoch() {
       }
     };
     save();
-    const tx = await submit(OPERATOR_NAME, [
-      {
-        CallMethod: {
-          call: { Address: config.component as `component_${string}` },
-          method: "capture_epoch",
-          args: [],
+    let tx;
+    try {
+      tx = await submit(OPERATOR_NAME, [
+        {
+          CallMethod: {
+            call: { Address: config.component as `component_${string}` },
+            method: "capture_epoch",
+            args: [],
+          },
         },
-      },
-    ]);
+      ]);
+    } catch (error) {
+      if (error instanceof NotSubmitted) {
+        record.notSubmitted = true;
+        save();
+      }
+      throw error;
+    }
     record.transactionId = tx.transaction_id;
     save();
     await waitAccepted(tx.transaction_id);

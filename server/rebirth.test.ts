@@ -1,3 +1,4 @@
+import { NotSubmitted } from "./submission-errors.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, readFileSync, appendFileSync } from "node:fs";
@@ -61,7 +62,7 @@ test("rebirth instructions match SDK workspace and address encoding, with Rust-v
     }),
   );
 });
-function fixture(mode: "ok" | "lost" | "rejected" = "ok") {
+function fixture(mode: "ok" | "lost" | "rejected" | "checkpoint" = "ok") {
   const dir = mkdtempSync(join(tmpdir(), "rebirth-test-")),
     store = new RebirthStore(dir);
   let sends = 0,
@@ -96,6 +97,8 @@ function fixture(mode: "ok" | "lost" | "rejected" = "ok") {
         rebirthInstructions(config, account, input),
       );
       if (mode === "lost") throw new Error("Connection lost");
+      if (mode === "checkpoint" && sends === 1)
+        throw new NotSubmitted("Epoch checkpoint not ready");
       return { transaction_id: "ff".repeat(32) } as Awaited<
         ReturnType<typeof import("./wallet.ts").submit>
       >;
@@ -184,4 +187,13 @@ test("Halloween metadata retains original art identity and canine lineage withou
       null,
     );
   }
+});
+
+test("proven pre-submission checkpoint failures can retry the same request after restart", async () => {
+  const f = fixture("checkpoint");
+  await assert.rejects(f.service().confirm("alice", input), /checkpoint/);
+  assert.equal((await f.service().confirm("alice", input)).status, "accepted");
+  assert.equal(f.sends(), 2);
+  await f.service().confirm("alice", input);
+  assert.equal(f.sends(), 2);
 });

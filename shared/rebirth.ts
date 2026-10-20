@@ -80,6 +80,7 @@ export interface RebirthReceipt extends RebirthInput {
   transactionId?: string;
   createdAt: string;
   operation?: EconomyAction;
+  notSubmitted?: boolean;
 }
 export function validateRebirth(input: RebirthInput) {
   if (

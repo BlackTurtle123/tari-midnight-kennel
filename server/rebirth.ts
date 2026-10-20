@@ -1,3 +1,4 @@
+import { NotSubmitted } from "./submission-errors.ts";
 import { createHash } from "node:crypto";
 import {
   mkdirSync,
@@ -105,7 +106,7 @@ export class Rebirths {
         throw new Error("The economy contracts are not deployed yet");
       const key = hash([config.component, accountName, action, nonce]);
       const existing = this.store.get(key);
-      if (existing) return this.checkInside(existing);
+      if (existing && !existing.notSubmitted) return this.checkInside(existing);
       if (
         this.store
           .list(accountName)
@@ -157,7 +158,17 @@ export class Rebirths {
         createdAt: new Date().toISOString(),
       };
       this.store.save(r);
-      const sent = await this.chain.submit(accountName, instructions);
+      let sent;
+      try {
+        sent = await this.chain.submit(accountName, instructions);
+      } catch (error) {
+        if (error instanceof NotSubmitted) {
+          r.status = "rejected";
+          r.notSubmitted = true;
+          this.store.save(r);
+        }
+        throw error;
+      }
       r.transactionId = sent.transaction_id;
       r.status = "submitted";
       this.store.save(r);

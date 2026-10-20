@@ -35,7 +35,7 @@ This is application-level NFT staking funded by rebirth revenue. It does not tur
 
 ## Wallets and deployment
 
-Sapient signs inside the extension. Append-only public browser recovery records retain the exact action and wallet request ID. Hosted accounts retain their existing cookie, account keys and master seed. A separate hash-chained, fsynced journal records wallet actions before submission. Unknown acknowledgements block duplicate requests; known transaction IDs are checked again. NFT holdings and staking positions are checked before hosted signing. Transfer controls support the resulting Halloween NFTs.
+Sapient signs inside the extension. Append-only public browser recovery records retain the exact action and wallet request ID. Hosted accounts retain their existing cookie, account keys and master seed. A separate hash-chained, fsynced journal records wallet actions before submission. Unknown acknowledgements block duplicate requests; known transaction IDs are checked again. The exact Ootle 0.47 missing-epoch-checkpoint error occurs during input resolution before signing; it is recorded as not submitted and can safely retry. Other RPC/transport errors remain ambiguous. NFT holdings and staking positions are checked before hosted signing. Transfer controls support the resulting Halloween NFTs.
 
 Ootle v0.47.0 changed indexer response shapes and requires the matching wallet daemon. The app pins that daemon by published SHA-256 and uses the compatible SDK. It rejects unverified or spent indexer responses. The wallet's verified-read mode remains enabled.
 
