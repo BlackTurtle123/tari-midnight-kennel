@@ -13,6 +13,7 @@ import {
   OPERATOR_NAME,
   TARI_RESOURCE,
   incubationTreasury,
+  incubationTreasuryPending,
 } from "./config.ts";
 import { Journal, publicRecord, type Incubation } from "./journal.ts";
 import {
@@ -73,6 +74,8 @@ export class ExternalService {
     return { component: d.component, resource: d.resource, network: d.network, incubationFee: incubationTreasury() };
   }
   async prepare(intent: WalletIntent) {
+    if (incubationTreasuryPending())
+      throw new Error("New incubations are paused while the operator activates the 20 tTARI treasury. No approval or payment was requested.");
     if (intent.component !== deployment().component)
       throw new Error("Game deployment changed; reconnect your wallet");
     intentMessage(intent);
@@ -122,6 +125,8 @@ export class ExternalService {
       )
         throw new Error("Incubation recipient is fixed");
     } else {
+      if (incubationTreasuryPending())
+        throw new Error("Treasury activation is pending. Your existing wallet request is preserved; do not pay again.");
       const fee = incubationTreasury();
       if (!sameIncubationFee(intent.fee, fee))
         throw new Error("This incubation needs operator review of its original approval; no additional payment was requested.");
@@ -166,6 +171,7 @@ export class ExternalService {
       component: d.component,
       resource: d.resource,
       incubationFee: incubationTreasury(),
+      incubationFeePending: incubationTreasuryPending(),
       rebirth: activeRebirthDeployment(),
       recoveryEconomies: recoveryRebirthDeployments().map((config) => ({
         config,

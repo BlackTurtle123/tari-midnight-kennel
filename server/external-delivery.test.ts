@@ -116,3 +116,20 @@ test("only proven non-submission or network rejection clears the corresponding r
   assert.equal(f.seals, 2);
   assert.equal(f.deliveries, 2);
 });
+
+
+test("deferred activation blocks new approvals before any chain call", async () => {
+  const previous = process.env.KENNEL_ACTIVATE_INCUBATION_TREASURY;
+  process.env.KENNEL_ACTIVATE_INCUBATION_TREASURY = "true";
+  try {
+    const f = fixture();
+    await assert.rejects(f.service.prepare({ account: "", component: "", paymentAddress: "", door: 0, nonce: "" }), /New incubations are paused/);
+    assert.equal(f.seals, 0);
+    assert.equal(f.deliveries, 0);
+    await f.run();
+    assert.equal(f.journal.get(f.id)?.stage, "ready");
+  } finally {
+    if (previous === undefined) delete process.env.KENNEL_ACTIVATE_INCUBATION_TREASURY;
+    else process.env.KENNEL_ACTIVATE_INCUBATION_TREASURY = previous;
+  }
+});

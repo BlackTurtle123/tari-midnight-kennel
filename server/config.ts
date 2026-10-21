@@ -48,6 +48,10 @@ export function incubationTreasury(): (IncubationFee & { template: string; game:
     throw new Error("Incubation treasury does not match the active game and operator");
   return fee;
 }
+export function incubationTreasuryPending() {
+  return process.env.KENNEL_ACTIVATE_INCUBATION_TREASURY === "true" &&
+    !existsSync(join(DATA_DIR, "incubation-treasury-v1.json"));
+}
 
 export function legacyDeployment(): Deployment | undefined {
   const path = join(DATA_DIR, "deployment.json");

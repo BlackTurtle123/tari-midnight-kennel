@@ -74,9 +74,8 @@ if (!connected) {
       await import("../scripts/deploy-incubation-treasury.ts");
     } catch {
       console.error("Incubation treasury activation did not finish. Preserve its journal and reconcile receipts before retrying.");
-      daemon.kill("SIGTERM");
-      process.exitCode = 1;
-      throw new Error("Incubation treasury activation incomplete");
+      // Keep existing wallets, NFTs and public browsing available. The API
+      // blocks new reservations until the opted-in treasury descriptor exists.
     }
   }
   await import("../server/index.ts");

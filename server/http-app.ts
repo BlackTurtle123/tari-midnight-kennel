@@ -120,6 +120,11 @@ export function createApp(options: Options) {
           .max(512),
         nonce: z.string().regex(/^[a-f0-9]{64}$/),
         door: z.number().int().min(0).max(2),
+        fee: z.object({
+          component: account,
+          treasury: account,
+          amount: z.literal(20_000_000),
+        }).strict().optional(),
       })
       .strict();
     // External connections never create a hosted account, set cookies, accept keys,

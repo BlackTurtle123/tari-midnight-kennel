@@ -197,6 +197,11 @@ test("external-only HTTP rejects retired signing routes even with a valid legacy
       200,
     );
     assert.equal(preparations, 1);
+    const fee = { component: intent.component, treasury: intent.account, amount: 20_000_000 };
+    assert.equal((await fetch(url + "/external/prepare", { method: "POST", headers, body: JSON.stringify({ ...intent, fee }) })).status, 200);
+    assert.equal(preparations, 2);
+    assert.equal((await fetch(url + "/external/prepare", { method: "POST", headers, body: JSON.stringify({ ...intent, fee: { ...fee, amount: 1 } }) })).status, 400);
+    assert.equal(preparations, 2);
   } finally {
     server.closeAllConnections();
     await new Promise<void>((resolve, reject) =>

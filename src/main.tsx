@@ -198,7 +198,7 @@ function App() {
     }
   }
   const pending = state.incubations.find((r) => r.stage !== "hatched");
-  const disabled = busy || restoring || !!pending || !!state.setupError;
+  const disabled = busy || restoring || !!pending || !!state.setupError || !!state.incubationFeePending;
   return (
     <>
       <header className="header">
@@ -443,7 +443,9 @@ function App() {
                 ))}
               </div>
               <p className="fine-print">
-                {state.connected
+                {state.incubationFeePending
+                  ? "New incubations are paused while the operator activates the 20 tTARI treasury. Existing incubations remain saved; do not pay again."
+                  : state.connected
                   ? state.incubationFee
                     ? "20 test tTARI once per new incubation funds delivery and the game treasury. Network fees are separate. Resuming or hatching adds no second treasury fee."
                     : "No treasury fee on this deployment. Network fees apply."
@@ -484,7 +486,7 @@ function App() {
             </section>
           </>
         )}
-        {tab === "rules" && <Rules incubationFee={state.incubationFee} connected={state.connected} />}
+        {tab === "rules" && <Rules incubationFee={state.incubationFee} connected={state.connected} pending={state.incubationFeePending} />}
         {(tab === "ranking" || tab.startsWith("farm/")) && (
           <Community
             key={tab}

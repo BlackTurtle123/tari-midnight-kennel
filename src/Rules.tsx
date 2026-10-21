@@ -3,12 +3,13 @@ import {
   MAIN_GAME_REBIRTH_TABLE,
   mainGameFarmPower,
 } from "../shared/canine-rules";
-export function Rules({ incubationFee, connected }: { incubationFee?: import("../shared/incubation-fee").IncubationFee; connected: boolean }) {
+export function Rules({ incubationFee, connected, pending }: { incubationFee?: import("../shared/incubation-fee").IncubationFee; connected: boolean; pending?: boolean }) {
   const rows = [
     [
       "Incubation",
       "Paid hatch; price rises with total supply. Genesis genes E–H; generation G; colour A–D.",
-      incubationFee
+      pending ? "New incubations are paused until the 20 test tTARI treasury is activated. Existing incubations remain saved without a second payment."
+      : incubationFee
         ? "20 test tTARI is paid once at reservation to fund delivery and the operator treasury. Wallet network fees are separate; resume and hatch do not charge another treasury fee."
         : connected ? "This deployment has no incubation treasury fee. Wallet network fees still apply; the operator funds sealing and delivery."
           : "Connect your wallet to view the active incubation price before approval. The treasury fee funds delivery and operations; wallet network fees are separate.",
