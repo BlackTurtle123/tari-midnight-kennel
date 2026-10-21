@@ -549,6 +549,28 @@ test("refresh refuses the wrong network and removes listeners after failed valid
 });
 
 
+test("paid incubation strips deployment metadata from prepare, register and saved intents", async () => {
+  const f = fixture();
+  const fee = { component: "component_" + "11".repeat(32), treasury: "component_" + "22".repeat(32), amount: 20_000_000 };
+  const descriptor = { ...fee, network: "esmeralda", template: "template_" + "33".repeat(32), game: component, operator: fee.treasury, publicationTx: "44".repeat(32), creationTx: "55".repeat(32), createdAt: "2026-10-21T17:00:57.380Z" };
+  f.chain.incubationFee = descriptor;
+  const requests: string[] = [];
+  const api: typeof f.api = async (path, body) => {
+    if (path === "/external/prepare" || path === "/external/register") {
+      assert.deepEqual(path.endsWith("prepare") ? body.fee : body.intent.fee, fee);
+      requests.push(path);
+    }
+    return f.api(path, body);
+  };
+  const w = await ExternalWallet.connect(api, () => {});
+  await w.begin(1);
+  assert.deepEqual(requests, ["/external/prepare", "/external/register"]);
+  assert.deepEqual(readSaved(f.storage, account, component)[0].intent.fee, fee);
+  assert.equal(f.registered, true);
+  assert.equal(f.creates, 1);
+  w.stop();
+});
+
 test("paid incubation preserves the original approval after a lost submission response", async () => {
   const f = fixture("submit");
   f.chain.incubationFee = { component: "component_" + "11".repeat(32), treasury: "component_" + "22".repeat(32), amount: 20_000_000 };
