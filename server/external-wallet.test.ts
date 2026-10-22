@@ -230,6 +230,9 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
         case "tari_requestViewAccess":
           value = { granted: true };
           break;
+        case "tari_getShieldedOutputs":
+          value = [];
+          break;
         case "tari_scanForResourceUtxos":
           value = {
             found: [
@@ -584,4 +587,58 @@ test("paid incubation preserves the original approval after a lost submission re
   assert.equal(f.creates, 1);
   assert.equal(f.submits, 1);
   assert.equal(f.registered, true);
+});
+
+
+test("private reveal reads a cached memo without rescanning spent transaction outputs", async () => {
+  const f = fixture();
+  const request = f.p.request.bind(f.p);
+  f.p.request = async (args) => {
+    if (args.method === "tari_getShieldedOutputs") return [{ transactionId: "22".repeat(32), memo: `MK2:${f.chain.incubations[0].id}:2:${"ad".repeat(32)}` }] as any;
+    if (args.method === "tari_scanForResourceUtxos") throw new Error("Should not rescan a cached memo");
+    return request(args);
+  };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await w.begin(1);
+  const c = f.chain.incubations[0];
+  c.stage = "ready";
+  c.deliveryTx = "22".repeat(32);
+  c.commitment = commitmentFor({ id: c.id, variant: 2, salt: "ad".repeat(32) });
+  const opening = await w.open(f.chain.incubations[0]);
+  assert.equal(opening.variant, 2);
+  assert.equal(f.submits, 1);
+  w.stop();
+});
+
+test("private reveal recovers from a down output with a bounded private scan and verifies the memo", async () => {
+  const f = fixture();
+  const request = f.p.request.bind(f.p);
+  let fallbacks = 0;
+  f.p.request = async (args) => {
+    if (args.method === "tari_scanForResourceUtxos") {
+      assert.equal((args.params as any).maxPages, 0);
+      throw new Error(`HTTP 404: - {"error":"Input substate utxo_${"01".repeat(32)}_${"ab".repeat(32)} (v0) is down"}`);
+    }
+    if (args.method === "tari_scanForPrivatePayments") {
+      fallbacks++;
+      assert.equal((args.params as any).maxPages, 10);
+      const id = f.chain.incubations[0].id;
+      return { found: [
+        { transactionId: "99".repeat(32), memo: `MK2:${id}:2:${"ad".repeat(32)}` },
+        { transactionId: "22".repeat(32), memo: `MK2:${id}:1:${"ad".repeat(32)}` },
+        { transactionId: "22".repeat(32), memo: `MK2:${id}:2:${"ad".repeat(32)}` },
+      ] } as any;
+    }
+    return request(args);
+  };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await w.begin(1);
+  const c = f.chain.incubations[0];
+  c.stage = "ready";
+  c.deliveryTx = "22".repeat(32);
+  c.commitment = commitmentFor({ id: c.id, variant: 2, salt: "ad".repeat(32) });
+  assert.equal((await w.open(f.chain.incubations[0])).variant, 2);
+  assert.equal(fallbacks, 1);
+  assert.equal(f.submits, 1);
+  w.stop();
 });

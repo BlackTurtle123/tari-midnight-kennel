@@ -381,38 +381,48 @@ export class ExternalWallet {
         "Private preview needs your permission to read wallet memos. You can keep it sealed.",
       );
     await this.check();
-    const scan = await this.provider.request<{
-      found: { memo?: string; transactionId: string }[];
-    }>({
-      method: "tari_scanForResourceUtxos",
-      params: {
-        resourceAddress: native,
-        maxPages: 10,
-        pageSize: 100,
-        limit: 1000,
-        transactionIds: [incubation.deliveryTx],
-      },
-    });
-    await this.check();
-    for (const output of scan.found) {
-      const match = /^MK2:([a-f0-9]{32}):([0-3]):([a-f0-9]{64})$/.exec(
-        output.memo ?? "",
-      );
-      if (
-        !match ||
-        output.transactionId !== incubation.deliveryTx ||
-        match[1] !== incubation.id
-      )
-        continue;
-      const o = { id: match[1], variant: Number(match[2]), salt: match[3] };
-      if (
-        (await sha256(`midnight-kennel:v2|${o.id}|${o.variant}|${o.salt}`)) ===
-        incubation.commitment
-      ) {
-        await this.check();
-        return o;
+    type MemoOutput = { memo?: string; transactionId: string };
+    const verify = async (outputs: MemoOutput[]): Promise<Opening | undefined> => {
+      await this.check();
+      for (const output of outputs) {
+        const match = /^MK2:([a-f0-9]{32}):([0-3]):([a-f0-9]{64})$/.exec(output.memo ?? "");
+        if (!match || output.transactionId !== incubation.deliveryTx || match[1] !== incubation.id) continue;
+        const opening = { id: match[1], variant: Number(match[2]), salt: match[3] };
+        if (await sha256(`midnight-kennel:v2|${opening.id}|${opening.variant}|${opening.salt}`) === incubation.commitment) {
+          await this.check();
+          return opening;
+        }
       }
+    };
+    const cached = async () => verify(await this.provider.request<MemoOutput[]>({
+      method: "tari_getShieldedOutputs", params: { resourceAddress: native },
+    }));
+    // Sapient's resource scan omits outputs it already knows. Their memos remain
+    // available through the view-authorized wallet ledger instead.
+    let opening = await cached();
+    if (opening) return opening;
+    try {
+      const scan = await this.provider.request<{ found: MemoOutput[] }>({
+        method: "tari_scanForResourceUtxos",
+        params: { resourceAddress: native, maxPages: 0, pageSize: 100, limit: 1000,
+          transactionIds: [incubation.deliveryTx] },
+      });
+      opening = await verify(scan.found);
+      if (opening) return opening;
+    } catch (error) {
+      // A spent unrelated output (including operator change) can abort Sapient's
+      // targeted scan. Only this precise read failure permits the fallback.
+      if (!(error instanceof Error) || !/Input substate utxo_[a-f0-9]{64}_[a-f0-9]{64} \(v\d+\) is down/.test(error.message)) throw error;
     }
+    // A partial scan may have stored our memo before failing on another output.
+    opening = await cached();
+    if (opening) return opening;
+    await this.check();
+    const payments = await this.provider.request<{ found: MemoOutput[] }>({
+      method: "tari_scanForPrivatePayments", params: { maxPages: 10 },
+    });
+    opening = await verify(payments.found) ?? await cached();
+    if (opening) return opening;
     throw new Error(
       "Sapient has not found the matching encrypted memo yet. Keep it sealed and try opening it again shortly.",
     );
