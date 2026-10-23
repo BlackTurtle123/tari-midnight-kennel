@@ -1,0 +1,643 @@
+import type { InputDeclaration } from "@tari-project/ootle-ts-bindings";
+import { breedingInstructions, breedingInputs, confirmedMissingParentFailure, type BreedingAction } from "../shared/breeding";
+import { sameIncubationFee, validateIncubationFee, type IncubationFee } from "../shared/incubation-fee";
+import type { GameState, Opening, IncubationView } from "../shared/game";
+import {
+  rebirthInstructions,
+  economyInstructions,
+  type EconomyAction,
+  type RebirthInput,
+} from "../shared/rebirth";
+import {
+  intentId,
+  playerInstructions,
+  sha256,
+  type WalletIntent,
+} from "../shared/external-wallet";
+
+export interface TariProvider {
+  isTariWallet?: boolean;
+  request<T = unknown>(request: {
+    method: string;
+    params?: unknown;
+  }): Promise<T>;
+  on?(
+    event: "accountsChanged",
+    callback: (accounts: string[]) => void,
+  ): (() => void) | void;
+}
+declare global {
+  interface Window {
+    tari?: TariProvider;
+  }
+}
+type Api = <T>(path: string, body?: unknown) => Promise<T>;
+interface Approval {
+  creating?: boolean;
+  requestId?: string;
+  submitted?: boolean;
+  rejected?: boolean;
+  confirmedFailure?: string;
+}
+interface Saved {
+  breedingAction?: BreedingAction;
+  breedingSubmitted?: boolean;
+  rebirth?: RebirthInput;
+  economyAction?: EconomyAction;
+  economySubmitted?: boolean;
+  rebirthComplete?: boolean;
+  revision?: number;
+  id: string;
+  intent: WalletIntent;
+  createdAt: string;
+  begin?: Approval;
+  hatch?: Approval;
+}
+const prefix = "midnight-kennel/external/v1/";
+const native = "resource_" + "01".repeat(32);
+
+// Append-only public recovery metadata. Never store seeds, private keys or memo openings.
+export function readSaved(
+  storage: Storage,
+  account: string,
+  component: string,
+): Saved[] {
+  const records = new Map<string, Saved>();
+  const keys = Array.from({ length: storage.length }, (_, i) => storage.key(i)!)
+    .filter((k) => k.startsWith(prefix))
+    .sort();
+  for (const key of keys) {
+    const r = JSON.parse(storage.getItem(key)!) as Saved;
+    if (
+      r.intent.account === account &&
+      r.intent.component === component &&
+      (r.revision ?? 0) >= (records.get(r.id)?.revision ?? 0)
+    )
+      records.set(r.id, r);
+  }
+  return [...records.values()];
+}
+function save(r: Saved) {
+  r.revision = (r.revision ?? 0) + 1;
+  localStorage.setItem(
+    prefix +
+      r.id +
+      "/" +
+      r.revision.toString().padStart(8, "0") +
+      "/" +
+      crypto.randomUUID(),
+    JSON.stringify(r),
+  );
+}
+export class ExternalWallet {
+  private stopped = false;
+  private unsubscribe?: () => void;
+  private constructor(
+    readonly provider: TariProvider,
+    readonly account: string,
+    readonly paymentAddress: string,
+    readonly component: string,
+    readonly incubationFee: IncubationFee | undefined,
+    private api: Api,
+    private invalidate: () => void,
+  ) {
+    const listener = () => {
+      this.stop();
+      invalidate();
+    };
+    const unsub = provider.on?.("accountsChanged", listener);
+    window.addEventListener("tari#accountsChanged", listener);
+    this.unsubscribe = () => {
+      unsub?.();
+      window.removeEventListener("tari#accountsChanged", listener);
+    };
+  }
+  static async connect(api: Api, invalidate: () => void) {
+    return this.attach(api, invalidate, true);
+  }
+  // Read existing site permission only: refresh must never open an approval popup.
+  static async restore(api: Api, invalidate: () => void) {
+    if (!window.tari?.isTariWallet) return null;
+    return this.attach(api, invalidate, false);
+  }
+  private static async attach(api: Api, invalidate: () => void, requestAccess: true): Promise<ExternalWallet>;
+  private static async attach(api: Api, invalidate: () => void, requestAccess: false): Promise<ExternalWallet | null>;
+  private static async attach(api: Api, invalidate: () => void, requestAccess: boolean) {
+    const p = window.tari;
+    if (!p?.isTariWallet)
+      throw new Error(
+        "Open this page in Chrome with Sapient installed and unlocked, then connect again.",
+      );
+    const accounts = await p.request<string[]>({
+      method: requestAccess ? "tari_requestAccounts" : "tari_getAccounts",
+    });
+    if (!requestAccess && accounts.length === 0) return null;
+    if (accounts.length !== 1 || !/^component_[a-f0-9]{64}$/.test(accounts[0]))
+      throw new Error("Choose one account in Sapient");
+    if ((await p.request({ method: "tari_getNetwork" })) !== "esmeralda")
+      throw new Error("Switch Sapient to Esmeralda testnet before connecting");
+    const caps = await p.request<Record<string, boolean>>({
+      method: "tari_getCapabilities",
+    });
+    if (!caps.transactionRequests || !caps.walletAddress || !caps.privateScan)
+      throw new Error(
+        "Use an up-to-date Sapient account with its seed held locally in the extension. A daemon-relayed account cannot open this secret locally.",
+      );
+    const address = await p.request<string>({
+      method: "tari_getWalletAddress",
+    });
+    if (!/^otl_esm_[a-z0-9]+$/.test(address))
+      throw new Error("Invalid Esmeralda payment address");
+    const config = await api<{ component: string; network: string; incubationFee?: IncubationFee }>(
+      "/external/config",
+    );
+    if (config.network !== "esmeralda")
+      throw new Error("Incorrect game network");
+    const wallet = new ExternalWallet(
+      p,
+      accounts[0],
+      address,
+      config.component,
+      config.incubationFee ? validateIncubationFee(config.incubationFee) : undefined,
+      api,
+      invalidate,
+    );
+    try {
+      await wallet.check();
+    } catch (error) {
+      wallet.stop();
+      throw error;
+    }
+    return wallet;
+  }
+  stop() {
+    this.stopped = true;
+    this.unsubscribe?.();
+  }
+  async disconnect() {
+    this.stop();
+    await this.provider.request({ method: "tari_disconnect" });
+  }
+  async check() {
+    if (this.stopped)
+      throw new Error(
+        "Wallet connection changed. Reconnect the original account to continue.",
+      );
+    const accounts = await this.provider.request<string[]>({
+      method: "tari_getAccounts",
+    });
+    const network = await this.provider.request({ method: "tari_getNetwork" });
+    const address = await this.provider.request({
+      method: "tari_getWalletAddress",
+    });
+    if (
+      accounts.length !== 1 ||
+      accounts[0] !== this.account ||
+      network !== "esmeralda" ||
+      address !== this.paymentAddress
+    ) {
+      this.stop();
+      this.invalidate();
+      throw new Error(
+        "Wallet account or network changed. Reconnect to continue.",
+      );
+    }
+    if (this.stopped) throw new Error("Wallet disconnected");
+  }
+  private saved() {
+    return readSaved(localStorage, this.account, this.component);
+  }
+  private async chainState() {
+    return this.api<GameState>(
+      "/external/state?account=" + encodeURIComponent(this.account),
+    );
+  }
+  async state(): Promise<GameState> {
+    await this.check();
+    const state = await this.chainState();
+    for (const r of this.saved()) {
+      if (state.incubations.some((i) => i.id === r.id)) continue;
+      state.incubations.unshift({
+        id: r.id,
+        door: r.intent.door,
+        commitment: "",
+        createdAt: r.createdAt,
+        stage: "starting",
+        error: r.begin?.rejected
+          ? "Approval declined. Check progress to request approval again."
+          : "Approve the incubation in Sapient, then check progress here.",
+      });
+    }
+    await this.check();
+    return { ...state, paymentAddress: this.paymentAddress };
+  }
+  private async locked<T>(work: () => Promise<T>) {
+    if (!navigator.locks)
+      throw new Error(
+        "This browser cannot safely coordinate wallet requests. Use a current Chrome browser.",
+      );
+    return navigator.locks.request(
+      prefix + this.account,
+      { ifAvailable: true },
+      (lock) => {
+        if (!lock)
+          throw new Error("A wallet action is already running in another tab");
+        return work();
+      },
+    );
+  }
+  async begin(door: number) {
+    return this.locked(async () => {
+      await this.check();
+      const state = await this.state();
+      if (state.incubations.some((i) => i.stage !== "hatched"))
+        throw new Error("Resume your existing incubation first");
+      if (!sameIncubationFee(state.incubationFee, this.incubationFee))
+        throw new Error("Incubation fee changed. Reconnect to review the current price.");
+      const intent: WalletIntent = {
+        account: this.account,
+        paymentAddress: this.paymentAddress,
+        component: this.component,
+        door,
+        ...(this.incubationFee ? { fee: this.incubationFee } : {}),
+        nonce: Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) =>
+          b.toString(16).padStart(2, "0"),
+        ).join(""),
+      };
+      await this.api("/external/prepare", intent);
+      const r: Saved = {
+        id: await intentId(intent),
+        intent,
+        createdAt: new Date().toISOString(),
+      };
+      save(r); // Preserve the address binding before any wallet approval is requested.
+      await this.finishBegin(r);
+    });
+  }
+  async resume(id: string) {
+    return this.locked(async () => {
+      await this.check();
+      const r = this.saved().find((r) => r.id === id);
+      if (r) await this.finishBegin(r);
+      else await this.api("/external/resume", { account: this.account, id });
+    });
+  }
+  private async finishBegin(r: Saved) {
+    await this.check();
+    if (!(await this.chainState()).incubations.some((i) => i.id === r.id)) {
+      await this.approve(
+        r,
+        "begin",
+        playerInstructions(this.component, r.id, {
+          kind: "begin",
+          account: this.account,
+          door: r.intent.door,
+          fee: r.intent.fee,
+        }),
+      );
+    }
+    await this.check();
+    await this.api("/external/register", { intent: r.intent, id: r.id });
+  }
+  private async approve(
+    r: Saved,
+    phase: "begin" | "hatch",
+    instructions: ReturnType<typeof playerInstructions>,
+    inputs: InputDeclaration[] = [],
+    allowRecovery = true,
+  ): Promise<void> {
+    await this.check();
+    let approval = r[phase];
+    if (!approval || approval.rejected || approval.confirmedFailure) {
+      if (r.breedingAction?.kind === "breed") {
+        // Exercise input resolution before requesting another fee-paying action.
+        await this.provider.request({ method: "tari_signAndSubmitTransaction", params: {
+          instructions, inputs, maxFee: "1000000", dryRun: true,
+        } });
+        await this.check();
+      }
+      approval = { creating: true };
+      r[phase] = approval;
+      save(r);
+      const created = await this.provider.request<{ requestId: string }>({
+        method: "tari_createTransactionRequest",
+        params: { kind: "instructions", instructions, maxFee: "1000000", ...(inputs.length ? { inputs } : {}) },
+      });
+      if (typeof created.requestId !== "string" || !created.requestId)
+        throw new Error(
+          "Wallet did not return a request ID. No duplicate request will be sent.",
+        );
+      approval.requestId = created.requestId;
+      approval.creating = false;
+      save(r);
+    }
+    if (!approval.requestId)
+      throw new Error(
+        "Wallet request acknowledgement was lost. Recovery is required before another approval can be requested.",
+      );
+    const params = { requestId: approval.requestId };
+    for (let i = 0; i < 45; i++) {
+      await this.check();
+      const record = await this.provider.request<{ status: string; error?: string }>({
+        method: "tari_getTransactionRequest",
+        params,
+      });
+      if (record.status === "submitted") {
+        approval.submitted = true;
+        save(r);
+        return;
+      }
+      if (record.status === "approved") {
+        await this.check();
+        // The durable request ID, not another transaction, is reused on lost acknowledgements.
+        await this.provider.request({
+          method: "tari_submitTransactionRequest",
+          params,
+        });
+        await this.check();
+        approval.submitted = true;
+        save(r);
+        return;
+      }
+      if (record.status === "rejected") {
+        approval.rejected = true;
+        save(r);
+        throw new Error(
+          "You declined the wallet approval. Nothing was submitted by this request; you can try again.",
+        );
+      }
+      if (record.status === "failed") {
+        const match = /^Transaction ([a-f0-9]{64}) accepted the fee but rejected the rest:/.exec(record.error ?? "");
+        if (allowRecovery && r.breedingAction?.kind === "breed" && match) {
+          await this.check();
+          const receipt = await this.provider.request({ method: "tari_getTransactionResult", params: { transactionId: match[1] } });
+          if (confirmedMissingParentFailure(receipt, match[1], r.breedingAction)) {
+            approval.confirmedFailure = match[1];
+            save(r); // Append-only history retains the failed request and receipt ID.
+            return this.approve(r, phase, instructions, inputs, false);
+          }
+        }
+        throw new Error(
+          "Wallet reports a failed request. Check its transaction history; uncertain submissions need recovery before retrying.",
+        );
+      }
+      if (!["pending", "submitting"].includes(record.status))
+        throw new Error(
+          "Unknown wallet request status; request preserved for recovery",
+        );
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+    throw new Error(
+      "Approval or confirmation is still pending in Sapient. Check progress to resume the same request.",
+    );
+  }
+  async open(incubation: IncubationView): Promise<Opening> {
+    await this.check();
+    if (!incubation.deliveryTx)
+      throw new Error("The encrypted message has not been delivered yet");
+    const view = await this.provider.request<{ granted: boolean }>({
+      method: "tari_requestViewAccess",
+    });
+    if (!view.granted)
+      throw new Error(
+        "Private preview needs your permission to read wallet memos. You can keep it sealed.",
+      );
+    await this.check();
+    type MemoOutput = { memo?: string; transactionId: string; commitment?: string; resourceAddress?: string };
+    const deliveryOutputs = incubation.deliveryCommitments ?? [];
+    if (deliveryOutputs.length > 8 || deliveryOutputs.some((c) => !/^[a-f0-9]{64}$/.test(c)))
+      throw new Error("Invalid delivery output references");
+    const verify = async (outputs: MemoOutput[]): Promise<Opening | undefined> => {
+      await this.check();
+      for (const output of outputs) {
+        const match = /^MK2:([a-f0-9]{32}):([0-3]):([a-f0-9]{64})$/.exec(output.memo ?? "");
+        const exactOutput = output.resourceAddress === native && !!output.commitment && deliveryOutputs.includes(output.commitment);
+        if (!match || (!exactOutput && output.transactionId !== incubation.deliveryTx) || match[1] !== incubation.id) continue;
+        const opening = { id: match[1], variant: Number(match[2]), salt: match[3] };
+        if (await sha256(`midnight-kennel:v2|${opening.id}|${opening.variant}|${opening.salt}`) === incubation.commitment) {
+          await this.check();
+          return opening;
+        }
+      }
+    };
+    const cached = async () => verify(await this.provider.request<MemoOutput[]>({
+      method: "tari_getShieldedOutputs", params: { resourceAddress: native },
+    }));
+    // Sapient's resource scan omits outputs it already knows. Their memos remain
+    // available through the view-authorized wallet ledger instead.
+    let opening = await cached();
+    if (opening) return opening;
+    // The operator's accepted receipt survives pruning from public transaction
+    // history. Sapient's claim method is a view-authorized local import/decrypt;
+    // it does not construct, approve or submit any transaction.
+    for (const commitment of deliveryOutputs) {
+      await this.check();
+      try {
+        const payment = await this.provider.request<{ memo?: string }>({
+          method: "tari_claimPrivatePayment", params: { resourceAddress: native, commitment },
+        });
+        opening = await verify([{ ...payment, commitment, resourceAddress: native, transactionId: incubation.deliveryTx }]);
+        if (opening) return opening;
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        if (error.message.includes("already claimed this payment")) {
+          opening = await cached();
+          if (opening) return opening;
+        } else if (!error.message.includes("This commitment doesn't belong to your account")) throw error;
+      }
+    }
+    if (deliveryOutputs.length)
+      throw new Error("Sapient could not decrypt the saved delivery for this wallet. Keep this incubation and reconnect its original Sapient account; no new payment is needed.");
+    try {
+      const scan = await this.provider.request<{ found: MemoOutput[] }>({
+        method: "tari_scanForResourceUtxos",
+        params: { resourceAddress: native, maxPages: 0, pageSize: 100, limit: 1000,
+          transactionIds: [incubation.deliveryTx] },
+      });
+      opening = await verify(scan.found);
+      if (opening) return opening;
+    } catch (error) {
+      // A spent unrelated output (including operator change) can abort Sapient's
+      // targeted scan. Only this precise read failure permits the fallback.
+      if (!(error instanceof Error) || !/Input substate utxo_[a-f0-9]{64}_[a-f0-9]{64} \(v\d+\) is down/.test(error.message)) throw error;
+    }
+    // A partial scan may have stored our memo before failing on another output.
+    opening = await cached();
+    if (opening) return opening;
+    await this.check();
+    const payments = await this.provider.request<{ found: MemoOutput[] }>({
+      method: "tari_scanForPrivatePayments", params: { maxPages: 10 },
+    });
+    opening = await verify(payments.found) ?? await cached();
+    if (opening) return opening;
+    throw new Error(
+      "Sapient has not found the matching encrypted memo yet. Keep it sealed and try opening it again shortly.",
+    );
+  }
+  async hatch(opening: Opening) {
+    return this.locked(async () => {
+      await this.check();
+      const state = await this.chainState();
+      const c = state.incubations.find((i) => i.id === opening.id);
+      if (!c) throw new Error("This incubation belongs to another account");
+      if (c.stage === "hatched") return;
+      if (
+        (await sha256(
+          `midnight-kennel:v2|${opening.id}|${opening.variant}|${opening.salt}`,
+        )) !== c.commitment
+      )
+        throw new Error("Private preview does not match the sealed outcome");
+      // Existing server delivery records allow recovery on another browser with the
+      // same wallet. No salt is ever saved in our browser recovery metadata.
+      const r = this.saved().find((r) => r.id === opening.id) ?? {
+        id: opening.id,
+        intent: {
+          account: this.account,
+          component: this.component,
+          paymentAddress: this.paymentAddress,
+          door: c.door,
+          nonce: "",
+        },
+        createdAt: new Date().toISOString(),
+      };
+      await this.approve(
+        r,
+        "hatch",
+        playerInstructions(this.component, opening.id, {
+          kind: "hatch",
+          variant: opening.variant,
+          salt: opening.salt,
+        }),
+      );
+      const latest = await this.chainState();
+      if (
+        !latest.incubations.some(
+          (i) => i.id === opening.id && i.stage === "hatched",
+        )
+      )
+        throw new Error(
+          "Mint submitted; waiting for confirmation. Your wallet request is saved. Open the secret again to check the same mint.",
+        );
+    });
+  }
+  async act(action: EconomyAction, nonce: string, component?: string) {
+    return this.locked(async () => {
+      await this.check();
+      const state = await this.chainState(),
+        config = component
+          ? [
+              state.rebirth,
+              state.offspringRebirth,
+              ...(state.recoveryEconomies ?? []).map((r) => r.config),
+            ].find((c) => c?.component === component)
+          : state.rebirth;
+      if (!config) throw new Error("Economy contracts are being prepared");
+      if (!/^[a-f0-9]{32}$/.test(nonce))
+        throw new Error("Invalid wallet request");
+      const id = (
+        await sha256(JSON.stringify(["economy-v1", action, nonce]))
+      ).slice(0, 32);
+      let r = readSaved(localStorage, this.account, config.component).find(
+        (r) => r.id === id,
+      );
+      if (r?.economySubmitted) return;
+      if (!r) {
+        if (
+          config.component !== state.rebirth?.component &&
+          (action.kind === "begin" || action.kind === "stake")
+        )
+          throw new Error(
+            "This contract is recovery-only. Use the shared canine farm.",
+          );
+        if (this.pendingEconomy(config).length)
+          throw new Error(
+            "Resume the saved wallet action before starting another",
+          );
+        r = {
+          id,
+          economyAction: action,
+          intent: {
+            account: this.account,
+            component: config.component,
+            paymentAddress: this.paymentAddress,
+            door: 0,
+            nonce,
+          },
+          createdAt: new Date().toISOString(),
+        };
+        save(r);
+      }
+      await this.approve(
+        r,
+        "hatch",
+        economyInstructions(config, this.account, action),
+      );
+      r.economySubmitted = true;
+      save(r);
+    });
+  }
+  pendingEconomy(config: { component: string }) {
+    return readSaved(localStorage, this.account, config.component)
+      .filter((r) => r.economyAction && !r.economySubmitted)
+      .map((r) => ({ action: r.economyAction!, nonce: r.intent.nonce }));
+  }
+  async breed(action: BreedingAction, nonce: string) {
+    return this.locked(async () => {
+      await this.check();
+      const config = (await this.chainState()).breedingConfig;
+      if (!config)
+        throw new Error("Breeding contracts have not been activated");
+      if (!/^[a-f0-9]{32}$/.test(nonce))
+        throw new Error("Invalid wallet request");
+      const id = (
+        await sha256(JSON.stringify(["breeding-v1", action, nonce]))
+      ).slice(0, 32);
+      let r = readSaved(localStorage, this.account, config.component).find(
+        (r) => r.id === id,
+      );
+      if (r?.breedingSubmitted) return;
+      if (!r) {
+        if (this.pendingBreeding(config).length)
+          throw new Error("Resume the saved breeding approval first");
+        r = {
+          id,
+          breedingAction: action,
+          intent: {
+            account: this.account,
+            component: config.component,
+            paymentAddress: this.paymentAddress,
+            door: 0,
+            nonce,
+          },
+          createdAt: new Date().toISOString(),
+        };
+        save(r);
+      }
+      await this.approve(
+        r,
+        "hatch",
+        breedingInstructions(config, this.account, action),
+        breedingInputs(config, this.account, action),
+      );
+      r.breedingSubmitted = true;
+      save(r);
+    });
+  }
+  pendingBreeding(config: { component: string }) {
+    return readSaved(localStorage, this.account, config.component)
+      .filter((r) => r.breedingAction && !r.breedingSubmitted)
+      .map((r) => ({ action: r.breedingAction!, nonce: r.intent.nonce }));
+  }
+  async rebirth(input: RebirthInput) {
+    return this.act(
+      { kind: "begin", resource: input.resource, id: input.id },
+      (await sha256(input.resource + input.id)).slice(0, 32),
+    );
+  }
+
+  pendingRebirths(config: { component: string }) {
+    return readSaved(localStorage, this.account, config.component)
+      .filter((r) => r.rebirth && !r.rebirthComplete)
+      .map((r) => r.rebirth!);
+  }
+}

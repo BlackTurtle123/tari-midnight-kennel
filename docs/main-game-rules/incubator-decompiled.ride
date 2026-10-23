@@ -1,0 +1,448 @@
+{-# STDLIB_VERSION 7 #-}
+{-# SCRIPT_TYPE ACCOUNT #-}
+{-# CONTENT_TYPE DAPP #-}
+func getBool (key) = match getBoolean(this, key) {
+    case b: Boolean => 
+        b
+    case _ => 
+        false
+}
+
+
+func isTestEnv () = getBool("TESTENV")
+
+
+func tryGetStringExternal (address,key) = match getString(address, key) {
+    case a: String => 
+        a
+    case _ => 
+        ""
+}
+
+
+func tryGetString (key) = tryGetStringExternal(this, key)
+
+
+func staticKey_oracleAddress () = "static_oracleAddress"
+
+
+func staticKey_extraFee () = "static_extraFee"
+
+
+func staticKey_feeAggregator () = "static_feeAggregator"
+
+
+func staticKey_caniRebirthAddress () = "static_canineRebirthAddress"
+
+
+func staticKey_caniFarmingAddress () = "static_canineStakingAddress"
+
+
+func staticKey_itemsAddress () = "static_itemsAddress"
+
+
+func staticKey_rebirthAddress () = "static_rebirthAddress"
+
+
+func staticKey_eagleRebirthAddress () = "static_eagleRebirthAddress"
+
+
+func getOracle () = Address(fromBase58String(tryGetString(staticKey_oracleAddress())))
+
+
+func getFeeAggregator () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_feeAggregator())))
+
+
+func getMintAssetId () = unit
+
+
+func getCaniRebirthAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_caniRebirthAddress())))
+
+
+func getDuckRebirthAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_rebirthAddress())))
+
+
+func getEagleRebirthAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_eagleRebirthAddress())))
+
+
+func getCaniFarmingAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_caniFarmingAddress())))
+
+
+func getItemsAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), staticKey_itemsAddress())))
+
+
+func getCouponsAddress () = Address(fromBase58String(tryGetStringExternal(getOracle(), "static_couponsAddress")))
+
+
+func checkAdditionalPayment (payment) = if (isDefined(payment.assetId))
+    then throw("BDCAP: Please attach waves")
+    else {
+        let feeAmount = getIntegerValue(getOracle(), staticKey_extraFee())
+        if ((payment.amount != feeAmount))
+            then throw((("BDCAP: Please attach exactly " + toString(feeAmount)) + " amount of wavelets"))
+            else [ScriptTransfer(getFeeAggregator(), feeAmount, unit)]
+        }
+
+
+let delayForHatching = 2
+
+let HatchingStarted = "HATCHING_STARTED"
+
+let HatchingFinished = "HATCHING_FINISHED"
+
+func isLocked () = {
+    let masterAddress = Address(base58'3PEPftf2kWZDmAaWBjs6BUJa9957kiA2PkU')
+    match getInteger(masterAddress, "egglock") {
+        case b: Int => 
+            b
+        case _ => 
+            0
+    }
+    }
+
+
+func getHatchingStatusKey (address,txId) = (((address + "_") + toBase58String(txId)) + "_status")
+
+
+func getHatchingFinishHeightKey (address,txId) = (((address + "_") + toBase58String(txId)) + "_fh")
+
+
+func getCANIIdKey (address,txId) = (((address + "_") + toBase58String(txId)) + "_di")
+
+
+func getCANIStatsKey (genString) = (("stats_" + genString) + "_amount")
+
+
+func tryGetInteger (key) = {
+    let val =     match getInteger(this, key) {
+        case b: Int => 
+            b
+        case _ => 
+            0
+    }
+    val
+    }
+
+
+let discountCoefficient = tryGetInteger("discountCoefficient")
+
+func getRandomNumber (variants,txId,hatchingFinishHeight,offset) = {
+    let randomSeedBlock = value(blockInfoByHeight((hatchingFinishHeight - 1)))
+    let randomHash = sha256((txId + value(randomSeedBlock.vrf)))
+    (toInt(randomHash, (offset * 8)) % variants)
+    }
+
+
+func bonusItemOutput (action,owner,initialTx,finishHeight) = {
+    let key = ((("bonus_item_" + toString(this)) + "_") + action)
+    let encoded = tryGetStringExternal(getOracle(), key)
+    let chance = valueOrElse(getInteger(getOracle(), (key + "_chance")), 0)
+    if (if ((encoded == ""))
+        then true
+        else (chance == 0))
+        then nil
+        else {
+            let items = split(encoded, ",")
+            if (if (if ((0 > chance))
+                then true
+                else (chance > 100))
+                then true
+                else (size(items) > 2))
+                then throw("BONUS_CONFIG")
+                else if (if ((getIntegerValue(getOracle(), (key + "_start")) > lastBlock.timestamp))
+                    then true
+                    else (lastBlock.timestamp >= getIntegerValue(getOracle(), (key + "_end"))))
+                    then nil
+                    else {
+                        let seed = ((toBytes(("bonus|" + action)) + this.bytes) + fromBase58String(initialTx))
+                        let random = getRandomNumber(200, seed, finishHeight, 0)
+                        let resultKey = ((("address_" + owner) + "_initTx_") + initialTx)
+                        let result = [IntegerEntry((resultKey + "_bonusRandom"), (random % 100))]
+                        if (((random % 100) >= chance))
+                            then result
+                            else {
+                                let item = items[if ((size(items) == 2))
+                                    then (random / 100)
+                                    else 0]
+                                let bonus = {
+                                    let @ = invoke(getItemsAddress(), "issueArtefactIndex", [item, owner, 2], nil)
+                                    if ($isInstanceOf(@, "String"))
+                                        then @
+                                        else throw(($getType(@) + " couldn't be cast to String"))
+                                    }
+                                if ((bonus == bonus))
+                                    then (result ++ [StringEntry((resultKey + "_bonusItem"), bonus)])
+                                    else throw("Strict value is not equal to itself.")
+                                }
+                        }
+            }
+    }
+
+
+func select (color) = {
+    let oldGenes = [$Tuple2(("CANI-AAAAAAAA-G" + color), "8A-G"), $Tuple2(("CANI-BBBBBBBB-G" + color), "8B-G"), $Tuple2(("CANI-CCCCCCCC-G" + color), "8C-G"), $Tuple2(("CANI-DDDDDDDD-G" + color), "8D-G")]
+    let newGenes = [$Tuple2(("CANI-EEEEEEEE-G" + color), "8E-G"), $Tuple2(("CANI-FFFFFFFF-G" + color), "8F-G"), $Tuple2(("CANI-GGGGGGGG-G" + color), "8G-G"), $Tuple2(("CANI-HHHHHHHH-G" + color), "8H-G")]
+    $Tuple2((oldGenes ++ newGenes), newGenes)
+    }
+
+
+func getRandomName (txId,hatchingFinishHeight,all) = {
+    let jackpotRandom = getRandomNumber(250, txId, hatchingFinishHeight, 1)
+    let entry = IntegerEntry("last_jackpot_random", jackpotRandom)
+    let colorRandom = getRandomNumber(4, txId, hatchingFinishHeight, 1)
+    let color = ["A", "B", "C", "D"][colorRandom]
+    let colorSelect = select(color)
+    let toPickFrom = if (all)
+        then colorSelect._1
+        else colorSelect._2
+    let typeRandom = getRandomNumber(size(toPickFrom), txId, hatchingFinishHeight, 0)
+toPickFrom[typeRandom]
+    }
+
+
+let typesAmount = (size(select("R")._2) - 1)
+
+func countEggsNeededAmount (totalCANIsAmount) = {
+    let n = totalCANIsAmount
+    let g = discountCoefficient
+    let t = typesAmount
+    let price = (pow((100 + ((n * g) / (10 * t))), 2, 5, 1, 2, DOWN) + 55)
+    (price * 1500000)
+    }
+
+
+func getIncubatorFarmGen (assetName) = if ((takeRight(assetName, 2) == "JU"))
+    then value(getString(getOracle(), ("farm_gen_" + assetName)))
+    else (("8" + takeRight(take(assetName, 6), 1)) + "-G")
+
+
+func getAssetFarmGen (assetId,assetName) = if ((takeRight(assetName, 2) != "JU"))
+    then getIncubatorFarmGen(assetName)
+    else {
+        let recorded = getString(this, (("asset_" + assetId) + "_farmGen"))
+        if (isDefined(recorded))
+            then value(recorded)
+            else {
+                let historical = getString(getOracle(), ("farm_gen_asset_" + assetId))
+                if (isDefined(historical))
+                    then value(historical)
+                    else getIncubatorFarmGen(assetName)
+                }
+        }
+
+
+@Callable(i)
+func reduceRarity (assetId,fGen) = {
+    let asset = fromBase58String(assetId)
+    if (if (if ((i.caller != getCaniRebirthAddress()))
+        then (i.caller != getCouponsAddress())
+        else false)
+        then (i.caller != this)
+        else false)
+        then throw("IRR: admin, coupons or rebirth only")
+        else {
+            let duckGen = value(assetInfo(asset)).name
+            let farmGen = getAssetFarmGen(assetId, duckGen)
+[IntegerEntry(getCANIStatsKey(duckGen), (tryGetInteger(getCANIStatsKey(duckGen)) - 1)), IntegerEntry((("stats_" + farmGen) + "_quantity"), (tryGetInteger((("stats_" + farmGen) + "_quantity")) - 1))]
+            }
+    }
+
+
+
+@Callable(i)
+func increaseRarity (assetId,fGen) = {
+    let asset = fromBase58String(assetId)
+    if (if ((i.caller != getCaniRebirthAddress()))
+        then (i.caller != this)
+        else false)
+        then throw("IRR: admin or rebirth only")
+        else {
+            let duckGen = value(assetInfo(asset)).name
+            let farmGen = getAssetFarmGen(assetId, duckGen)
+[IntegerEntry(getCANIStatsKey(duckGen), (tryGetInteger(getCANIStatsKey(duckGen)) + 1)), IntegerEntry((("stats_" + farmGen) + "_quantity"), (tryGetInteger((("stats_" + farmGen) + "_quantity")) + 1))]
+            }
+    }
+
+
+
+@Callable(i)
+func configureOracle (oracle) = if ((i.caller != this))
+    then throw("ICU: admin only")
+    else [StringEntry("static_oracleAddress", oracle)]
+
+
+
+@Callable(i)
+func issueJackpot (address,txIdStr,gen) = if (if ((i.caller != getCaniRebirthAddress()))
+    then (i.caller != this)
+    else false)
+    then throw("ISJ: admin or rebirth only")
+    else {
+        let txId = fromBase58String(txIdStr)
+        let hatchingStatusKey = getHatchingStatusKey(address, txId)
+        let finishHeightKey = getHatchingFinishHeightKey(address, txId)
+        let totalDucksAmount = tryGetInteger("cani_amount")
+        let eggsNeeded = countEggsNeededAmount(totalDucksAmount)
+        let duckGen = (("CANI-" + gen) + "-JU")
+        let farmGen = getIncubatorFarmGen(duckGen)
+        let description = (("{\"genotype\": \"" + duckGen) + "\", \"crossbreeding\": true}")
+        let asset = Issue(duckGen, description, 1, 0, false, unit, height)
+        let assetId = calculateAssetId(asset)
+        let duckIdKey = getCANIIdKey(address, txId)
+        let valueDuckIdKeyExits = tryGetString(duckIdKey)
+        if ((valueDuckIdKeyExits != ""))
+            then throw((("ISJ: You will override following duckId :" + duckIdKey) + " make sure that your txId is unique!"))
+            else $Tuple2([IntegerEntry(getHatchingFinishHeightKey(address, txId), height), IntegerEntry("cani_amount", (totalDucksAmount + 1)), IntegerEntry("cani_last_price", (eggsNeeded / 1500000)), StringEntry(hatchingStatusKey, HatchingFinished), StringEntry(duckIdKey, toBase58String(assetId)), StringEntry(toBase58String(assetId), duckIdKey), StringEntry((("asset_" + toBase58String(assetId)) + "_farmGen"), farmGen), IntegerEntry(getCANIStatsKey(duckGen), (tryGetInteger(getCANIStatsKey(duckGen)) + 1)), IntegerEntry((("stats_" + farmGen) + "_quantity"), (tryGetInteger((("stats_" + farmGen) + "_quantity")) + 1)), asset, ScriptTransfer(value(addressFromString(address)), 1, assetId)], toBase58String(assetId))
+        }
+
+
+
+@Callable(i)
+func issueFree (address,txIdStr) = if (if (if ((i.caller != getCaniRebirthAddress()))
+    then (i.caller != getDuckRebirthAddress())
+    else false)
+    then (i.caller != getEagleRebirthAddress())
+    else false)
+    then throw("CIF: rebirth only")
+    else {
+        let txId = fromBase58String(txIdStr)
+        let hatchingStatusKey = getHatchingStatusKey(address, txId)
+        let finishHeightKey = getHatchingFinishHeightKey(address, txId)
+        let totalDucksAmount = tryGetInteger("cani_amount")
+        let eggsNeeded = countEggsNeededAmount(totalDucksAmount)
+        let $t01134711495 = getRandomName(txId, (valueOrErrorMessage(transactionHeightById(txId), ((txIdStr + " not found ") + toBase58String(txId))) + 1), true)
+        let CANIGen = $t01134711495._1
+        let farmGen = $t01134711495._2
+        let description = (("{\"genotype\": \"" + CANIGen) + "\", \"crossbreeding\": true}")
+        let asset = Issue(CANIGen, description, 1, 0, false, unit, height)
+        let assetId = calculateAssetId(asset)
+        let amount = (tryGetInteger(getCANIStatsKey(CANIGen)) + 1)
+        let duckIdKey = getCANIIdKey(address, txId)
+        $Tuple2([IntegerEntry(getHatchingFinishHeightKey(address, txId), height), IntegerEntry("cani_amount", (totalDucksAmount + 1)), IntegerEntry("cani_last_price", (eggsNeeded / 1500000)), StringEntry(hatchingStatusKey, HatchingFinished), StringEntry(duckIdKey, toBase58String(assetId)), StringEntry(toBase58String(assetId), duckIdKey), IntegerEntry(getCANIStatsKey(CANIGen), amount), IntegerEntry((("stats_" + farmGen) + "_quantity"), (tryGetInteger((("stats_" + farmGen) + "_quantity")) + 1)), asset, ScriptTransfer(value(addressFromString(address)), 1, assetId)], toBase58String(assetId))
+        }
+
+
+
+@Callable(i)
+func setDiscount (val) = if ((i.caller != this))
+    then throw("admin_only")
+    else [IntegerEntry("discountCoefficient", val)]
+
+
+
+@Callable(i)
+func startHatching (refererAddress) = {
+    let feeValidate = checkAdditionalPayment(i.payments[0])
+    if ((feeValidate == feeValidate))
+        then if ((isLocked() > 0))
+            then throw("EGG operations are temporarily locked")
+            else {
+                let totalCaniAmount = tryGetInteger("cani_amount")
+                let eggsNeeded = countEggsNeededAmount(totalCaniAmount)
+                let results = [StringEntry(getHatchingStatusKey(toString(i.originCaller), i.transactionId), HatchingStarted), IntegerEntry(getHatchingFinishHeightKey(toString(i.originCaller), i.transactionId), (height + delayForHatching)), IntegerEntry("cani_amount", (totalCaniAmount + 1)), IntegerEntry("cani_last_price", (eggsNeeded / 1500000))]
+                let firstPayment = value(i.payments[1])
+                let leftToPay = if ((size(i.payments) == 3))
+                    then {
+                        let boosterType = {
+                            let @ = invoke(getItemsAddress(), "checkArtefactDetails", [toBase58String(value(value(i.payments[2]).assetId))], nil)
+                            if ($isInstanceOf(@, "String"))
+                                then @
+                                else throw(($getType(@) + " couldn't be cast to String"))
+                            }
+                        if ((boosterType == boosterType))
+                            then if ((boosterType == "ART-CANCPN"))
+                                then ((eggsNeeded / 100) * 85)
+                                else eggsNeeded
+                            else throw("Strict value is not equal to itself.")
+                        }
+                    else eggsNeeded
+                if ((firstPayment.assetId != getMintAssetId()))
+                    then throw("TB: You can attach only WAVES")
+                    else if ((leftToPay > firstPayment.amount))
+                        then throw(((("TB: To breed a Canine you following amount of WAVES: " + toString(leftToPay)) + " ") + toString(i.caller)))
+                        else {
+                            let aggregatorShare = (leftToPay / 4)
+                            let compoundShare = (leftToPay - aggregatorShare)
+                            let addMore = invoke(getCaniFarmingAddress(), "addWavesAndStakeMore", nil, [AttachedPayment(unit, compoundShare)])
+                            if ((addMore == addMore))
+                                then {
+                                    let refund = if (((i.payments[1].amount - leftToPay) > 0))
+                                        then [ScriptTransfer(i.caller, (i.payments[1].amount - leftToPay), getMintAssetId())]
+                                        else nil
+                                    (((results ++ [ScriptTransfer(getFeeAggregator(), aggregatorShare, unit)]) ++ refund) ++ feeValidate)
+                                    }
+                                else throw("Strict value is not equal to itself.")
+                            }
+                }
+        else throw("Strict value is not equal to itself.")
+    }
+
+
+
+@Callable(i)
+func finishHatching (txIdStr) = {
+    let feeValidate = checkAdditionalPayment(i.payments[0])
+    if ((feeValidate == feeValidate))
+        then {
+            let txId = fromBase58String(txIdStr)
+            let hatchingStatusKey = getHatchingStatusKey(toString(i.caller), txId)
+            let finishHeightKey = getHatchingFinishHeightKey(toString(i.caller), txId)
+            let CANIIdKey = getCANIIdKey(toString(i.caller), txId)
+            let hatchingTxStatus = getStringValue(this, hatchingStatusKey)
+            let hatchingFinishHeight = getIntegerValue(this, finishHeightKey)
+            if ((hatchingTxStatus == HatchingFinished))
+                then {
+                    let CANIId = getStringValue(this, getCANIIdKey(toString(i.caller), txId))
+                    throw(("The Cani was hatched and claimed already, here is the folowing: " + CANIId))
+                    }
+                else if ((hatchingFinishHeight > height))
+                    then throw((((("Hatching is not finished yet " + toString((hatchingFinishHeight - height))) + " blocks remaining, it will take around ") + toString((hatchingFinishHeight - height))) + " minutes"))
+                    else {
+                        let $t01552815601 = getRandomName(txId, hatchingFinishHeight, false)
+                        let CANIGen = $t01552815601._1
+                        let farmGen = $t01552815601._2
+                        let description = (("{\"genotype\": \"" + CANIGen) + "\", \"crossbreeding\": true}")
+                        let asset = Issue(CANIGen, description, 1, 0, false, unit, hatchingFinishHeight)
+                        let assetId = calculateAssetId(asset)
+                        let amount = (tryGetInteger(getCANIStatsKey(CANIGen)) + 1)
+                        (([StringEntry(hatchingStatusKey, HatchingFinished), StringEntry(CANIIdKey, toBase58String(assetId)), StringEntry(toBase58String(assetId), CANIIdKey), IntegerEntry(getCANIStatsKey(CANIGen), amount), IntegerEntry((("stats_" + farmGen) + "_quantity"), (tryGetInteger((("stats_" + farmGen) + "_quantity")) + 1)), asset, ScriptTransfer(i.caller, 1, assetId)] ++ feeValidate) ++ bonusItemOutput("hatch", toString(i.caller), txIdStr, hatchingFinishHeight))
+                        }
+            }
+        else throw("Strict value is not equal to itself.")
+    }
+
+
+@Verifier(tx)
+func verify () = if (isTestEnv())
+    then sigVerify(tx.bodyBytes, tx.proofs[0], tx.senderPublicKey)
+    else {
+        let firstUser = base58'6TdaXEfhnjYquvPf3yV7MFxt2CbgFmaqsvGwkKfXtKi4'
+        let secondUser = base58'7DsP2WaMLocbHuUxux7pbXRjTrrZ1TFQPsi5QumS3gr8'
+        let thirdUser = base58'BpFWP3p3JgYrrP45xfrKzeMcWMEXoinj4FVPPkUiA8D3'
+        let firstUserSigned = if (sigVerify(tx.bodyBytes, tx.proofs[0], firstUser))
+            then 1
+            else if (sigVerify(tx.bodyBytes, tx.proofs[1], firstUser))
+                then 1
+                else if (sigVerify(tx.bodyBytes, tx.proofs[2], firstUser))
+                    then 1
+                    else 0
+        let secondUserSigned = if (sigVerify(tx.bodyBytes, tx.proofs[0], secondUser))
+            then 1
+            else if (sigVerify(tx.bodyBytes, tx.proofs[1], secondUser))
+                then 1
+                else if (sigVerify(tx.bodyBytes, tx.proofs[2], secondUser))
+                    then 1
+                    else 0
+        let thirdUserSigned = if (sigVerify(tx.bodyBytes, tx.proofs[0], thirdUser))
+            then 1
+            else if (sigVerify(tx.bodyBytes, tx.proofs[1], thirdUser))
+                then 1
+                else if (sigVerify(tx.bodyBytes, tx.proofs[2], thirdUser))
+                    then 1
+                    else 0
+        let signaturesCount = ((firstUserSigned + secondUserSigned) + thirdUserSigned)
+        match tx {
+            case _ => 
+                (signaturesCount >= 1)
+        }
+        }
