@@ -1,3 +1,4 @@
+import { deliveryCommitments } from "./delivery-receipt.ts";
 import { economySnapshot, breedingSnapshot } from "./external-chain.ts";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
@@ -69,6 +70,7 @@ export class ExternalService {
     private readonly delivery = { chainIncubations, wallet, ensureSpendableAccount, submit, waitAccepted },
   ) {}
   private busy = new Set<string>();
+  private deliveryOutputs = new Map<string, string[]>();
   config(): { component: string; resource: string; network: string; incubationFee?: import("../shared/incubation-fee.ts").IncubationFee } {
     const d = deployment();
     return { component: d.component, resource: d.resource, network: d.network, incubationFee: incubationTreasury() };
@@ -197,6 +199,22 @@ export class ExternalService {
         };
       }),
     };
+    for (const incubation of state.incubations) {
+      if (incubation.stage !== "ready" || !incubation.deliveryTx) continue;
+      try {
+        let outputs = this.deliveryOutputs.get(incubation.deliveryTx);
+        if (!outputs) {
+          const receipt = await (await this.delivery.wallet()).waitForTransactionResult({
+            transaction_id: incubation.deliveryTx, timeout_secs: 1,
+          });
+          outputs = deliveryCommitments(receipt, incubation.deliveryTx);
+          this.deliveryOutputs.set(incubation.deliveryTx, outputs);
+        }
+        incubation.deliveryCommitments = [...outputs];
+      } catch {
+        incubation.error = "The saved delivery receipt is temporarily unavailable. Your incubation remains saved; no new payment is needed.";
+      }
+    }
     try {
       Object.assign(state, await publicInventory(account));
       if (state.rebirth)

@@ -642,3 +642,51 @@ test("private reveal recovers from a down output with a bounded private scan and
   assert.equal(f.submits, 1);
   w.stop();
 });
+
+test("private reveal imports the exact delivery output when transaction history is unavailable", async () => {
+  const f = fixture(), request = f.p.request.bind(f.p);
+  const commitment = "45".repeat(32);
+  let imported = false;
+  f.p.request = async (args) => {
+    if (args.method === "tari_getShieldedOutputs") return (imported ? [{
+      resourceAddress: "resource_" + "01".repeat(32), commitment,
+      // Sapient's direct import records a UTXO reference, not the original tx hash.
+      transactionId: "utxo_" + "01".repeat(32) + "_" + commitment,
+      memo: `MK2:${f.chain.incubations[0].id}:2:${"ad".repeat(32)}`,
+    }] : []) as any;
+    if (args.method === "tari_claimPrivatePayment") {
+      assert.deepEqual(args.params, { resourceAddress: "resource_" + "01".repeat(32), commitment });
+      imported = true;
+      return { amount: "1", memo: `MK2:${f.chain.incubations[0].id}:2:${"ad".repeat(32)}` } as any;
+    }
+    if (args.method === "tari_scanForResourceUtxos" || args.method === "tari_scanForPrivatePayments")
+      throw new Error("Transaction history unavailable: do not scan it");
+    return request(args);
+  };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await w.begin(1);
+  const c = f.chain.incubations[0];
+  c.stage = "ready"; c.deliveryTx = "22".repeat(32); c.deliveryCommitments = [commitment];
+  c.commitment = commitmentFor({ id: c.id, variant: 2, salt: "ad".repeat(32) });
+  assert.equal((await w.open(c)).variant, 2);
+  assert.equal((await w.open(c)).variant, 2); // Reopen from UTXO-keyed cached memo.
+  assert.equal(f.submits, 1); assert.equal(f.creates, 1);
+  assert.equal(JSON.stringify([...f.storage.data.values()]).includes("ad".repeat(32)), false);
+  w.stop();
+});
+
+test("direct-output reveal rejects a decrypted memo that does not match the seal", async () => {
+  const f = fixture(), request = f.p.request.bind(f.p);
+  f.p.request = async (args) => {
+    if (args.method === "tari_claimPrivatePayment") return { memo: `MK2:${f.chain.incubations[0].id}:1:${"ad".repeat(32)}` } as any;
+    return request(args);
+  };
+  const w = await ExternalWallet.connect(f.api, () => {});
+  await w.begin(1);
+  const c = f.chain.incubations[0];
+  c.stage = "ready"; c.deliveryTx = "22".repeat(32); c.deliveryCommitments = ["45".repeat(32)];
+  c.commitment = commitmentFor({ id: c.id, variant: 2, salt: "ad".repeat(32) });
+  await assert.rejects(w.open(c), /could not decrypt the saved delivery/);
+  assert.equal(f.submits, 1);
+  w.stop();
+});

@@ -103,6 +103,7 @@ export interface IncubationView {
   startTx?: string;
   sealTx?: string;
   deliveryTx?: string;
+  deliveryCommitments?: string[];
   hatchTx?: string;
   error?: string;
 }

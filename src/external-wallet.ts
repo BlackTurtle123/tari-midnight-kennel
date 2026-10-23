@@ -381,12 +381,16 @@ export class ExternalWallet {
         "Private preview needs your permission to read wallet memos. You can keep it sealed.",
       );
     await this.check();
-    type MemoOutput = { memo?: string; transactionId: string };
+    type MemoOutput = { memo?: string; transactionId: string; commitment?: string; resourceAddress?: string };
+    const deliveryOutputs = incubation.deliveryCommitments ?? [];
+    if (deliveryOutputs.length > 8 || deliveryOutputs.some((c) => !/^[a-f0-9]{64}$/.test(c)))
+      throw new Error("Invalid delivery output references");
     const verify = async (outputs: MemoOutput[]): Promise<Opening | undefined> => {
       await this.check();
       for (const output of outputs) {
         const match = /^MK2:([a-f0-9]{32}):([0-3]):([a-f0-9]{64})$/.exec(output.memo ?? "");
-        if (!match || output.transactionId !== incubation.deliveryTx || match[1] !== incubation.id) continue;
+        const exactOutput = output.resourceAddress === native && !!output.commitment && deliveryOutputs.includes(output.commitment);
+        if (!match || (!exactOutput && output.transactionId !== incubation.deliveryTx) || match[1] !== incubation.id) continue;
         const opening = { id: match[1], variant: Number(match[2]), salt: match[3] };
         if (await sha256(`midnight-kennel:v2|${opening.id}|${opening.variant}|${opening.salt}`) === incubation.commitment) {
           await this.check();
@@ -401,6 +405,27 @@ export class ExternalWallet {
     // available through the view-authorized wallet ledger instead.
     let opening = await cached();
     if (opening) return opening;
+    // The operator's accepted receipt survives pruning from public transaction
+    // history. Sapient's claim method is a view-authorized local import/decrypt;
+    // it does not construct, approve or submit any transaction.
+    for (const commitment of deliveryOutputs) {
+      await this.check();
+      try {
+        const payment = await this.provider.request<{ memo?: string }>({
+          method: "tari_claimPrivatePayment", params: { resourceAddress: native, commitment },
+        });
+        opening = await verify([{ ...payment, commitment, resourceAddress: native, transactionId: incubation.deliveryTx }]);
+        if (opening) return opening;
+      } catch (error) {
+        if (!(error instanceof Error)) throw error;
+        if (error.message.includes("already claimed this payment")) {
+          opening = await cached();
+          if (opening) return opening;
+        } else if (!error.message.includes("This commitment doesn't belong to your account")) throw error;
+      }
+    }
+    if (deliveryOutputs.length)
+      throw new Error("Sapient could not decrypt the saved delivery for this wallet. Keep this incubation and reconnect its original Sapient account; no new payment is needed.");
     try {
       const scan = await this.provider.request<{ found: MemoOutput[] }>({
         method: "tari_scanForResourceUtxos",
