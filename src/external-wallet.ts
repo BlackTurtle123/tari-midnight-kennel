@@ -1,4 +1,5 @@
-import { breedingInstructions, type BreedingAction } from "../shared/breeding";
+import type { InputDeclaration } from "@tari-project/ootle-ts-bindings";
+import { breedingInstructions, breedingInputs, confirmedMissingParentFailure, type BreedingAction } from "../shared/breeding";
 import { sameIncubationFee, validateIncubationFee, type IncubationFee } from "../shared/incubation-fee";
 import type { GameState, Opening, IncubationView } from "../shared/game";
 import {
@@ -36,6 +37,7 @@ interface Approval {
   requestId?: string;
   submitted?: boolean;
   rejected?: boolean;
+  confirmedFailure?: string;
 }
 interface Saved {
   breedingAction?: BreedingAction;
@@ -301,16 +303,25 @@ export class ExternalWallet {
     r: Saved,
     phase: "begin" | "hatch",
     instructions: ReturnType<typeof playerInstructions>,
-  ) {
+    inputs: InputDeclaration[] = [],
+    allowRecovery = true,
+  ): Promise<void> {
     await this.check();
     let approval = r[phase];
-    if (!approval || approval.rejected) {
+    if (!approval || approval.rejected || approval.confirmedFailure) {
+      if (r.breedingAction?.kind === "breed") {
+        // Exercise input resolution before requesting another fee-paying action.
+        await this.provider.request({ method: "tari_signAndSubmitTransaction", params: {
+          instructions, inputs, maxFee: "1000000", dryRun: true,
+        } });
+        await this.check();
+      }
       approval = { creating: true };
       r[phase] = approval;
       save(r);
       const created = await this.provider.request<{ requestId: string }>({
         method: "tari_createTransactionRequest",
-        params: { kind: "instructions", instructions, maxFee: "1000000" },
+        params: { kind: "instructions", instructions, maxFee: "1000000", ...(inputs.length ? { inputs } : {}) },
       });
       if (typeof created.requestId !== "string" || !created.requestId)
         throw new Error(
@@ -327,7 +338,7 @@ export class ExternalWallet {
     const params = { requestId: approval.requestId };
     for (let i = 0; i < 45; i++) {
       await this.check();
-      const record = await this.provider.request<{ status: string }>({
+      const record = await this.provider.request<{ status: string; error?: string }>({
         method: "tari_getTransactionRequest",
         params,
       });
@@ -355,10 +366,21 @@ export class ExternalWallet {
           "You declined the wallet approval. Nothing was submitted by this request; you can try again.",
         );
       }
-      if (record.status === "failed")
+      if (record.status === "failed") {
+        const match = /^Transaction ([a-f0-9]{64}) accepted the fee but rejected the rest:/.exec(record.error ?? "");
+        if (allowRecovery && r.breedingAction?.kind === "breed" && match) {
+          await this.check();
+          const receipt = await this.provider.request({ method: "tari_getTransactionResult", params: { transactionId: match[1] } });
+          if (confirmedMissingParentFailure(receipt, match[1], r.breedingAction)) {
+            approval.confirmedFailure = match[1];
+            save(r); // Append-only history retains the failed request and receipt ID.
+            return this.approve(r, phase, instructions, inputs, false);
+          }
+        }
         throw new Error(
           "Wallet reports a failed request. Check its transaction history; uncertain submissions need recovery before retrying.",
         );
+      }
       if (!["pending", "submitting"].includes(record.status))
         throw new Error(
           "Unknown wallet request status; request preserved for recovery",
@@ -595,6 +617,7 @@ export class ExternalWallet {
         r,
         "hatch",
         breedingInstructions(config, this.account, action),
+        breedingInputs(config, this.account, action),
       );
       r.breedingSubmitted = true;
       save(r);

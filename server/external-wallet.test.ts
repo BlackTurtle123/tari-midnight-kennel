@@ -185,6 +185,10 @@ function fixture(failure: "none" | "create" | "submit" = "none") {
             privateScan: true,
           };
           break;
+        case "tari_signAndSubmitTransaction":
+          assert.equal(params.dryRun, true);
+          value = { result: { finalize: { result: { Accept: {} } } } };
+          break;
         case "tari_createTransactionRequest": {
           creates++;
           if (failure === "create") throw new Error("Lost acknowledgement");
@@ -688,5 +692,38 @@ test("direct-output reveal rejects a decrypted memo that does not match the seal
   c.commitment = commitmentFor({ id: c.id, variant: 2, salt: "ad".repeat(32) });
   await assert.rejects(w.open(c), /could not decrypt the saved delivery/);
   assert.equal(f.submits, 1);
+  w.stop();
+});
+
+test("saved failed breeding recovers only after chain proof, with a dry run and explicit parent inputs", async () => {
+  const f = fixture(), request = f.p.request.bind(f.p);
+  const config = { component: "component_" + "56".repeat(32), resource: "resource_" + "78".repeat(32), current: "resource_" + "9a".repeat(32), legacy: "resource_" + "bc".repeat(32), fee: 1_000_000 };
+  f.chain.breedingConfig = config;
+  const action = { kind: "breed" as const, first: { resource: config.current, id: "01".repeat(16) }, second: { resource: config.current, id: "02".repeat(16) } };
+  const expectedInputs = [action.first, action.second].map(p => ({ substate_id: `nft_${p.resource.slice(9)}_str_${p.id}`, version: null, is_write: true }));
+  const tx = "77".repeat(32);
+  let failed = false, recovered = false, simulations = 0;
+  f.p.request = async (args) => {
+    if (args.method === "tari_signAndSubmitTransaction") { simulations++; assert.equal((args.params as any).dryRun, true); assert.deepEqual((args.params as any).inputs, expectedInputs); }
+    if (args.method === "tari_createTransactionRequest") { assert.deepEqual((args.params as any).inputs, expectedInputs); if (failed) recovered = true; }
+    if (args.method === "tari_submitTransactionRequest" && !failed) {
+      failed = true;
+      throw new Error(`Transaction ${tx} accepted the fee but rejected the rest: test`);
+    }
+    if (args.method === "tari_getTransactionRequest" && failed && !recovered)
+      return { status: "failed", error: `Transaction ${tx} accepted the fee but rejected the rest: test` } as any;
+    if (args.method === "tari_getTransactionResult") return { result: { Finalized: { final_decision: "Commit", execution_result: { finalize: {
+      transaction_hash: tx, result: { AcceptFeeRejectRest: [{}, { SubstateNotFound: `At instruction #7: ${expectedInputs[0].substate_id} not found` }] },
+    } } } } } as any;
+    return request(args);
+  };
+  const w = await ExternalWallet.connect(f.api, () => {}), nonce = "34".repeat(16);
+  await assert.rejects(w.breed(action, nonce), /accepted the fee/);
+  assert.equal(f.creates, 1);
+  await w.breed(action, nonce);
+  assert.equal(f.creates, 2);
+  assert.equal(simulations, 2);
+  assert.equal(w.pendingBreeding(config).length, 0);
+  assert.ok([...f.storage.data.values()].some(v => v.includes(tx)));
   w.stop();
 });

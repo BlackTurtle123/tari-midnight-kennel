@@ -1,4 +1,4 @@
-import type { Instruction } from "@tari-project/ootle-ts-bindings";
+import type { Instruction, InputDeclaration } from "@tari-project/ootle-ts-bindings";
 import { textArg } from "./rebirth.ts";
 export interface BreedingConfig {
   component: string;
@@ -90,4 +90,32 @@ export function breedingInstructions(
     ]),
   );
   return instructions;
+}
+
+
+export function breedingInputs(c: BreedingConfig, account: string, action: BreedingAction): InputDeclaration[] {
+  breedingInstructions(c, account, action); // Validate the exact parent references.
+  if (action.kind !== "breed") return [];
+  return [action.first, action.second].map((p) => ({
+    substate_id: `nft_${p.resource.slice(9)}_str_${p.id}` as InputDeclaration["substate_id"],
+    version: null,
+    is_write: true,
+  }));
+}
+
+// A failed wallet request alone is not proof of non-execution. Only permit a
+// replacement when the network confirms this exact transaction committed fees
+// but rolled back the breeding action for one of these missing parent inputs.
+export function confirmedMissingParentFailure(value: unknown, transactionId: string, action: BreedingAction): boolean {
+  if (action.kind !== "breed") return false;
+  const v = value as any;
+  const final = v?.result?.Finalized;
+  const result = final?.execution_result?.finalize;
+  if (final?.final_decision !== "Commit" || result?.transaction_hash !== transactionId) return false;
+  const rejection = result?.result?.AcceptFeeRejectRest;
+  if (!Array.isArray(rejection) || rejection.length !== 2) return false;
+  const reason = rejection[1]?.SubstateNotFound;
+  return [action.first, action.second].some((p) =>
+    typeof reason === "string" && /^At instruction #\d+: /.test(reason) &&
+    reason.replace(/^At instruction #\d+: /, "") === `nft_${p.resource.slice(9)}_str_${p.id} not found`);
 }
