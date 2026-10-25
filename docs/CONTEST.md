@@ -6,23 +6,27 @@ Requirements checked on 25 October 2026. Submit one forum reply before **1 Novem
 
 ## Entry draft
 
-**Arkimals Halloween on Tari — hatch a little mischief**
+**Arkimals — a secret behind every haunted door**
 
-Play: https://tari.staging.arkimals-game.com/
+[Play Arkimals](https://tari.staging.arkimals-game.com/) · [Source code](https://github.com/BlackTurtle123/tari-midnight-kennel/tree/feature/TLK-1557-tari-incubation-poc)
 
-Code: https://github.com/BlackTurtle123/tari-midnight-kennel/tree/feature/TLK-1557-tari-incubation-poc
+Knock on a haunted door, discover your canine privately, and choose when to reveal it to the world.
 
-Pick a haunted doorstep and receive a secret canine. The game commits to a salted outcome, delivers its opening through a native Tari encrypted stealth memo, and lets you preview it privately through Sapient. Reveal only when you are ready: the contract verifies your signature and the commitment, then mints one canine NFT to the fixed recipient.
+Arkimals uses Tari’s native encrypted stealth memos to deliver each surprise. A salted on-chain commitment locks in the result. Sapient decrypts the memo for your private preview; when you choose to hatch, the contract verifies the opening and mints your canine NFT exactly once.
 
-The surprise becomes part of a playable collection with eight-position genes, breeding, Halloween rebirth, staking and public rankings. Incubation contributes 20 test tTARI to the delivery treasury. This runs on Esmeralda; it is not a mainnet financial product.
+Build your pack with eight-position genes, breeding, Halloween rebirth and staking. The game runs on Esmeralda, with a 20 test tTARI incubation contribution funding secret delivery.
 
-Tari privacy is essential to the reveal flow: the memo opening is encrypted on-chain, and the browser checks the decrypted result against its public commitment. The operator knows the result and controls delivery. Account metadata and transaction timing may be public; NFT traits become public when you reveal. No anonymity or provably fair lottery is claimed.
+**What stays secret:** the canine outcome until you reveal it. The operator knows the result; account activity and transaction timing can be public. Revealing publishes the NFT’s traits.
 
-The new Tari implementation was developed during October 2026 with AI assistance. It uses existing Arkimals branding/artwork, disclosed separately from the new implementation. Code is MIT licensed. [Public testnet receipts](ESMERALDA-DEPLOYMENT.json) record an accepted encrypted delivery and NFT mint; [validation](VALIDATION.md) distinguishes historical gameplay evidence from current browser checks.
+Code is MIT licensed. [Public testnet receipts](ESMERALDA-DEPLOYMENT.json) document encrypted delivery and an accepted NFT mint.
 
-Tari prize-payment address: **[entrant to supply]**
+**Tari prize-payment address:** [address]
 
-Public Bluesky/Reddit announcement: **[entrant to supply link]**
+**Bluesky or Reddit announcement:** [link]
+
+## Project provenance
+
+The Tari implementation was developed in October 2026. The game reuses existing Arkimals branding and artwork; those assets are not claimed as new October creations. See [asset provenance](CANINE-ASSETS.json) and [validation](VALIDATION.md) for evidence and test boundaries.
 
 ## Before publishing
 

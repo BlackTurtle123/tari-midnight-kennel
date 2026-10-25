@@ -51,4 +51,4 @@ For wallet setup, contract publication and local development, follow [the develo
 | Encrypted delivery and recovery | [server/](server/) |
 | Public testnet receipts and test boundaries | [Validation](docs/VALIDATION.md) |
 
-The Tari implementation was developed in October 2026 with AI assistance. It uses the existing Arkimals visual identity and artwork; these are not claimed as new October artwork. Asset provenance is recorded in [CANINE-ASSETS.json](docs/CANINE-ASSETS.json). Code is [MIT licensed](LICENSE). Dependencies retain their own licenses. See [contest preparation](docs/CONTEST.md) for the entry draft and remaining entrant details.
+The Tari implementation was developed in October 2026. It uses the existing Arkimals visual identity and artwork; these are not claimed as new October artwork. Asset provenance is recorded in [CANINE-ASSETS.json](docs/CANINE-ASSETS.json). Code is [MIT licensed](LICENSE). Dependencies retain their own licenses. See [contest preparation](docs/CONTEST.md) for the entry draft and remaining entrant details.
