@@ -6,7 +6,7 @@ The new `IncubationTreasury` contract wraps the existing incubator. Its fixed 20
 
 This preserves the existing canine collection and all farming/breeding contracts. The original incubator's public reservation method remains callable, but an unpaid direct reservation cannot get a new delivery through the API once the treasury is active. Such reservations can still consume the original contract's capped slots; removing that inherited limitation would require a replacement incubator and collection migration. Do not claim the wrapper disables the original entry point.
 
-Existing server-journal incubations retain their original secrets and resume without a new payment. An old wallet approval that was never registered before activation needs operator review; do not charge it again or invent a replacement secret. Unknown seal or delivery submissions remain blocked, while known pending receipts are checked again without resubmission. Definitive network rejection or a narrowly proven pre-submission failure can retry the affected step.
+Existing server-journal incubations retain their original secrets and resume without a new payment. An old wallet approval that was never registered before activation needs operator review; do not charge it again or invent a replacement secret. Unknown seal or delivery submissions remain blocked, while known pending receipts are checked again without resubmission. A narrowly proven pre-submission failure may resume the unsubmitted step. Rejected transaction IDs remain preserved; the application does not automatically replace them.
 
 ## Activation and rollback
 

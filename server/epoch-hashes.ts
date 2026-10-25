@@ -14,7 +14,7 @@ export function readEpochHashes(raw: unknown): Record<string, string> {
           })
           .strict()
           .parse(raw).entries
-      : Object.entries(z.record(hash).parse(raw));
+      : Object.entries(z.record(z.string(), hash).parse(raw));
   const result: Record<string, string> = Object.create(null);
   for (const [epoch, value] of pairs) {
     const key = String(epoch);

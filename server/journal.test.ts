@@ -28,7 +28,8 @@ test("journal keeps full prior records, reloads latest and excludes secrets from
   assert.equal(entries.length, 2);
   assert.equal(new Journal(dir).get(record.id)?.stage, "ready");
   assert.equal(journal.list("bob").length, 0);
-  const visible = JSON.stringify(publicRecord(record));
+  const visible = JSON.stringify(publicRecord({ ...record, privateNote: "PRIVATE-NOTE" } as Incubation));
+  assert.ok(!visible.includes("PRIVATE-NOTE"));
   assert.ok(!visible.includes(opening.salt));
   assert.ok(!visible.includes("opening"));
   // Corruption fixture is a separate file: preserve original journal for diagnosis.

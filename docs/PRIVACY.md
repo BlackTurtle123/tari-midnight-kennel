@@ -18,7 +18,7 @@
 | Player wallet                            | Decrypts its delivered opening                                                                                   | Owns NFT in the fixed recipient account             |
 | Someone with the host/daemon access | Can access operator secrets and retired hosted-wallet data; not Sapient signing keys                                                             | Same                                                |
 
-All player login and signing now use Sapient. The server no longer provisions browser/local player accounts or accepts legacy cookie-authenticated signing requests. Host/origin checks and mutation headers still protect the external API. Existing hosted wallets, keys, identity cookies and journals are preserved for controlled recovery, not silently migrated or deleted. No wallet keys, openings or deployment data belong in Git.
+All player login and signing now use Sapient. The server no longer provisions browser/local player accounts or accepts legacy cookie-authenticated signing requests. Host/origin checks and mutation headers still protect the external API. Existing hosted wallets, keys, identity cookies and journals are preserved for controlled recovery, not silently migrated or deleted. No wallet keys, private openings or runtime journals belong in Git. Public deployment addresses and accepted transaction hashes are intentionally published.
 
 The wallet RPC always remains on loopback. Only the game API is published through the configured HTTPS staging proxy. The hosted session secret and wallet encryption password persist outside the image and must be included in protected recovery captures. Staging accounts hold testnet coins only.
 
@@ -35,6 +35,6 @@ An external incubation ID commits to network, game component, player component, 
 - There is no cancellation, recovery contract, fee subsidy guarantee or automatic operator failover.
 - Transfers use native stealth confidentiality but no promise of unlinkability: fees, revealed funding, graph and timing still expose relationships.
 - Losing wallet keys or the operator journal can strand unfinished incubations. Transaction receipt loss stops automatic retries for manual reconciliation.
-- NFT transfer/breeding and metadata evolution are outside this PoC’s UI. Metadata is immutable here; minting is restricted to the game component.
+- Breeding and rebirth create new NFTs through their own contracts. Minting is restricted to the corresponding game component; original genesis metadata stays immutable.
 
 Sources: [Tari privacy](https://ootle.tari.com/concepts/privacy/), [resource guide](https://ootle.tari.com/guides/resources/), [randomness limitations](https://ootle.tari.com/guides/randomness/). The live staging encrypted memo, private preview and real NFT mint have been verified; see VALIDATION.md.

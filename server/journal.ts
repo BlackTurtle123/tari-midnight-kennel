@@ -92,12 +92,9 @@ function digest(value: unknown) {
   return createHash("sha256").update(JSON.stringify(value)).digest("hex");
 }
 export function publicRecord(record: Incubation): IncubationView {
-  const {
-    owner: _owner,
-    opening: _opening,
-    reconciliation: _reconciliation,
-    externalAddress: _externalAddress,
-    ...view
-  } = record;
-  return view;
+  // Explicit public fields: new journal metadata must not become public by default.
+  const { id, door, stage, createdAt, commitment, startTx, sealTx, deliveryTx,
+    deliveryCommitments, hatchTx, error } = record;
+  return { id, door, stage, createdAt, commitment, startTx, sealTx, deliveryTx,
+    deliveryCommitments, hatchTx, error };
 }

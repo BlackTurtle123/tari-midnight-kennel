@@ -55,7 +55,7 @@ export function readGame(
         state: z.tuple([
           address(131),
           bytes,
-          z.record(entry),
+          z.record(z.string(), entry),
           z.unknown(),
           z.number(),
           z.number(),
@@ -121,7 +121,7 @@ export async function chainIncubations() {
 export function readIncubationPayments(raw: unknown, config: NonNullable<ReturnType<typeof incubationTreasury>>) {
   const c = z.object({
     header: z.object({ template_address: z.literal(config.template.replace(/^template_/, "")) }),
-    body: z.object({ state: z.tuple([address(128), address(128), z.literal(config.amount), z.record(address(128))]) }),
+    body: z.object({ state: z.tuple([address(128), address(128), z.literal(config.amount), z.record(z.string(), address(128))]) }),
   }).parse(raw);
   const [game, treasury, , payments] = c.body.state;
   if ("component_" + game.value.hex !== config.game || "component_" + treasury.value.hex !== config.treasury)
@@ -324,7 +324,7 @@ export function readBreeding(
           address(128),
           z.literal(config.fee),
           z.unknown(),
-          z.record(
+          z.record(z.string(),
             z.tuple([
               bytes,
               address(128),
@@ -354,7 +354,7 @@ export function readBreeding(
               z.number().int().min(0).max(2),
             ]),
           ),
-          z.record(z.string().regex(/^[a-f0-9]{64}$/)),
+          z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)),
           z.unknown(),
           z.number().int().nonnegative(),
         ]),

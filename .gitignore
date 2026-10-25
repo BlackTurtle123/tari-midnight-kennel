@@ -13,3 +13,17 @@ playwright-report/
 deploy/artifacts/
 
 __pycache__/
+
+# Private runtime material and audit/recovery output
+*.pem
+*.key
+*.p12
+*.sqlite*
+*.db
+*.db-*
+*.jsonl
+*.log
+data/
+secrets/
+recovery/
+wallet/

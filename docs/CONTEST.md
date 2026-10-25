@@ -1,41 +1,34 @@
-# October 2026 contest: Spooky Secrets
+# October 2026: Spooky Secrets
 
-Sources checked on 15 October 2026: [October theme and submission thread](https://community.tari.com/t/october-build-contest-thread-spooky-secrets/396) and [official rules and organizer clarification](https://community.tari.com/t/ootle-launch-date-and-launch-contest-rules/323/1). The organizer’s rules take precedence over this checklist.
+[October submission thread](https://community.tari.com/t/october-build-contest-thread-spooky-secrets/396) · [Official rules and clarifications](https://community.tari.com/t/ootle-launch-date-and-launch-contest-rules/323/1)
 
-## Theme implemented
+Requirements checked on 25 October 2026. Submit one forum reply before **1 November 2026, 00:00 UTC**, with source/app links, a description, a Tari prize-payment address and a public **Bluesky or Reddit** announcement. Update that reply for later changes. The organizer decides eligibility.
 
-Halloween porches lead to four main-game genesis canine NFTs, presented in a Halloween doorstep game. The secret is the canine result plus a 256-bit salt. A public commitment binds it; Tari’s native stealth memo transports it encrypted. The wallet opens it privately; the player explicitly reveals it to mint. Both tricks and treats produce cosmetic canines, so NFT issuance is central to the validation.
+## Entry draft
 
-The operator knows the secret. The player’s identity is not anonymous. NFT traits become public after reveal. See [privacy and trust](PRIVACY.md). Native memo delivery remains pending public-testnet verification; a private preview in the interface is not itself evidence of confidentiality.
+**Arkimals Halloween on Tari — hatch a little mischief**
 
-## Submission checklist
+Play: https://tari.staging.arkimals-game.com/
 
-- [x] Fresh repo and new code after the October 1 theme announcement; no copied submissions.
-- [x] OSI-approved license: MIT.
-- [x] Halloween theme plus a concrete Tari privacy flow in the implementation.
-- [ ] Complete live deployment and record a real encrypted memo and NFT mint.
-- [ ] Publicly accessible source link, project description, entrant’s Tari prize-payment address, and public announcement link in the October forum entry.
-- [ ] Announce on **Bluesky or Reddit**, as specifically required for October.
-- [ ] Confirm entrant is neither a Tari Council member nor a Tari Labs employee.
-- [ ] Submit **one post**; edit that post with an update section for later changes. Use a separate projects-category thread for discussion.
-- [ ] Submit before **1 November 2026 at 00:00 UTC** (the general rule’s start-of-next-month cutoff).
+Code: https://github.com/BlackTurtle123/tari-midnight-kennel/tree/feature/TLK-1557-tari-incubation-poc
 
-AI-assisted development is allowed in the organizer’s clarification. Theme adherence and code quality can affect judging. Eligibility and awards are decided by the Council, not by this app. No submission or social post is published automatically. The dedicated Esmeralda test account is **not** a substitute for the entrant’s prize-payment address.
+Pick a haunted doorstep and receive a secret canine. The game commits to a salted outcome, delivers its opening through a native Tari encrypted stealth memo, and lets you preview it privately through Sapient. Reveal only when you are ready: the contract verifies your signature and the commitment, then mints one canine NFT to the fixed recipient.
 
-## Submission draft — complete placeholders before posting
+The surprise becomes part of a playable collection with eight-position genes, breeding, Halloween rebirth, staking and public rankings. Incubation contributes 20 test tTARI to the delivery treasury. This runs on Esmeralda; it is not a mainnet financial product.
 
-**Midnight Kennel — a secret canine behind every haunted door**
+Tari privacy is essential to the reveal flow: the memo opening is encrypted on-chain, and the browser checks the decrypted result against its public commitment. The operator knows the result and controls delivery. Account metadata and transaction timing may be public; NFT traits become public when you reveal. No anonymity or provably fair lottery is claimed.
 
-Code: [repository URL]
+The new Tari implementation was developed during October 2026 with AI assistance. It uses existing Arkimals branding/artwork, disclosed separately from the new implementation. Code is MIT licensed. [Public testnet receipts](ESMERALDA-DEPLOYMENT.json) record an accepted encrypted delivery and NFT mint; [validation](VALIDATION.md) distinguishes historical gameplay evidence from current browser checks.
 
-Pick a Halloween doorway and incubate a canine NFT. The operator commits a salted hash, then delivers the opening through a native Tari encrypted stealth memo. The player previews their surprise privately and chooses when to reveal it. The contract checks the commitment and signer and mints one NFT into the recipient fixed at incubation. The UI shows real wallet inventory.
+Tari prize-payment address: **[entrant to supply]**
 
-Privacy boundaries: the operator knows the result; incubation account, timing and fees can be linked; minting publishes the result and NFT metadata. This is a private surprise rather than anonymous gameplay or a provably fair lottery.
+Public Bluesky/Reddit announcement: **[entrant to supply link]**
 
-Verification: [insert accepted testnet transaction references after testing; do not claim pending work passed].
+## Before publishing
 
-Tari prize-payment address: [entrant supplies address]
-
-Public Bluesky/Reddit announcement: [link]
-
-License: MIT. New October code, developed with AI assistance.
+- Confirm the entrant is not a Tari Council member or Tari Labs employee.
+- Confirm rights to distribute the reused artwork under the intended license. Keep the existing-art disclosure; do not claim it was created for this contest.
+- Supply the intended prize address, not an application testnet account.
+- Publish the social announcement and add its link.
+- Run the connected Sapient acceptance checklist in [validation](VALIDATION.md).
+- Post one entry to the October thread. No forum or social post has been published by this cleanup.

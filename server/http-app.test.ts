@@ -27,6 +27,7 @@ function fetch(
     req.end(init.body);
   });
 }
+import { PublicError } from "./public-error.ts";
 import { createApp } from "./http-app.ts";
 import { Sessions } from "./sessions.ts";
 test("external-only HTTP rejects retired signing routes even with a valid legacy identity", async () => {
@@ -213,5 +214,45 @@ test("external-only HTTP rejects retired signing routes even with a valid legacy
     await new Promise<void>((resolve, reject) =>
       server.close((e) => (e ? reject(e) : resolve())),
     );
+  }
+});
+
+
+test("API errors exclude provider secrets and submitted values while preserving safe guidance", async () => {
+  let failure: Error = new Error("RPC bearer PRIVATE-TOKEN memo PRIVATE-MEMO /private/wallet.db");
+  const app = createApp({ hosted: false, origin: "http://localhost", basePath: "/", version: "test",
+    health: async () => { throw failure; },
+    external: { config: () => { throw failure; }, prepare: async () => { throw failure; },
+      register: async () => { throw failure; }, resume: async () => { throw failure; },
+      state: async () => { throw failure; } },
+  });
+  const server = app.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  const address = server.address();
+  assert.ok(address && typeof address === "object");
+  const url = `http://127.0.0.1:${address.port}/api`;
+  const headers = { host: "localhost", "x-kennel-request": "1", "content-type": "application/json" };
+  try {
+    for (const path of ["/health", "/external/config", "/external/state?account=component_" + "a".repeat(64)]) {
+      const response = await fetch(url + path, { headers });
+      assert.equal(response.status, 503);
+      assert.doesNotMatch(await response.text(), /PRIVATE|wallet.db|bearer/);
+    }
+    failure = new PublicError("Finish your existing incubation first");
+    assert.equal((await (await fetch(url + "/external/config", { headers })).json()).error, failure.message);
+    for (const [body, status, extra] of [
+      ['{"PRIVATE-TOKEN":', 400, {}],
+      [JSON.stringify({ ["PRIVATE-TOKEN"]: true }), 400, {}],
+      [JSON.stringify({ value: "PRIVATE-MEMO".repeat(1000) }), 413, {}],
+      ['PRIVATE-TOKEN', 415, { "content-encoding": "gzip" }],
+    ] as const) {
+      const response = await fetch(url + "/external/prepare", { method: "POST", headers: { ...headers, ...extra }, body });
+      assert.equal(response.status, status);
+      assert.doesNotMatch(await response.text(), /PRIVATE|SyntaxError|stack/);
+      assert.equal(response.headers.get("x-content-type-options"), "nosniff");
+    }
+  } finally {
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve()));
   }
 });

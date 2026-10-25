@@ -85,19 +85,19 @@ export async function readCommunity(
       throw new Error("Unexpected public game template");
     const a = z.array(z.unknown()).parse(value.body.state);
     if (c.kind === "incubator") {
-      for (const v of Object.values(z.record(z.array(z.unknown()).min(2)).parse(a[2])))
+      for (const v of Object.values(z.record(z.string(), z.array(z.unknown()).min(2)).parse(a[2])))
         accounts.add(recipient(v[1]));
     } else if (c.kind === "staking") {
-      for (const v of Object.values(z.record(z.array(z.unknown()).length(6)).parse(a[3])))
+      for (const v of Object.values(z.record(z.string(), z.array(z.unknown()).length(6)).parse(a[3])))
         add(v[1], v[2], v[3], "staked", c.component);
     } else if (c.kind === "rebirth") {
-      for (const v of Object.values(z.record(z.array(z.unknown()).length(7)).parse(a[6]))) {
+      for (const v of Object.values(z.record(z.string(), z.array(z.unknown()).length(7)).parse(a[6]))) {
         accounts.add(recipient(v[1]));
         if (z.number().int().min(0).max(2).parse(v[5]) === 0)
           add(v[1], v[2], v[3], "rebirth", c.component);
       }
     } else {
-      for (const v of Object.values(z.record(z.array(z.unknown()).length(6)).parse(a[5]))) {
+      for (const v of Object.values(z.record(z.string(), z.array(z.unknown()).length(6)).parse(a[5]))) {
         accounts.add(recipient(v[1]));
         if (z.number().int().min(0).max(2).parse(v[5]) !== 0) continue;
         for (const parent of [v[2], v[3]]) {

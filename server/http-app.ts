@@ -1,4 +1,5 @@
 import express from "express";
+import { PublicError } from "./public-error.ts";
 import { resolve } from "node:path";
 import { z } from "zod";
 import type { ExternalService } from "./external-service.ts";
@@ -35,7 +36,6 @@ export function createApp(options: Options) {
   ]);
   const counters = new Map<string, { count: number; until: number }>();
   app.disable("x-powered-by");
-  app.use(express.json({ limit: "8kb" }));
   app.use((_req, res, next) => {
     res.set("X-Content-Type-Options", "nosniff");
     res.set("Referrer-Policy", "same-origin");
@@ -73,6 +73,7 @@ export function createApp(options: Options) {
     }
     next();
   });
+  app.use("/api", express.json({ limit: "8kb", inflate: false }));
   app.get("/api/config", (_req, res) =>
     res.json({
       walletMode: "external",
@@ -161,13 +162,24 @@ export function createApp(options: Options) {
       _req: express.Request,
       res: express.Response,
       _next: express.NextFunction,
-    ) =>
-      res.status(error instanceof z.ZodError ? 400 : 503).json({
-        error:
-          error instanceof Error
-            ? error.message.slice(0, 600)
-            : "Request failed",
-      }),
+    ) => {
+      // Parser errors and schema errors can contain submitted values. Provider
+      // errors can contain RPC credentials, filesystem paths or private memos.
+      if (error instanceof z.ZodError)
+        return res.status(400).json({ error: "Invalid request fields" });
+      const parserType = (error as { type?: unknown } | null)?.type;
+      if (parserType === "entity.too.large")
+        return res.status(413).json({ error: "Request body is too large" });
+      if (parserType === "encoding.unsupported")
+        return res.status(415).json({ error: "Compressed request bodies are not supported" });
+      if (parserType === "entity.parse.failed")
+        return res.status(400).json({ error: "Invalid JSON request" });
+      return res.status(503).json({
+        error: error instanceof PublicError
+          ? error.message
+          : "Unable to complete this request. Check progress shortly; do not repeat a payment.",
+      });
+    },
   );
   return app;
 }

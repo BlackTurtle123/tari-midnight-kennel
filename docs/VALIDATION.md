@@ -1,61 +1,41 @@
 # Validation evidence
 
-Live environment: https://staging.wavesducks.com/tari/, Codex in-app desktop browser, 15 October 2026. Gameplay verified on commit `354b420667ecdb2bd57359ea73f6350e2460f8f2`; the subsequent release corrects the decorative collection count from six to four and records this evidence. Current running commit is exposed by the health endpoint.
+Live app: https://tari.staging.arkimals-game.com/
 
-## Observed frontend results
+## Public testnet evidence
 
-- PASS: original Beaglebyte art renders in the Halloween incubator; four genesis canines, three haunted doorways, and integrated test wallet are visible.
-- PASS: funded test wallet retains its identity and balance after deployment/reload.
-- PASS: Pumpkin Porch starts one incubation and disables additional door actions until completion.
-- PASS: native secret delivery reaches Ready. Open privately displays original PoodlOS Echelon art, `HHHHHHHH`, `CANI-HHHHHHHH-GA`, Red, and the public-reveal warning.
-- PASS: closing the preview leaves My canines at zero; reopening shows the identical canine and genotype.
-- PASS: Reveal & mint NFT completes and opens My canines with exactly one PoodlOS Echelon NFT.
-- PASS: NFT details show all eight H gene positions, generation zero, colour Red and the same genotype as the private preview.
-- PASS: reload and reopening My canines retains that one NFT.
-- Historical PASS: hosted wallet onboarding/custody text, receiving address, contest rules/links/deadline, insufficient public-faucet explanation, and local 390 × 844 layout were exercised before this artwork release. The current mobile artwork layout needs administrator retest; do not infer it from the earlier desktop pass.
+[ESMERALDA-DEPLOYMENT.json](ESMERALDA-DEPLOYMENT.json) preserves the public template/component addresses and accepted reservation, commitment, encrypted delivery and mint receipts from 15 October 2026. The observed preview and minted NFT matched PoodlOS Echelon, HHHHHHHH. Closing/reopening the preview preserved the outcome; collection reload retained one NFT.
 
-## Developer verification
+That run used the earlier hosted-wallet UI. It establishes historical testnet delivery/mint evidence, **not** a current Sapient signing pass. The current app uses Sapient only. Old hosted signing endpoints return HTTP 410.
 
-- PASS: eleven TypeScript tests, including real copied SVG layer/position checks, strict genes/name/colour/genotype metadata parsing, legacy NFT preservation, memo round-trips, journal integrity, browser session isolation and native token address.
-- PASS: eight Rust engine tests, including four real genesis mints with exact immutable metadata, fixed-recipient deposit, replay/outsider/altered opening/reseal/early hatch rejection, duplicate reservation and cap, and hidden sealed outcome.
-- PASS: release WASM build, TypeScript check and Vite production build. Bundled artwork produces a roughly 313 KB gzip application bundle; Vite emits its advisory chunk-size warning.
-- PASS: all 88 original SVG/CSS files match the recorded fetched main-game source revision by SHA-256.
-- PASS: v2 template publication and component creation accepted by public Esmeralda; [public receipts](ESMERALDA-DEPLOYMENT.json).
-- PASS: real NFT mint accepted (`c54e21dc1f22c4bbe7f2187917e8f1d66c268989d36baa90a183f6c9cbb02372`). Retrying the completed hatch through the game service returns the same receipt and leaves exactly one NFT.
-- PASS: the user's original Boo Beagle NFT remains in its account and is returned by the legacy collection reader with its immutable `DDDDBBBB` genes. Missing colour/genotype are not invented. This is a developer inventory check, not a browser pass for that other account.
-- NOT RUN: deliberately induced live confirmation timeout. Receipt-preserving completed-hatch retry passed; do not equate that with an interrupted network test.
+On 25 October, desktop browser checks on the dedicated HTTPS hostname verified loaded branding/artwork, the Hatch your arkimal action and wallet controls. API checks verified the deployed version, wallet readiness, origin restrictions and old-URL compatibility. No player transaction was performed during that hostname check.
 
-The public faucet's earlier insufficient balance was bypassed by the user's testnet funding. New browser accounts still require test coins. No contest announcement or submission was sent.
+## Reproducible developer checks
 
-## Frontend acceptance handoff
+```sh
+npm ci
+npm test
+npm run build
+npm run contract:test
+npm run breeding:test
+npm run rebirth:test
+cargo test --locked --manifest-path treasury-contract/Cargo.toml
+npm audit
+```
 
-Prerequisite: developer provides the running app with funded Esmeralda player/operator accounts and a deployed incubator. The administrator only needs a browser.
+Application tests cover wallet intent binding, encrypted memo validation, secret exclusion, duplicate protection, input selection, checkpoint selection and receipt recovery. Rust tests execute the Tari engine locally; they do not submit public transactions. See [security review](SECURITY-REVIEW.md) for review scope and limitations.
 
-1. Open the app. Expect Halloween artwork, testnet label and three named doors; on a phone, cards should stack without horizontal scrolling.
-2. Open Spooky Secrets. Expect the secret’s purpose, what becomes public, operator trust limits, official links and 1 November 2026 00:00 UTC cutoff.
-3. Connect the test wallet. Expect a connected state. If the setup warning is visible, mark the remaining gameplay cases **Blocked: funded deployment unavailable**.
-4. Knock once. Expect one incubation progressing; additional door buttons should remain disabled until it finishes.
-5. Open the delivered secret. Expect a private canine preview, with an explicit warning that minting publishes its traits.
-6. Close the preview. Expect no NFT yet; reopen it and expect the same canine.
-7. Choose Reveal & mint NFT. Expect confirmation followed by exactly one canine in My canines, with its original main-game image, name, eight genes, colour and native genotype.
-8. Reload. Expect the same NFT. Repeated confirmation/progress checks must not add a second NFT.
-9. Disconnect. Expect wallet controls to reset and no private preview remaining visible.
+## Current frontend acceptance — pending connected-wallet retest
 
-Report: case number, **Pass / Fail / Blocked**, actual visible result, browser/device, and screenshot or recording for failures. Do not infer a live pass from source review or local engine tests.
+Use Sapient on Esmeralda with test coins. Do not create another incubation if the wallet already has an unfinished one.
 
-## Funded-account regression coverage — 16 October 2026
+1. Open the app on desktop and mobile. Expect visible artwork and readable navigation.
+2. Connect Sapient. Expect the matching account and existing wallet-held/staked collection.
+3. For a fresh incubation, review the 20 test tTARI contribution and network fee, then approve once. Expect one saved incubation.
+4. Open its delivered secret and grant viewing access. Expect a canine preview verified against the commitment.
+5. Close and reopen the preview. Expect the same canine without a mint or new payment.
+6. Choose reveal/mint and approve once. Expect exactly one matching NFT.
+7. Reload and check progress. Expect the same outcome and collection, without replacement payments.
+8. Disconnect. Expect the private preview to close.
 
-Eighteen application tests pass after adding confidential-only account activation, own-wallet destination/amount limits, pending receipt/restart recovery, lost acknowledgement and delayed balance protection, unfunded-account handling, and legacy missing-account reconciliation. Reconciliation tests preserve ID/secret/commitment/history and reject existing chain requests, matching wallet receipts, unfamiliar schemas and unknown lost acknowledgements. Production build passes. Live repair/deployment results are recorded in the Jira handoff after rollout; these automated tests alone do not establish the user's incubation recovered.
-
-Live repair on 16 October 2026: account activation and the original stuck incubation reached Ready on build `35addec936d8559afb7a60c2a0abbdaf13f513cc`. The same secret and commitment were retained; exactly one start receipt was recorded. No NFT was automatically revealed/minted. The subsequent fix also verifies that queued Check progress requests return valid JSON when the backend returns void.
-
-## Secret experience feedback — 18 October 2026
-
-The main journey now names what stays secret (canine, genes, colour and trick-or-treat result), shows a sealed envelope and confirmed delivery stages, and separates private viewing from public NFT minting. The private preview offers “Keep it secret for now” and “Make public & mint NFT”. The operator/custody boundary remains visible in the journey. Collection cards identify the resulting NFT as public.
-
-Observed in the Codex in-app browser using the production frontend build and a temporary loopback API fixture (simulated data; no chain transactions):
-- PASS: desktop doorstep explanation and hidden-trait labels; delivering state disables additional doors; ready state shows encrypted delivery and Open privately.
-- PASS: preview identifies itself as not yet public, shows original canine art/genes/colour, and displays both keep-secret and public-mint choices together on desktop.
-- PASS: keeping the secret closes the preview without adding an NFT; reopening shows the same canine; simulated explicit mint switches to the public-labelled collection.
-- PASS: 390 × 844 phone layout for the secret card and preview; both preview choices remain accessible, with no horizontal document overflow.
-- Developer checks: 18 existing application tests and production TypeScript/Vite build pass. No wallet, contract, transaction or recovery logic changed. These fixture checks do not claim a new live mint; final staging checks and the administrator retest handoff are recorded in Jira.
+Report case, Pass/Fail/Blocked, visible result, browser/device and a screenshot for failures. Source review, API checks and local tests do not establish a live wallet pass.

@@ -8,7 +8,7 @@ const receipt = z.object({
   result: z.object({
     transaction_hash: hex,
     result: z.object({ Accept: z.object({
-      up_substates: z.array(z.tuple([z.string(), z.object({ substate: z.record(z.unknown()) })])),
+      up_substates: z.array(z.tuple([z.string(), z.object({ substate: z.record(z.string(), z.unknown()) })])),
     }) }),
   }),
 });

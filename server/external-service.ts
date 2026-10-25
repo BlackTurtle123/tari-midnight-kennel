@@ -1,3 +1,4 @@
+import { PublicError } from "./public-error.ts";
 import { deliveryCommitments } from "./delivery-receipt.ts";
 import { economySnapshot, breedingSnapshot, stakedInventory } from "./external-chain.ts";
 import { createHash } from "node:crypto";
@@ -50,7 +51,7 @@ export function verifyAuthorizedIntent(
     .digest("hex")
     .slice(0, 32);
   if (expected !== id)
-    throw new Error("Payment address does not match the signed incubation ID");
+    throw new PublicError("Payment address does not match the signed incubation ID");
   if (
     !chain ||
     chain.id !== id ||
@@ -58,7 +59,7 @@ export function verifyAuthorizedIntent(
     chain.owner !== intent.account ||
     chain.door !== intent.door
   )
-    throw new Error(
+    throw new PublicError(
       "Waiting for your wallet's authorized incubation to confirm on Esmeralda. Check progress shortly.",
     );
 }
@@ -95,9 +96,9 @@ export class ExternalService {
   }
   async prepare(intent: WalletIntent) {
     if (incubationTreasuryPending())
-      throw new Error("New incubations are paused while the operator activates the 20 tTARI treasury. No approval or payment was requested.");
+      throw new PublicError("New incubations are paused while the operator activates the 20 tTARI treasury. No approval or payment was requested.");
     if (intent.component !== deployment().component)
-      throw new Error("Game deployment changed; reconnect your wallet");
+      throw new PublicError("Game deployment changed; reconnect your wallet");
     intentMessage(intent);
     await this.delivery.validateExternalAccount(intent.account, intent.paymentAddress);
     if (
@@ -105,12 +106,12 @@ export class ExternalService {
         (r) => r.owner === intent.account && !r.hatched,
       )
     )
-      throw new Error(
+      throw new PublicError(
         "Finish the incubation already owned by this wallet first",
       );
     const fee = incubationTreasury();
     if (!sameIncubationFee(intent.fee, fee))
-      throw new Error("Incubation fee changed. Reconnect to review the current price before approving.");
+      throw new PublicError("Incubation fee changed. Reconnect to review the current price before approving.");
     if (fee) {
       // Verify the immutable fee destination before approval. The player's
       // atomic payment supplies the public reserve needed for delivery.
@@ -122,14 +123,14 @@ export class ExternalService {
       await this.delivery.checkFeeFunds(await this.delivery.wallet(), OPERATOR_NAME, 2_000_001n);
     } catch (error) {
       if (error instanceof InsufficientFeeFunds)
-        throw new Error("The game's delivery wallet needs test Tari for network fees. Please try again after it is funded; no new incubation approval was requested.");
-      throw new Error("Unable to check the game's delivery wallet. Please try again shortly; no new incubation approval was requested.");
+        throw new PublicError("The game's delivery wallet needs test Tari for network fees. Please try again after it is funded; no new incubation approval was requested.");
+      throw new PublicError("Unable to check the game's delivery wallet. Please try again shortly; no new incubation approval was requested.");
     }
     return { ok: true };
   }
   async register(intent: WalletIntent, id: string) {
     if (intent.component !== deployment().component)
-      throw new Error("Incorrect game deployment");
+      throw new PublicError("Incorrect game deployment");
     const signer = await validateExternalAccount(
       intent.account,
       intent.paymentAddress,
@@ -142,17 +143,17 @@ export class ExternalService {
         prior.owner !== intent.account ||
         prior.externalAddress !== intent.paymentAddress
       )
-        throw new Error("Incubation recipient is fixed");
+        throw new PublicError("Incubation recipient is fixed");
     } else {
       if (incubationTreasuryPending())
-        throw new Error("Treasury activation is pending. Your existing wallet request is preserved; do not pay again.");
+        throw new PublicError("Treasury activation is pending. Your existing wallet request is preserved; do not pay again.");
       const fee = incubationTreasury();
       if (!sameIncubationFee(intent.fee, fee))
-        throw new Error("This incubation needs operator review of its original approval; no additional payment was requested.");
+        throw new PublicError("This incubation needs operator review of its original approval; no additional payment was requested.");
       if (fee && (await incubationPayments(fee))[id] !== intent.account)
-        throw new Error("Waiting for the same incubation's treasury payment to confirm. No additional payment was requested.");
+        throw new PublicError("Waiting for the same incubation's treasury payment to confirm. No additional payment was requested.");
       if (chain!.hatched || chain!.commitment)
-        throw new Error(
+        throw new PublicError(
           "This incubation needs its original recovery record; no new secret was generated",
         );
       const opening = createOpening(id);
@@ -173,7 +174,7 @@ export class ExternalService {
   async resume(account: string, id: string) {
     const r = this.journal.get(id);
     if (!r || r.owner !== account)
-      throw new Error(
+      throw new PublicError(
         "Reconnect the original wallet and resume its saved approval request",
       );
     // No recipient or signing keys can be changed by this public, idempotent trigger.
