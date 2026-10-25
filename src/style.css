@@ -2297,13 +2297,11 @@ textarea {
 }
 
 .arkimals-emblem { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
-.canine-traits { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 12px 0; }
-.canine-genes { display: grid; gap: 3px; }
-.canine-genes small { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
-.canine-genes strong { font-family: monospace; font-size: 20px; letter-spacing: 2px; overflow-wrap: anywhere; }
+.canine-traits { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.canine-traits > .pill { display: inline-flex; align-items: center; min-height: 30px; margin: 0; padding: 6px 10px; line-height: 16px; box-sizing: border-box; }
 @media (max-width: 700px) { .arkimals-emblem { width: 36px; height: 36px; } }
 
-.canine-genes.pill { background: #244c3b; color: #b8f3cb; border: 1px solid #488465; border-radius: 12px; padding: 9px 13px; }
+.canine-genes.pill { background: #344337; color: #d1e3a5; border: 1px solid #71836b; border-radius: 999px; font-family: monospace; font-size: 13px; font-weight: 700; letter-spacing: 1px; white-space: nowrap; }
 .staked-canine { display: flex; align-items: center; gap: 22px; min-width: 0; }
 .staked-canine .canine-art { width: 150px; height: 160px; object-fit: contain; flex-shrink: 0; border-radius: 16px; background: #273345; }
 .stake-art-unavailable { width: 150px; padding: 32px 12px; text-align: center; color: #b0bacb; }
@@ -2311,3 +2309,9 @@ textarea {
   .staked-canine { gap: 14px; flex-wrap: wrap; }
   .staked-canine .canine-art { width: 120px; height: 130px; }
 }
+
+.economy-canine { display: flex; flex-direction: column; min-width: 0; }
+.economy-canine > .canine-art { height: 190px; object-fit: contain; margin: 0 auto 16px; }
+.economy-canine h3 { margin: 0; line-height: 1.4; }
+.economy-canine > .economy-actions { margin-top: auto; padding-top: 8px; }
+.economy-canine > .economy-actions > button { width: 100%; }
