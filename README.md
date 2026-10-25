@@ -2,7 +2,7 @@
 
 **Hatch a little mischief. Keep the surprise secret until you choose to reveal it.**
 
-[Play on Esmeralda](https://tari.staging.arkimals-game.com/) · [How privacy works](docs/PRIVACY.md) · [Contest entry](docs/CONTEST.md) · [Security](SECURITY.md)
+[Play on Esmeralda](https://tari.staging.arkimals-game.com/) · [How privacy works](docs/PRIVACY.md) · [Security](SECURITY.md)
 
 Arkimals is a Halloween canine game built for Tari Ootle’s October 2026 **Spooky Secrets** contest. Choose a haunted doorstep, receive your surprise through a native encrypted Tari memo, preview it privately in Sapient, and decide when to reveal and mint your canine NFT.
 
@@ -51,4 +51,4 @@ For wallet setup, contract publication and local development, follow [the develo
 | Encrypted delivery and recovery | [server/](server/) |
 | Public testnet receipts and test boundaries | [Validation](docs/VALIDATION.md) |
 
-The Tari implementation was developed in October 2026 with AI assistance. It uses the existing Arkimals visual identity and artwork; these are not claimed as new October artwork. Asset provenance is recorded in [CANINE-ASSETS.json](docs/CANINE-ASSETS.json). Code is [MIT licensed](LICENSE). Dependencies retain their own licenses. See [contest preparation](docs/CONTEST.md) for the entry draft and remaining entrant details.
+Code is [MIT licensed](LICENSE). Arkimals artwork provenance is recorded in [CANINE-ASSETS.json](docs/CANINE-ASSETS.json). Dependencies retain their own licenses.
