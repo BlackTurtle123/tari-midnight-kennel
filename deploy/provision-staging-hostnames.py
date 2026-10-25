@@ -73,6 +73,7 @@ def create(path, content, mode):
 
 if args.phase == "http":
     webroot.mkdir(mode=0o755)
+    os.chmod(webroot, 0o755)  # mkdir is filtered by the recovery umask.
     create(config, http, 0o644)
     create(snippet, proxy, 0o644)
 else:

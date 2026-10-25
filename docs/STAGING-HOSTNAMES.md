@@ -4,8 +4,8 @@ Requested DNS records in the authoritative Versio zone `arkimals-game.com`:
 
 | Name | Type | Value | TTL |
 | --- | --- | --- | --- |
-| tari.staging | A | 217.100.219.253 | 300 |
-| near.staging | A | 217.100.219.253 | 300 |
+| tari.staging | A | 217.100.219.253 | 600 |
+| near.staging | A | 217.100.219.253 | 600 |
 
 Preserve existing records. Capture the complete visible zone before editing and
 verify that these names are absent; read back both records after saving and
