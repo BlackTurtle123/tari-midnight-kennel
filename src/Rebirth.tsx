@@ -1,3 +1,4 @@
+import { CanineTraits } from "./CanineTraits";
 import { useEffect, useState } from "react";
 import { ArrowRight, Flame, Sparkles, Coins } from "lucide-react";
 import { HALLOWEEN_REWARDS, type EconomyAction } from "../shared/rebirth";
@@ -244,7 +245,7 @@ export function Rebirth({
                   <article className="economy-canine" key={c.resource + c.id}>
                     <CanineArt genes={c.genes} name={c.name} />
                     <h3>{c.name}</h3>
-                    <small>{c.genotype ?? c.genes}</small>
+                    <CanineTraits canine={c} breeding={state.breeding} />
                     <div className="economy-actions">
                       {mode === "staking" ? (
                         <button

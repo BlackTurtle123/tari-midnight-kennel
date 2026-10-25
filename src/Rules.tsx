@@ -1,170 +1,28 @@
-import {
-  GENERATIONS,
-  MAIN_GAME_REBIRTH_TABLE,
-  mainGameFarmPower,
-} from "../shared/canine-rules";
+import { GENERATIONS } from "../shared/canine-rules";
+import { HALLOWEEN_REWARDS } from "../shared/rebirth";
 export function Rules({ incubationFee, connected, pending }: { incubationFee?: import("../shared/incubation-fee").IncubationFee; connected: boolean; pending?: boolean }) {
   const rows = [
-    [
-      "Incubation",
-      "Paid hatch; price rises with total supply. Genesis genes E–H; generation G; colour A–D.",
-      pending ? "New incubations are paused until the 20 test tTARI treasury is activated. Existing incubations remain saved without a second payment."
-      : incubationFee
-        ? "20 test tTARI is paid once at reservation to fund delivery and the operator treasury. Wallet network fees are separate; resume and hatch do not charge another treasury fee."
-        : connected ? "This deployment has no incubation treasury fee. Wallet network fees still apply; the operator funds sealing and delivery."
-          : "Connect your wallet to view the active incubation price before approval. The treasury fee funds delivery and operations; wallet network fees are separate.",
-    ],
-    [
-      "Breeding",
-      "Two parents; one completed breeding each; eight independent inherited genes; next generation; parents returned.",
-      "Incubated and bred canines belong to one shared farm. Earlier positions remain available to withdraw and claim during the contract transition.",
-    ],
-    [
-      "Perches",
-      "Buy a colour-matching perch. Staking occupies it; withdrawal restores it.",
-      "Required for the production farm; not active in the existing pool.",
-    ],
-    [
-      "Farm power",
-      "Gene diversity × cached base power × live rarity, plus item and wearable boosts.",
-      "Exact reference calculation imported. The existing on-chain pool still uses equal shares.",
-    ],
-    [
-      "Rebirth",
-      "8 WAVES; base reward table below, plus any active event bonus. Optional double, erase and rescue items.",
-      "Tari currently draws from six Halloween NFTs for 8 test tTARI; it does not yet use the main-game item table.",
-    ],
-    [
-      "Income",
-      "75% of native incubation/rebirth fees becomes leasing principal; actual leasing income funds rewards.",
-      "Tari currently distributes 75% of completed rebirth fees directly. No leasing yield or fixed APR.",
-    ],
-    [
-      "Items",
-      "Coupons, fixed/free genes, mirrors, rescue, double rewards, wearables and farming boosts.",
-      "Not active in Tari. These require item minting, ownership checks, consumption and effects.",
-    ],
+    ["Incubation", pending ? "New incubations are paused until the treasury is activated. Existing incubations remain saved without a second payment."
+      : incubationFee ? `${Number(incubationFee.amount) / 1_000_000} test tTARI is paid once at reservation to fund delivery and the operator treasury. Resume and hatch do not charge another incubation fee.`
+      : connected ? "This deployment has no incubation treasury fee." : "Connect your wallet to view the active incubation price before approval."],
+    ["Breeding", "Choose two fertile canines from your wallet. Each can breed once successfully; both parents return afterwards and become sterile. The child inherits eight genes and advances one generation beyond the later parent. The approval screen shows the breeding fee."],
+    ["Staking", "Each staked canine has one equal reward share. Staked canines remain in My pack. Withdraw before breeding, transferring or using a canine for rebirth. No perch is required."],
+    ["Rebirth", "8 test tTARI and one canine enter escrow. Completion permanently retires the canine and mints one of the six Halloween NFTs listed below."],
+    ["Farm rewards", "On completed rebirth, 75% of the fee goes to the farm and 25% to treasury. If the farm is empty, the entire fee goes to treasury. Rewards depend on funded fees; there is no fixed APR or leasing income."],
   ];
-  return (
-    <section className="page-section rules-page">
-      <div className="eyebrow">ARKIMALS · RULES & RELEASE STATUS</div>
-      <h1>The full canine lifecycle.</h1>
-      <p className="section-intro">
-        The main game is our rule source. This page distinguishes the deployed
-        Tari rules from the remaining production port.
-      </p>
-      <div className="rebirth-panel">
-        <h2>What an epoch means</h2>
-        <p>
-          One Tari epoch is approximately 20 minutes, tied to base-layer blocks.
-          A draw scheduled at current epoch + 2 normally waits 20–40 minutes.
-          Delays can be longer; the on-chain epoch, not a countdown, determines
-          readiness.
-        </p>
-        <a
-          href="https://ootle.tari.com/guides/randomness/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Tari’s epoch and randomness guidance ↗
-        </a>
-      </div>
-      <div className="rules-table-wrap">
-        <table className="rules-table">
-          <thead>
-            <tr>
-              <th>Step</th>
-              <th>Main-game rule</th>
-              <th>Tari status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(([step, rule, status]) => (
-              <tr key={step}>
-                <th>{step}</th>
-                <td>{rule}</td>
-                <td>{status}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="rebirth-panel">
-        <h2>Breeding generations</h2>
-        <p>{GENERATIONS.join(" → ")}</p>
-        <p>
-          The child follows the later parent by one generation. G + I produces
-          K. N + N produces O. O cannot breed. Changing wallet ownership does
-          not reset a completed breeding use.
-        </p>
-      </div>
-      <div className="rebirth-panel">
-        <h2>How main-game FP is calculated</h2>
-        <p>
-          Gene power = floor(100 × 1.5<sup>distinct genes</sup>). At the first
-          stake, this is multiplied by the game’s age multiplier to cache base
-          power. Rarity counts canines with the same gene quantities and
-          generation, regardless of gene order.
-        </p>
-        <p>
-          Rarity = floor(√floor(10,000 ÷ group quantity)); if that rounds to
-          zero, use 2. Rare power = floor(base power × rarity ÷ 100). Item
-          boosts and wearable boosts add separately, with the main game’s
-          integer rounding.
-        </p>
-        <p>
-          Example at a 100% age multiplier, group quantity 1, no boosts: a
-          single-gene canine has{" "}
-          <b>
-            {mainGameFarmPower({
-              genes: "EEEEEEEE",
-              groupQuantity: 1n,
-              multiplier: 100n,
-            }).fp.toString()}{" "}
-            FP
-          </b>
-          ; an eight-gene canine has{" "}
-          <b>
-            {mainGameFarmPower({
-              genes: "ABCDEFGH",
-              groupQuantity: 1n,
-              multiplier: 100n,
-            }).fp.toString()}{" "}
-            FP
-          </b>
-          . These examples are not the current Tari pool’s payout weights.
-        </p>
-        <p>
-          A Tari epoch-based age multiplier and the reward currency need to be
-          configured before activating a production farm.
-        </p>
-      </div>
-      <div className="rebirth-panel">
-        <h2>Main-game rebirth table</h2>
-        <p>
-          The main game’s base rewards are different from the six-NFT Tari
-          Halloween draw. The captured live event configuration additionally
-          awards a Halloween Soul with 40% probability during its configured
-          event period.
-        </p>
-        <div className="rules-rewards">
-          {MAIN_GAME_REBIRTH_TABLE.map(([name, weight]) => (
-            <span key={name}>
-              {name}
-              <b>{weight / 10}%</b>
-            </span>
-          ))}
-        </div>
-        <p>
-          Item rewards need their downstream uses implemented before this table
-          can replace the Tari draw. Existing rebirths keep the odds they
-          started with.
-        </p>
-      </div>
-      <p className="fine-print">
-        Main-game contracts and oracle configuration captured 20 October 2026.
-        This is a testnet release, not a declaration of production readiness.
-      </p>
-    </section>
-  );
+  return <section className="page-section rules-page">
+    <div className="eyebrow">ARKIMALS · TARI GAME RULES</div>
+    <h1>Your canine lifecycle.</h1>
+    <p className="section-intro">These are the active rules on Tari Esmeralda testnet. Prices use test tTARI. Wallet network fees are additional.</p>
+    <div className="rules-table-wrap"><table className="rules-table"><thead><tr><th>Activity</th><th>How it works on Tari</th></tr></thead><tbody>
+      {rows.map(([step, rule]) => <tr key={step}><th>{step}</th><td>{rule}</td></tr>)}
+    </tbody></table></div>
+    <div className="rebirth-panel"><h2>Genes and fertility</h2><p>Genes are shown directly on each canine card. Fertile canines can breed; sterile canines have already bred or reached generation O. A reserved canine is waiting for its breeding request to resolve. Staking does not make a canine sterile.</p><p>Generations: {GENERATIONS.join(" → ")}. G + I produces K; N + N produces O. Transferring a canine does not reset its breeding use.</p></div>
+    <div className="rebirth-panel"><h2>Rebirth rewards</h2><p>Each completed rebirth gives one collectible NFT, with these chances. These rewards do not currently grant usable item effects or farm boosts.</p><div className="rules-rewards">
+      {HALLOWEEN_REWARDS.map(r => <span key={r.name}>{r.name}<b>{r.odds}%</b></span>)}
+    </div></div>
+    <div className="rebirth-panel"><h2>Waiting for a draw</h2><p>Breeding and rebirth use a fixed draw at the current epoch + 2. An epoch is approximately 20 minutes, so the usual wait is 20–40 minutes; network delays can make it longer. The on-chain epoch determines readiness.</p><p>If the scheduled epoch is captured, you can complete the draw afterwards. If it was missed, recover the escrowed canines and game fee. Network fees are not refunded. A refunded breeding pair cannot retry together, but each parent can breed with another eligible canine.</p><p>Incubation uses a server-generated result sealed before reveal, so it does not wait for a future epoch.</p><a href="https://ootle.tari.com/guides/randomness/" target="_blank" rel="noreferrer">Tari’s epoch and randomness guidance ↗</a></div>
+    <div className="rebirth-panel"><h2>Not available on Tari yet</h2><p>Perches, gene-weighted farming power, coupons, wearables, double rewards, rescue items and other usable item boosts are not implemented in this release. There is no perch shop or perch requirement. The reward table above is the active Tari table.</p></div>
+    <p className="fine-print">Esmeralda testnet release. Review the amount and action in your wallet before approving.</p>
+  </section>;
 }

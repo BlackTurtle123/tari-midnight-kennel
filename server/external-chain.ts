@@ -368,6 +368,7 @@ export function readBreeding(
   return {
     epoch,
     parents: a[6],
+    parentStatuses: Object.fromEntries(Object.entries(a[6]).map(([key, id]) => [key, a[5][id]?.[5] ?? -1])),
     minted: a[8],
     requests: Object.entries(a[5])
       .filter(([, v]) => !account || "component_" + v[1].value.hex === account)
@@ -395,4 +396,22 @@ export async function breedingSnapshot(account?: string) {
   const s = liveSubstate(r).substate;
   if (!("Component" in s)) throw new Error("Breeding component unavailable");
   return readBreeding(s.Component, d, epoch, account);
+}
+
+// Only owner-filtered, live staking positions from economySnapshot are passed here.
+export async function stakedInventory(stakes: { resource: string; token: string }[]): Promise<Canine[]> {
+  const p = await indexer(), d = deployment();
+  const unique = new Map(stakes.map(s => [s.resource + "|" + s.token, s]));
+  const result: Canine[] = [];
+  for (const { resource, token } of unique.values()) {
+    if (![d.resource, legacyResource(), breedingDeployment()?.resource].includes(resource)) throw new Error("Unknown staked collection");
+    if (!/^[a-f0-9]{32}(?:[a-f0-9]{32})?$/.test(token)) throw new Error("Invalid staked token");
+    const value = liveSubstate(await p.getSubstate(`nft_${resource.slice(9)}_str_${token}`)).substate;
+    if (!("NonFungible" in value) || !value.NonFungible) throw new Error("Staked NFT unavailable");
+    const raw = value.NonFungible.data;
+    const canine = resource === d.resource ? parseCanine(raw, resource) : resource === breedingDeployment()?.resource ? parseBredCanine(raw, resource) : parseLegacyCanine(raw, resource);
+    if (!canine || canine.id !== token) throw new Error("Invalid staked metadata");
+    result.push(canine);
+  }
+  return result;
 }

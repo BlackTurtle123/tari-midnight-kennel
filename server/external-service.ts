@@ -1,5 +1,5 @@
 import { deliveryCommitments } from "./delivery-receipt.ts";
-import { economySnapshot, breedingSnapshot } from "./external-chain.ts";
+import { economySnapshot, breedingSnapshot, stakedInventory } from "./external-chain.ts";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import { stringLiteral } from "@tari-project/ootle";
@@ -226,6 +226,16 @@ export class ExternalService {
     } catch {
       state.setupError =
         "Unable to read this wallet's public holdings. Fund and activate the account in Sapient, or retry when the indexer is available.";
+    }
+    if (!state.setupError) {
+      try {
+        state.stakedCanines = await stakedInventory([
+          ...(state.economy?.stakes ?? []),
+          ...(state.recoveryEconomies ?? []).flatMap(r => r.state?.stakes ?? []),
+        ]);
+      } catch {
+        state.packError = "Staked canines could not be loaded. Your stakes remain safe; refresh to try again.";
+      }
     }
     return state;
   }

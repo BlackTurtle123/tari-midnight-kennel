@@ -19,6 +19,9 @@ import {
 import { CanineArt, DoorArt } from "./CanineArt";
 import { SecretExperience } from "./SecretExperience";
 import { ExternalWallet } from "./external-wallet";
+import { packCanines } from "../shared/pack";
+import { CanineTraits } from "./CanineTraits";
+import { GENERATIONS } from "../shared/canine-rules";
 import { Rules } from "./Rules";
 import { Breeding } from "./Breeding";
 import { Rebirth, RewardArt } from "./Rebirth";
@@ -197,12 +200,14 @@ function App() {
       setBusy(false);
     }
   }
+  const pack = packCanines(state);
   const pending = state.incubations.find((r) => r.stage !== "hatched");
   const disabled = busy || restoring || !!pending || !!state.setupError || !!state.incubationFeePending;
   return (
     <>
       <header className="header">
         <a className="brand" href="#incubator">
+          <img className="arkimals-emblem" src={import.meta.env.BASE_URL + "arkimals/emblem.svg"} alt="" />
           <span>
             <img
               className="arkimals-logo"
@@ -230,7 +235,7 @@ function App() {
             >
               {label}
               {key === "collection" && (
-                <span className="count">{state.canines.length}</span>
+                <span className="count">{pack.length}</span>
               )}
             </button>
           ))}
@@ -521,16 +526,16 @@ function App() {
               My <em>pack.</em>
             </h1>
             <p className="section-intro">
-              Your revealed canines. Their traits and ownership are now public
-              on Tari.{" "}
+              Your canines, in your wallet and staked in the farm. Their traits are public on Tari.{" "}
               <button className="text-button" onClick={() => setTab("rebirth")}>
                 View your Halloween rewards ({state.halloween?.length ?? 0}) →
               </button>
             </p>
-            {state.canines.length ? (
+            {(state.packError || state.setupError) && <p className="notice" role="status">{state.packError || state.setupError}</p>}
+            {pack.length ? (
               <div className="collection-grid">
-                {state.canines.map((c) => (
-                  <article className="canine-card" key={c.id}>
+                {pack.map(({ canine: c, staked }) => (
+                  <article className="canine-card" key={c.resource + c.id}>
                     <CanineArt
                       variant={c.variant}
                       genes={c.genes}
@@ -540,17 +545,19 @@ function App() {
                       {c.legacy
                         ? "Original collection"
                         : VARIANTS[c.variant].kind}{" "}
-                      · generation {c.generation}
+                      · generation {GENERATIONS[c.generation] ?? "Unknown"}
                     </span>
                     <h3>{c.name}</h3>
+                    <CanineTraits canine={c} breeding={state.breeding} />
                     <p>
                       {c.legacy
                         ? "Preserved from the first testnet collection, rendered from its original NFT genes."
                         : VARIANTS[c.variant].description}
                     </p>
                     <div className="public-nft">
-                      <Globe size={14} /> Public NFT · held by your wallet
+                      <Globe size={14} /> {staked ? "Staked · owned by you" : "In wallet"}
                     </div>
+                    {staked && <button className="text-button" onClick={() => setTab("staking")}>Manage stake →</button>}
                     <details>
                       <summary>NFT details</summary>
                       <dl>

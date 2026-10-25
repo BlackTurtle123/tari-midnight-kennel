@@ -108,6 +108,8 @@ export interface IncubationView {
   error?: string;
 }
 export interface GameState {
+  stakedCanines?: Canine[];
+  packError?: string;
   incubationFee?: import("./incubation-fee.ts").IncubationFee;
   incubationFeePending?: boolean;
   recoveryEconomies?: {

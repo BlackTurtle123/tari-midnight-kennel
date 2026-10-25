@@ -17,6 +17,7 @@ export type BreedingAction =
 export interface BreedingState {
   epoch: number;
   parents: Record<string, string>;
+  parentStatuses?: Record<string, number>;
   minted: number;
   requests: {
     id: string;

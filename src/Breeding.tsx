@@ -1,3 +1,4 @@
+import { CanineTraits } from "./CanineTraits";
 import { useEffect, useState } from "react";
 import { GitMerge, ArrowRight, Clock } from "lucide-react";
 import type { GameState } from "../shared/game";
@@ -193,6 +194,7 @@ export function Breeding({
                       >
                         <CanineArt genes={c.genes} name={c.name} />
                         <strong>{c.genotype ?? c.name}</strong>
+                        <CanineTraits canine={c} breeding={state.breeding} />
                         <small>{c.id.slice(0, 8)}…</small>
                         {reason && <span>{reason}</span>}
                       </button>
