@@ -2315,3 +2315,22 @@ textarea {
 .economy-canine h3 { margin: 0; line-height: 1.4; }
 .economy-canine > .economy-actions { margin-top: auto; padding-top: 8px; }
 .economy-canine > .economy-actions > button { width: 100%; }
+
+.manage-stake-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  width: fit-content;
+  min-height: 34px;
+  margin: 12px 0 4px;
+  padding: 6px 12px;
+  border: 1px solid #465369;
+  border-radius: 8px;
+  background: transparent;
+  color: #b0bacb;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.manage-stake-button:hover { background: #303b4d; color: #f1f4fa; border-color: #63718a; }

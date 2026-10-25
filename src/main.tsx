@@ -557,7 +557,7 @@ function App() {
                     <div className="public-nft">
                       <Globe size={14} /> {staked ? "Staked · owned by you" : "In wallet"}
                     </div>
-                    {staked && <button className="text-button" onClick={() => setTab("staking")}>Manage stake →</button>}
+                    {staked && <button type="button" className="manage-stake-button" onClick={() => setTab("staking")}>Manage stake</button>}
                     <details>
                       <summary>NFT details</summary>
                       <dl>
