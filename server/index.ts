@@ -5,12 +5,13 @@ import { ExternalService } from "./external-service.ts";
 import { CommunityService } from "./community.ts";
 const hosted = process.env.KENNEL_HOSTED === "true";
 const port = Number(process.env.PORT || 8787);
+const external = new ExternalService();
 const app = createApp({
   hosted,
   origin: process.env.KENNEL_PUBLIC_ORIGIN || `http://127.0.0.1:${port}`,
   basePath: process.env.KENNEL_BASE_PATH || "/",
   version: process.env.KENNEL_VERSION || "development",
-  external: new ExternalService(),
+  external,
   community: new CommunityService(),
   health: async () => {
     try {
@@ -28,3 +29,4 @@ app.listen(port, process.env.KENNEL_BIND_HOST || "127.0.0.1", () =>
   console.log(`Arkimals API listening on port ${port}`),
 );
 startEconomyKeeper();
+external.startRecovery();

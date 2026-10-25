@@ -104,7 +104,7 @@ export function liveSubstate(
 let provider: Promise<IndexerProvider> | undefined;
 async function indexer() {
   return (provider ??= IndexerProvider.connect({
-    url: "https://ootle-indexer-a.tari.com",
+    url: process.env.KENNEL_INDEXER_URL || "https://ootle-indexer-a.tari.com",
     network: Network.Esmeralda,
   }).catch((e) => {
     provider = undefined;

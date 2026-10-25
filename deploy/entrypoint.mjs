@@ -3,6 +3,9 @@ import { existsSync, mkdirSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { wallet } from "../server/wallet.ts";
 import { DATA_DIR, OPERATOR_NAME } from "../server/config.ts";
+import { INDEXER_ROUTE, startIndexerRouter } from "../server/indexer-routing.ts";
+await startIndexerRouter();
+process.env.KENNEL_INDEXER_URL = INDEXER_ROUTE;
 mkdirSync(DATA_DIR, { recursive: true, mode: 0o700 });
 const daemon = spawn(
   "/usr/local/bin/tari_ootle_walletd",
@@ -14,9 +17,7 @@ const daemon = spawn(
     "--network",
     "esmeralda",
     "--indexer-api-url",
-    "https://ootle-indexer-a.tari.com/",
-    "--indexer-api-url",
-    "https://ootle-indexer-b.tari.com/",
+    INDEXER_ROUTE,
     "--listen-on",
     "127.0.0.1:15101",
     "--authentication",
@@ -46,6 +47,13 @@ let connected = false;
 for (let attempt = 0; attempt < 60; attempt++) {
   try {
     const client = await wallet();
+    const settings = await client.settingsGet();
+    if (settings.indexer_urls.length !== 1 || settings.indexer_urls[0] !== INDEXER_ROUTE) {
+      // The deployment gateway captures and verifies the complete wallet state
+      // before this migration. All subsequent source selection is memory-only.
+      await client.settingsSet({ indexer_url: INDEXER_ROUTE, indexer_urls: null,
+        advanced_ui_features: null, claimed_accounts: null });
+    }
     for (const name of [OPERATOR_NAME])
       await client.accountsCreateOrGet({
         account: { Name: name },

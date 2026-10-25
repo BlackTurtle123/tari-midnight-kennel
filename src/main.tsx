@@ -322,7 +322,7 @@ function App() {
                       ?.scrollIntoView({ behavior: "smooth" })
                   }
                 >
-                  Find your familiar <ArrowRight size={18} />
+                  Hatch your arkimal <ArrowRight size={18} />
                 </button>
                 <div className="hero-foot">
                   <LockKeyhole size={15} /> An encrypted message in your Tari
