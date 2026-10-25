@@ -171,8 +171,7 @@ export function Rebirth({
           </div>
           <p className="fine-print">
             Original Arkimals artwork · New Esmeralda testnet NFTs · One random
-            reward per completed rebirth · No main-game redemption or item
-            powers
+            collectible reward per completed rebirth
           </p>
         </>
       ) : (

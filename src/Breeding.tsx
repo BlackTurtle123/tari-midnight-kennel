@@ -350,12 +350,7 @@ export function Breeding({
           ))}
         </div>
       )}
-      <p className="fine-print">
-        The core inheritance and generation rules follow the main game. EGG
-        payments, coupons, gene-fixing and mirroring are not active in this Tari
-        release. Staging prices are test configuration, not an EGG/TARI exchange
-        rate.
-      </p>
+
     </section>
   );
 }
