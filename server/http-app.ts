@@ -5,6 +5,7 @@ import type { ExternalService } from "./external-service.ts";
 import type { CommunityService } from "./community.ts";
 interface Options {
   origin: string;
+  additionalOrigins?: string[];
   basePath: string;
   hosted: boolean;
   version: string;
@@ -17,13 +18,17 @@ interface Options {
 }
 export function createApp(options: Options) {
   const app = express();
-  const publicUrl = new URL(options.origin);
-  if (options.hosted && publicUrl.protocol !== "https:")
-    throw new Error("Hosted mode requires HTTPS");
+  const publicUrls = [options.origin, ...(options.additionalOrigins ?? [])].map(origin => {
+    const url = new URL(origin);
+    if (options.hosted && url.protocol !== "https:") throw new Error("Hosted mode requires HTTPS");
+    if (url.origin !== origin) throw new Error("Public origins must not contain paths or credentials");
+    return url;
+  });
+  const allowedHosts = new Set(publicUrls.map(url => url.hostname));
   if (!/^\/(?:[a-z0-9-]+\/)*$/.test(options.basePath))
     throw new Error("Invalid base path");
   const allowedOrigins = new Set([
-    options.origin,
+    ...publicUrls.map(url => url.origin),
     ...(options.hosted
       ? []
       : ["http://127.0.0.1:5173", "http://localhost:5173"]),
@@ -40,7 +45,7 @@ export function createApp(options: Options) {
   app.use("/api", (req, res, next) => {
     res.set("Cache-Control", "no-store");
     if (
-      req.hostname !== publicUrl.hostname &&
+      !allowedHosts.has(req.hostname) &&
       !(
         req.path === "/health" &&
         ["127.0.0.1", "localhost"].includes(req.hostname)

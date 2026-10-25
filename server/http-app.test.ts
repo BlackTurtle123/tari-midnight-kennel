@@ -34,6 +34,7 @@ test("external-only HTTP rejects retired signing routes even with a valid legacy
   const app = createApp({
     hosted: true,
     origin: "https://staging.example.test",
+    additionalOrigins: ["https://tari.staging.arkimals-game.com"],
     basePath: "/tari/",
     version: "test",
     health: async () => true,
@@ -81,6 +82,11 @@ test("external-only HTTP rejects retired signing routes even with a valid legacy
     cookie: `kennel_staging_session=${token}; kennel_staging_session_identity=${token}`,
   };
   try {
+    const dedicated = { host: "tari.staging.arkimals-game.com", origin: "https://tari.staging.arkimals-game.com" };
+    assert.equal((await fetch(url + "/config", { headers: dedicated })).status, 200);
+    assert.equal((await fetch(url + "/config", { headers: { ...dedicated, origin: "https://near.staging.arkimals-game.com" } })).status, 403);
+    assert.equal((await fetch(url + "/config", { headers: { ...dedicated, host: "evil.example" } })).status, 403);
+    assert.equal((await fetch(url + "/config", { headers: { ...dedicated, origin: "http://tari.staging.arkimals-game.com" } })).status, 403);
     for (const [method, path] of [
       ["POST", "/connect"],
       ["POST", "/disconnect"],

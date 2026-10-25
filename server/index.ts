@@ -9,6 +9,7 @@ const external = new ExternalService();
 const app = createApp({
   hosted,
   origin: process.env.KENNEL_PUBLIC_ORIGIN || `http://127.0.0.1:${port}`,
+  additionalOrigins: process.env.KENNEL_ADDITIONAL_ORIGINS?.split(",").map(s => s.trim()).filter(Boolean),
   basePath: process.env.KENNEL_BASE_PATH || "/",
   version: process.env.KENNEL_VERSION || "development",
   external,

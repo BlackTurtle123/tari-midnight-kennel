@@ -20,6 +20,7 @@ services:
     environment:
       KENNEL_HOSTED: "true"
       KENNEL_PUBLIC_ORIGIN: https://staging.wavesducks.com
+      KENNEL_ADDITIONAL_ORIGINS: https://tari.staging.arkimals-game.com
       KENNEL_BASE_PATH: /tari/
       KENNEL_SESSION_SECRET_FILE: /run/kennel-secrets/session-key
       KENNEL_MAX_ACCOUNTS: "27"
