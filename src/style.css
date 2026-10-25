@@ -2302,3 +2302,12 @@ textarea {
 .canine-genes small { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 .canine-genes strong { font-family: monospace; font-size: 20px; letter-spacing: 2px; overflow-wrap: anywhere; }
 @media (max-width: 700px) { .arkimals-emblem { width: 36px; height: 36px; } }
+
+.canine-genes.pill { background: #244c3b; color: #b8f3cb; border: 1px solid #488465; border-radius: 12px; padding: 9px 13px; }
+.staked-canine { display: flex; align-items: center; gap: 22px; min-width: 0; }
+.staked-canine .canine-art { width: 150px; height: 160px; object-fit: contain; flex-shrink: 0; border-radius: 16px; background: #273345; }
+.stake-art-unavailable { width: 150px; padding: 32px 12px; text-align: center; color: #b0bacb; }
+@media (max-width: 600px) {
+  .staked-canine { gap: 14px; flex-wrap: wrap; }
+  .staked-canine .canine-art { width: 120px; height: 130px; }
+}

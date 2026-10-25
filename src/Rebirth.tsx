@@ -5,6 +5,16 @@ import { HALLOWEEN_REWARDS, type EconomyAction } from "../shared/rebirth";
 import type { GameState } from "../shared/game";
 import { CanineArt } from "./CanineArt";
 import type { ExternalWallet } from "./external-wallet";
+function StakedCanine({ state, resource, token }: { state: GameState; resource: string; token: string }) {
+  const canine = state.stakedCanines?.find(c => c.resource === resource && c.id === token);
+  return <div className="staked-canine">
+    {canine ? <CanineArt genes={canine.genes} name={canine.name} /> : <div className="stake-art-unavailable">Image unavailable</div>}
+    <div><strong>{canine?.name ?? "Staked canine"}</strong><p className="fine-print">Staked · {token.slice(0, 10)}…</p>
+      {canine && <CanineTraits canine={canine} breeding={state.breeding} />}
+    </div>
+  </div>;
+}
+
 export function RewardArt({
   reward,
   className = "",
@@ -384,7 +394,7 @@ export function Rebirth({
                 economy.stakes.map((p) => (
                   <article className="economy-position" key={p.id}>
                     <div>
-                      <strong>Staked canine · {p.token.slice(0, 10)}…</strong>
+                      <StakedCanine state={state} resource={p.resource} token={p.token} />
                       <p>{tari(p.claimable)} tTARI available to claim</p>
                     </div>
                     <div className="economy-actions">
@@ -415,7 +425,7 @@ export function Rebirth({
               {previousStakes.map((p) => (
                 <article className="economy-position" key={p.component + p.id}>
                   <div>
-                    <strong>Canine · {p.token.slice(0, 10)}…</strong>
+                    <StakedCanine state={state} resource={p.resource} token={p.token} />
                     <p>{tari(p.claimable)} tTARI to claim</p>
                   </div>
                   <button
