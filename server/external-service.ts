@@ -1,0 +1,374 @@
+import { PublicError } from "./public-error.ts";
+import { deliveryCommitments } from "./delivery-receipt.ts";
+import { economySnapshot, breedingSnapshot, stakedInventory } from "./external-chain.ts";
+import { createHash } from "node:crypto";
+import { join } from "node:path";
+import { stringLiteral } from "@tari-project/ootle";
+import { intentMessage, type WalletIntent } from "../shared/external-wallet.ts";
+import type { GameState } from "../shared/game.ts";
+import {
+  DATA_DIR,
+  deployment,
+  breedingDeployment,
+  activeRebirthDeployment,
+  recoveryRebirthDeployments,
+  OPERATOR_NAME,
+  TARI_RESOURCE,
+  incubationTreasury,
+  incubationTreasuryPending,
+} from "./config.ts";
+import { Journal, publicRecord, type Incubation } from "./journal.ts";
+import {
+  chainIncubations,
+  validateExternalAccount,
+  publicInventory,
+  type ChainIncubation,
+  incubationPayments,
+} from "./external-chain.ts";
+import { commitmentFor, createOpening, encodeMemo } from "./crypto.ts";
+import {
+  callInstructions,
+  submit,
+  wallet,
+  waitAccepted,
+  RejectedTransaction,
+  PendingTransaction,
+} from "./wallet.ts";
+import { serializeWallet, activations } from "./wallet-queue.ts";
+import { checkFeeFunds, ensureSpendableAccount, InsufficientFeeFunds } from "./account-readiness.ts";
+import { NotSubmitted } from "./submission-errors.ts";
+import { sameIncubationFee } from "../shared/incubation-fee.ts";
+import { recoverSeal } from "./seal-recovery.ts";
+
+export function verifyAuthorizedIntent(
+  intent: WalletIntent,
+  id: string,
+  signer: string,
+  chain?: ChainIncubation,
+) {
+  const expected = createHash("sha256")
+    .update(intentMessage(intent))
+    .digest("hex")
+    .slice(0, 32);
+  if (expected !== id)
+    throw new PublicError("Payment address does not match the signed incubation ID");
+  if (
+    !chain ||
+    chain.id !== id ||
+    chain.signer !== signer ||
+    chain.owner !== intent.account ||
+    chain.door !== intent.door
+  )
+    throw new PublicError(
+      "Waiting for your wallet's authorized incubation to confirm on Esmeralda. Check progress shortly.",
+    );
+}
+
+// Separate append-only journal. Existing wallet seeds, accounts, cookies and
+// hosted incubation histories are never migrated or replaced by this service.
+export class ExternalService {
+  constructor(
+    readonly journal = new Journal(join(DATA_DIR, "external-wallets")),
+    private readonly delivery = { chainIncubations, wallet, ensureSpendableAccount, submit, waitAccepted,
+      checkFeeFunds, recoverSeal, validateExternalAccount, incubationPayments },
+  ) {}
+  private busy = new Set<string>();
+  private deliveryOutputs = new Map<string, string[]>();
+  startRecovery() {
+    let running = false;
+    const tick = async () => {
+      if (running) return;
+      running = true;
+      try {
+        for (const record of this.journal.all()) {
+          if (!["ready", "hatched"].includes(record.stage)) await this.launch(record.id);
+        }
+      } finally { running = false; }
+    };
+    void tick();
+    const interval = setInterval(() => void tick(), 30_000);
+    interval.unref();
+    return () => clearInterval(interval);
+  }
+  config(): { component: string; resource: string; network: string; incubationFee?: import("../shared/incubation-fee.ts").IncubationFee } {
+    const d = deployment();
+    return { component: d.component, resource: d.resource, network: d.network, incubationFee: incubationTreasury() };
+  }
+  async prepare(intent: WalletIntent) {
+    if (incubationTreasuryPending())
+      throw new PublicError("New incubations are paused while the operator activates the 20 tTARI treasury. No approval or payment was requested.");
+    if (intent.component !== deployment().component)
+      throw new PublicError("Game deployment changed; reconnect your wallet");
+    intentMessage(intent);
+    await this.delivery.validateExternalAccount(intent.account, intent.paymentAddress);
+    if (
+      (await this.delivery.chainIncubations()).some(
+        (r) => r.owner === intent.account && !r.hatched,
+      )
+    )
+      throw new PublicError(
+        "Finish the incubation already owned by this wallet first",
+      );
+    const fee = incubationTreasury();
+    if (!sameIncubationFee(intent.fee, fee))
+      throw new PublicError("Incubation fee changed. Reconnect to review the current price before approving.");
+    if (fee) {
+      // Verify the immutable fee destination before approval. The player's
+      // atomic payment supplies the public reserve needed for delivery.
+      await this.delivery.incubationPayments(fee);
+    }
+    // Reserve both maximum network fees and the encrypted delivery's one
+    // microTari before asking the player to approve a paid incubation.
+    try {
+      await this.delivery.checkFeeFunds(await this.delivery.wallet(), OPERATOR_NAME, 2_000_001n);
+    } catch (error) {
+      if (error instanceof InsufficientFeeFunds)
+        throw new PublicError("The game's delivery wallet needs test Tari for network fees. Please try again after it is funded; no new incubation approval was requested.");
+      throw new PublicError("Unable to check the game's delivery wallet. Please try again shortly; no new incubation approval was requested.");
+    }
+    return { ok: true };
+  }
+  async register(intent: WalletIntent, id: string) {
+    if (intent.component !== deployment().component)
+      throw new PublicError("Incorrect game deployment");
+    const signer = await validateExternalAccount(
+      intent.account,
+      intent.paymentAddress,
+    );
+    const chain = (await chainIncubations()).find((r) => r.id === id);
+    verifyAuthorizedIntent(intent, id, signer, chain);
+    const prior = this.journal.get(id);
+    if (prior) {
+      if (
+        prior.owner !== intent.account ||
+        prior.externalAddress !== intent.paymentAddress
+      )
+        throw new PublicError("Incubation recipient is fixed");
+    } else {
+      if (incubationTreasuryPending())
+        throw new PublicError("Treasury activation is pending. Your existing wallet request is preserved; do not pay again.");
+      const fee = incubationTreasury();
+      if (!sameIncubationFee(intent.fee, fee))
+        throw new PublicError("This incubation needs operator review of its original approval; no additional payment was requested.");
+      if (fee && (await incubationPayments(fee))[id] !== intent.account)
+        throw new PublicError("Waiting for the same incubation's treasury payment to confirm. No additional payment was requested.");
+      if (chain!.hatched || chain!.commitment)
+        throw new PublicError(
+          "This incubation needs its original recovery record; no new secret was generated",
+        );
+      const opening = createOpening(id);
+      this.journal.save({
+        id,
+        owner: intent.account,
+        externalAddress: intent.paymentAddress,
+        door: intent.door,
+        opening,
+        commitment: commitmentFor(opening),
+        stage: "started",
+        createdAt: new Date().toISOString(),
+      });
+    }
+    void this.launch(id);
+    return publicRecord(this.journal.get(id)!);
+  }
+  async resume(account: string, id: string) {
+    const r = this.journal.get(id);
+    if (!r || r.owner !== account)
+      throw new PublicError(
+        "Reconnect the original wallet and resume its saved approval request",
+      );
+    // No recipient or signing keys can be changed by this public, idempotent trigger.
+    void this.launch(id);
+    return { ok: true };
+  }
+  async state(account: string): Promise<GameState> {
+    const chain = (await chainIncubations()).filter((r) => r.owner === account);
+    const d = deployment();
+    const state: GameState = {
+      connected: true,
+      network: "Esmeralda",
+      account,
+      component: d.component,
+      resource: d.resource,
+      incubationFee: incubationTreasury(),
+      incubationFeePending: incubationTreasuryPending(),
+      rebirth: activeRebirthDeployment(),
+      recoveryEconomies: recoveryRebirthDeployments().map((config) => ({
+        config,
+      })),
+      breedingConfig: breedingDeployment(),
+      canines: [],
+      incubations: chain.map((c) => {
+        const saved = this.journal.get(c.id);
+        if (saved)
+          return {
+            ...publicRecord(saved),
+            ...(c.hatched ? { stage: "hatched" as const } : {}),
+          };
+        return {
+          id: c.id,
+          door: c.door,
+          commitment: c.commitment,
+          stage: c.hatched ? "hatched" : "started",
+          createdAt: "",
+          error: c.hatched
+            ? undefined
+            : "Resume the saved wallet request in the browser that began this incubation.",
+        };
+      }),
+    };
+    for (const incubation of state.incubations) {
+      if (incubation.stage !== "ready" || !incubation.deliveryTx) continue;
+      try {
+        let outputs = this.deliveryOutputs.get(incubation.deliveryTx);
+        if (!outputs) {
+          const receipt = await (await this.delivery.wallet()).waitForTransactionResult({
+            transaction_id: incubation.deliveryTx, timeout_secs: 1,
+          });
+          outputs = deliveryCommitments(receipt, incubation.deliveryTx);
+          this.deliveryOutputs.set(incubation.deliveryTx, outputs);
+        }
+        incubation.deliveryCommitments = [...outputs];
+      } catch {
+        incubation.error = "The saved delivery receipt is temporarily unavailable. Your incubation remains saved; no new payment is needed.";
+      }
+    }
+    try {
+      Object.assign(state, await publicInventory(account));
+      if (state.rebirth)
+        state.economy = await economySnapshot(account, state.rebirth);
+      for (const recovery of state.recoveryEconomies ?? [])
+        recovery.state = await economySnapshot(account, recovery.config);
+      if (state.breedingConfig)
+        state.breeding = await breedingSnapshot(account);
+    } catch {
+      state.setupError =
+        "Unable to read this wallet's public holdings. Fund and activate the account in Sapient, or retry when the indexer is available.";
+    }
+    if (!state.setupError) {
+      try {
+        state.stakedCanines = await stakedInventory([
+          ...(state.economy?.stakes ?? []),
+          ...(state.recoveryEconomies ?? []).flatMap(r => r.state?.stakes ?? []),
+        ]);
+      } catch {
+        state.packError = "Staked canines could not be loaded. Your stakes remain safe; refresh to try again.";
+      }
+    }
+    return state;
+  }
+  private launch(id: string) {
+    if (this.busy.has(id)) return;
+    this.busy.add(id);
+    return serializeWallet(() => this.advance(id))
+      .catch((error) => {
+        const r = structuredClone(this.journal.get(id)!);
+        if (error instanceof NotSubmitted && r.stage === "sealing" && !r.sealTx)
+          r.stage = "started";
+        // Never reflect wallet/provider payloads: the delivery call contains a plaintext memo.
+        r.error = error instanceof InsufficientFeeFunds
+          ? "The game's delivery wallet needs test Tari for network fees. Your incubation is saved. Once the operator funds it, use Check progress to continue the same incubation; do not start or pay for another one."
+          : error instanceof PendingTransaction
+            ? "Delivery is waiting for network confirmation. Check progress to check the same transaction; it will not be submitted again."
+            : error instanceof RejectedTransaction
+              ? "The network rejected the saved delivery transaction. Your incubation and transaction are preserved for recovery; no replacement will be submitted."
+              : error instanceof NotSubmitted
+                ? "Network data is temporarily unavailable. Your incubation is saved and this delivery step has not been submitted."
+                : "Delivery is paused while the game checks its saved transaction and network data. Your incubation is saved; no replacement transaction will be submitted.";
+        this.journal.save(r);
+      })
+      .finally(() => this.busy.delete(id));
+  }
+  private async advance(id: string) {
+    const r = structuredClone(this.journal.get(id)!);
+    const c = (await this.delivery.chainIncubations()).find((c) => c.id === id);
+    if (!c || c.owner !== r.owner || c.door !== r.door)
+      throw new Error("Incubation mismatch");
+    const save = () => {
+      delete r.error;
+      this.journal.save(r);
+    };
+    if (c.hatched) {
+      r.stage = "hatched";
+      save();
+      return;
+    }
+    if (c.commitment && c.commitment !== r.commitment)
+      throw new Error("Commitment mismatch");
+    if (!c.commitment) {
+      if (!r.sealTx) {
+        if (r.stage === "sealing") {
+          r.sealTx = await this.delivery.recoverSeal(await this.delivery.wallet(), deployment().component, id, r.commitment);
+          if (!r.sealTx) throw new Error("Unknown seal submission");
+          r.reconciliation = { at: new Date().toISOString(), reason: "Recovered exact seal transaction from wallet history; no resubmission" };
+          save();
+        }
+      }
+      if (!r.sealTx) {
+        await this.delivery.ensureSpendableAccount(
+          await this.delivery.wallet(),
+          OPERATOR_NAME,
+          activations,
+        );
+        r.stage = "sealing";
+        save();
+        try {
+          r.sealTx = (await this.delivery.submit(
+            OPERATOR_NAME,
+            callInstructions(deployment().component, "seal_incubation", [
+              stringLiteral(id),
+              stringLiteral(r.commitment),
+            ]),
+          )).transaction_id;
+        } catch (error) {
+          // Read the daemon's persisted intent after an acknowledgement loss.
+          // An absent match remains blocked; it never authorizes a replacement.
+          if (error instanceof NotSubmitted) throw error;
+          r.sealTx = await this.delivery.recoverSeal(await this.delivery.wallet(), deployment().component, id, r.commitment);
+          if (!r.sealTx) throw error;
+          r.reconciliation = { at: new Date().toISOString(), reason: "Recovered exact seal transaction after lost acknowledgement; no resubmission" };
+        }
+        save();
+      }
+      await this.delivery.waitAccepted(r.sealTx);
+    }
+    if (!r.deliveryTx) {
+      if (r.stage === "delivering")
+        throw new Error("Unknown delivery submission");
+      r.stage = "sealed";
+      save();
+      await this.delivery.ensureSpendableAccount(await this.delivery.wallet(), OPERATOR_NAME, activations, 1_000_001n);
+      r.stage = "delivering";
+      save();
+      r.deliveryTx = (
+        await (
+          await this.delivery.wallet()
+        ).stealthTransfer({
+          owner_account: { Name: OPERATOR_NAME },
+          fee_params: {
+            input_selection: "PreferRevealed",
+            pay_fee_with_swap: null,
+          },
+          input_selection: "RevealedOnly",
+          resource_address: TARI_RESOURCE as `resource_${string}`,
+          max_fee: 1_000_000,
+          dry_run: false,
+          transfers: [
+            {
+              destination_address: r.externalAddress!,
+              blinded_output_amount: 1,
+              revealed_output_amount: "0",
+              output_memo: { Message: encodeMemo(r.opening) },
+              pay_to: "StealthPublicKey",
+              attach_sender_address: false,
+            },
+          ],
+        })
+      ).transaction_id;
+      save();
+    }
+    await this.delivery.waitAccepted(r.deliveryTx);
+    r.stage = "ready";
+    save();
+  }
+}

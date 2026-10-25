@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Public Waves data-entry keys, not API credentials"
+regexTarget = "match"
+regexes = ['''bonus_item_3P4Anrwd7rKDGyxXZRaocXVbKtg8TKEzf6D_rebirth(?:_chance|_end|_start)?''']

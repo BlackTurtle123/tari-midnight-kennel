@@ -1,0 +1,52 @@
+{
+  "name": "tari-midnight-kennel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "NODE_OPTIONS=--experimental-wasm-modules concurrently -k -n api,ui \"tsx watch server/index.ts\" \"vite --host 127.0.0.1\"",
+    "build": "tsc --noEmit && vite build",
+    "start": "NODE_OPTIONS=--experimental-wasm-modules tsx server/index.ts",
+    "test": "NODE_OPTIONS=--experimental-wasm-modules tsx --test server/*.test.ts",
+    "contract:build": "cargo build --manifest-path contract/Cargo.toml --target wasm32-unknown-unknown --release",
+    "contract:test": "cargo test --manifest-path contract/Cargo.toml",
+    "rebirth:build": "cargo build --locked --manifest-path rebirth-contract/Cargo.toml --target wasm32-unknown-unknown --release",
+    "rebirth:test": "cargo test --locked --manifest-path rebirth-contract/Cargo.toml",
+    "deploy:rebirth": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-rebirth.ts",
+    "setup:wallet": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/setup-wallet.ts",
+    "deploy:contract": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-contract.ts",
+    "deploy:staking": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-staking.ts",
+    "deploy:economy": "npm run deploy:staking && npm run deploy:rebirth",
+    "staking:build": "cargo build --locked --manifest-path staking-contract/Cargo.toml --target wasm32-unknown-unknown --release",
+    "breeding:build": "cargo build --locked --manifest-path breeding-contract/Cargo.toml --target wasm32-unknown-unknown --release",
+    "breeding:test": "cargo test --locked --manifest-path breeding-contract/Cargo.toml",
+    "deploy:unified-economy": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-staking.ts --unified && NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-rebirth.ts --unified",
+    "deploy:offspring-economy": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-offspring-economy.ts",
+    "deploy:breeding": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-breeding.ts",
+    "deploy:incubation-treasury": "NODE_OPTIONS=--experimental-wasm-modules tsx scripts/deploy-incubation-treasury.ts"
+  },
+  "dependencies": {
+    "@tari-project/ootle": "0.10.0",
+    "@tari-project/ootle-indexer": "0.10.0",
+    "@tari-project/wallet_jrpc_client": "1.26.0",
+    "express": "^5.1.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.4.0",
+    "concurrently": "^9.1.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.8.3",
+    "vite": "^6.3.0"
+  },
+  "engines": {
+    "node": ">=22.15.0"
+  }
+}

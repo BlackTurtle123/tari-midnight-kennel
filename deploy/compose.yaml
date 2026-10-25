@@ -1,0 +1,31 @@
+name: tari-midnight-kennel
+services:
+  kennel:
+    image: tari-midnight-kennel:${KENNEL_VERSION:?exact commit required}
+    container_name: tari-midnight-kennel-staging
+    user: "1001:1001"
+    init: true
+    restart: unless-stopped
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    cpus: "1.0"
+    mem_limit: 768m
+    pids_limit: 128
+    ports: ["127.0.0.1:18787:8787"]
+    volumes:
+      - /home/bram/tari-midnight-kennel/data:/data
+      - /home/bram/tari-midnight-kennel/secrets:/run/kennel-secrets:ro
+    tmpfs: ["/tmp:size=128m,mode=1777"]
+    environment:
+      KENNEL_HOSTED: "true"
+      KENNEL_PUBLIC_ORIGIN: https://staging.wavesducks.com
+      KENNEL_ADDITIONAL_ORIGINS: https://tari.staging.arkimals-game.com
+      KENNEL_BASE_PATH: /tari/
+      KENNEL_SESSION_SECRET_FILE: /run/kennel-secrets/session-key
+      KENNEL_MAX_ACCOUNTS: "27"
+      KENNEL_VERSION: ${KENNEL_VERSION}
+      KENNEL_ACTIVATE_INCUBATION_TREASURY: "true"
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
