@@ -37,7 +37,7 @@ This is application-level NFT staking funded by rebirth revenue. It does not tur
 
 Sapient is the only player login and signs inside the extension. Append-only public browser recovery records retain the exact action and wallet request ID. Unknown acknowledgements block duplicate requests; known request IDs are resumed. Old hosted player-signing endpoints are retired; account keys, master seed, cookie identities and fsynced journals remain preserved for controlled recovery. Transfers and seed backup are handled inside Sapient. The operator still signs secret delivery and epoch capture; its exact pre-signing checkpoint error can retry safely, while ambiguous errors remain blocked.
 
-Ootle v0.47.0 changed indexer response shapes and requires the matching wallet daemon. The app pins that daemon by published SHA-256 and uses the compatible SDK. It rejects unverified or spent indexer responses. The wallet's verified-read mode remains enabled.
+Ootle v0.49.2 changed indexer response shapes and requires the matching wallet daemon. The app pins that daemon by published SHA-256 and uses the compatible SDK. It rejects unverified or spent indexer responses. The wallet's verified-read mode remains enabled.
 
 Build both new crates and copy their WASMs into `deploy/artifacts`. Deploy the app through the verified manual staging gateway. Capture and verify a complete wallet before-image before any publication. `npm run deploy:economy` publishes/creates staking first, then rebirth, using only bounded operator test funds. Submission markers are fsynced before calls, and deployment descriptors are created exclusively as `staking-v1.json` and `rebirth-v1.json`. Existing incubation deployments and journals are not replaced.
 

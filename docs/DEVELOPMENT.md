@@ -2,7 +2,7 @@
 
 ## Setup
 
-Prerequisites: Node.js 22.15+, npm, Rust stable with `wasm32-unknown-unknown`, and the official Tari Ootle wallet daemon **v0.47.0**. The contract pins `tari_template_lib 0.34.0` and tests use `tari_template_test_tooling 0.46.1`. Linux native build tools including a C/C++ compiler are required for engine tests. Download wallet binaries from [official Tari releases](https://github.com/tari-project/tari-ootle/releases/tag/v0.47.0).
+Prerequisites: Node.js 22.15+, npm, Rust stable with `wasm32-unknown-unknown`, and the official Tari Ootle wallet daemon **v0.49.2**. The contract pins `tari_template_lib 0.37.0` and tests use `tari_template_test_tooling 0.49.2`. Linux native build tools including a C/C++ compiler are required for engine tests. Download wallet binaries from [official Tari releases](https://github.com/tari-project/tari-ootle/releases/tag/v0.49.2).
 
 Use a **new, dedicated testnet wallet**. The following local PoC configuration uses no wallet authentication and therefore must remain on loopback, on a trusted single-user development computer. Never expose it through a tunnel, reverse proxy or public host. Do not point this app at a valuable wallet.
 
