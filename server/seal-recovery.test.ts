@@ -9,7 +9,7 @@ const id = "01".repeat(16), commitment = "02".repeat(32), publicKey = "03".repea
 function transaction(): WalletTransaction {
   return { id: "04".repeat(32), status: "New", is_dry_run: false,
     transaction: { V1: { seal_signature: { public_key: publicKey }, body: { signatures: [], transaction: {
-      network: 38, dry_run: false, is_seal_signer_authorized: true, blob_hashes: [],
+      network: 38, dry_run: false, blob_hashes: [],
       fee_instructions: [{ CallMethod: { call: { Address: account }, method: "pay_fee", args: [{ Literal: "1a000f4240" }] } }],
       instructions: [{ CallMethod: { call: { Address: component }, method: "seal_incubation", args: [stringLiteral(id), stringLiteral(commitment)] } }],
     } } } } } as unknown as WalletTransaction;
