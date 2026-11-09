@@ -9,8 +9,8 @@ RUN npm run build
 
 FROM debian:bookworm-slim AS wallet
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl && rm -rf /var/lib/apt/lists/*
-RUN curl -fL --retry 3 https://github.com/tari-project/tari-ootle/releases/download/v0.49.2/tari_ootle_walletd-0.49.2-aa7b0c8-linux-x86_64 -o /tari_ootle_walletd \
- && echo '57e753dd30f36405a0e092edbe65abd800d9e9d0718579225975b0969277914c  /tari_ootle_walletd' | sha256sum --check --strict \
+RUN curl -fL --retry 3 https://github.com/tari-project/tari-ootle/releases/download/v0.50.1/tari_ootle_walletd-0.50.1-0b3f364-linux-x86_64 -o /tari_ootle_walletd \
+ && echo '19a295db26716630c25392c1b32da9b1830d331c295f88bd79a7b89d183effbb  /tari_ootle_walletd' | sha256sum --check --strict \
  && chmod 755 /tari_ootle_walletd
 
 FROM node:22-bookworm-slim
