@@ -1,5 +1,5 @@
 import { IndexerProvider } from "@tari-project/ootle-indexer";
-import { Network, getVaultIdsForAccount } from "@tari-project/ootle";
+import { Network, getVaultIdsForAccount, decodeSubstateValue } from "@tari-project/ootle";
 import { parseOotleAddress } from "@tari-project/ootle-wasm";
 import { z } from "zod";
 import { readEpochHashes } from "./epoch-hashes.ts";
@@ -99,7 +99,7 @@ export function liveSubstate(
     throw new Error(
       "A verified live substate is not available yet. Try again after the network confirms it.",
     );
-  return { substate: r.state.up.substate };
+  return { substate: decodeSubstateValue(r.state.up.substate) };
 }
 let provider: Promise<IndexerProvider> | undefined;
 async function indexer() {

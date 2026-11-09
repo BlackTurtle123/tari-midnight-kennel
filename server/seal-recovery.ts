@@ -19,7 +19,7 @@ export function matchingSeal(
     } };
     const fee = body.fee_instructions[0];
     return !tx.is_dry_run && !body.dry_run && body.network === 0x26 &&
-      body.is_seal_signer_authorized && sealed.seal_signature.public_key === publicKey &&
+      sealed.seal_signature.public_key === publicKey &&
       body.blob_hashes.length === 0 && sealed.body.signatures.length === 0 &&
       isDeepStrictEqual(body.instructions, [expected]) && body.fee_instructions.length === 1 &&
       typeof fee === "object" && fee !== null && "CallMethod" in fee && fee.CallMethod.method === "pay_fee" &&

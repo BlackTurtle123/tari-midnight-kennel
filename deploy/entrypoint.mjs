@@ -18,6 +18,8 @@ const daemon = spawn(
     "esmeralda",
     "--indexer-api-url",
     INDEXER_ROUTE,
+    "-p",
+    "esmeralda.ootle_wallet_daemon.indexer_trust=verify",
     "--listen-on",
     "127.0.0.1:15101",
     "--authentication",

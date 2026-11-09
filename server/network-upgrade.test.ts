@@ -3,11 +3,11 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { liveSubstate } from "./external-chain.ts";
 
-test("Ootle 0.47 reads only proven live substates and rejects spent or unverified answers", () => {
-  const substate = { Component: {} } as never;
+test("Ootle reads only proven live substates and rejects spent or unverified answers", () => {
+  const substate = "ggKBgoIDg9iDWCABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAA==";
   assert.deepEqual(
     liveSubstate({ version: 1, verified: true, state: { up: { substate } } }),
-    { substate },
+    { substate: { Vault: { resource_container: { Stealth: { address: "resource_" + "01".repeat(32), revealed_amount: "0", locked_amount: "0" } }, freeze_flags: 0 } } },
   );
   assert.throws(
     () =>

@@ -30,7 +30,7 @@ This is an Esmeralda testnet game. Use Sapient with test coins. Wallet keys stay
 
 ## Run locally
 
-Requirements: Node.js 22.15+, npm, Rust with `wasm32-unknown-unknown`, and Tari walletd v0.47.0. Use a dedicated Esmeralda operator wallet on loopback; never expose its RPC or use a valuable wallet.
+Requirements: Node.js 22.15+, npm, Rust with `wasm32-unknown-unknown`, and Tari walletd v0.50.1. Use a dedicated Esmeralda operator wallet on loopback; never expose its RPC or use a valuable wallet.
 
 ```sh
 npm ci
