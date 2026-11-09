@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { liveSubstate } from "./external-chain.ts";
 
-test("Ootle 0.49 reads only proven live substates and rejects spent or unverified answers", () => {
+test("Ootle reads only proven live substates and rejects spent or unverified answers", () => {
   const substate = "ggKBgoIDg9iDWCABAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQAAAA==";
   assert.deepEqual(
     liveSubstate({ version: 1, verified: true, state: { up: { substate } } }),
